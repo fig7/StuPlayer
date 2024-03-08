@@ -9,13 +9,27 @@ import Foundation
 
 @MainActor class PlayerSelection: ObservableObject
 {
-  @Published var artist: String = ""
-  @Published var album:  String = ""
+  @Published var rootPath = ""
+  @Published var typeList: [String] = []
 
-  @Published var playlist: String = ""
-  @Published var track:    String = ""
+  @Published var type = ""
+
+  @Published var artist = ""
+  @Published var album  = ""
+
+  @Published var playlist = ""
+  @Published var track    = ""
 
   @Published var list: [String] = []
+
+  func setRootPath(newRootPath: String) {
+    self.rootPath = newRootPath
+  }
+
+  func setTypes(newType: String, newTypeList: [String]) {
+    self.type     = newType
+    self.typeList = newTypeList
+  }
 
   func setArtist(newArtist: String, newList: [String]) {
     self.album  = ""
@@ -25,7 +39,7 @@ import Foundation
   }
 
   func setAlbum(newAlbum: String, newList: [String]) {
-    self.album    = newAlbum
+    self.album = newAlbum
     self.list  = newList
   }
 

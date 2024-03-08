@@ -8,9 +8,6 @@
 import SwiftUI
 
 struct ContentView: View {
-  @State private var typeSelection = "MP3"
-  let musicTypes = ["MP3", "FLAC", "MOD"]
-
   let model: PlayerDataModel
   @ObservedObject var playerSelection: PlayerSelection
 
@@ -21,7 +18,7 @@ struct ContentView: View {
           Text("Root folder: ").padding(.horizontal, 10).padding(.vertical, 2)
         }
 
-        Text("/Volumes/Mini external/Music").padding(.horizontal, 10).padding(.vertical, 2)
+        Text(playerSelection.rootPath).padding(.horizontal, 10).padding(.vertical, 2)
 
         Button(action: model.scanFolders) {
           Text("Rescan").padding(.horizontal, 10).padding(.vertical, 2)
@@ -31,8 +28,8 @@ struct ContentView: View {
       Spacer().frame(height: 15)
 
       HStack {
-        Picker("Type:", selection: $typeSelection) {
-          ForEach(musicTypes, id: \.self) {
+        Picker("Type:", selection: $playerSelection.type) {
+          ForEach(playerSelection.typeList, id: \.self) {
             Text($0)
           }
         }
@@ -62,10 +59,16 @@ struct ContentView: View {
 
       HStack {
         Button(action: model.playAll) {
-          Text("Play all").padding(.horizontal, 10).padding(.vertical, 2)
+          Text(" Play ").padding(.horizontal, 10).padding(.vertical, 2)
         }
 
         Spacer().frame(width: 20)
+
+        Button(action: model.stopAll) {
+          Text(" Stop ").padding(.horizontal, 10).padding(.vertical, 2)
+        }
+
+        Spacer().frame(width: 30)
 
         Button(action: model.toggleShuffle) {
           Text("Order: from m3u").padding(.horizontal, 10).padding(.vertical, 2)

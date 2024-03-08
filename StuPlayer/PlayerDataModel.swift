@@ -10,26 +10,37 @@ import AppKit
 import SFBAudioEngine
 
 // Local storage paths
-let rootURLFile = "RootURL.dat"
-let mp3File     = "MP3.dat"
-let mp3FileU    = "MP3_M3U.dat"
+let rootURLFile     = "RootURL.dat"
+let rootTypesFile   = "RootTypes.dat"
 
-// File system paths
-let rootURLPath  = "/Volumes/Mini external/"
-let musicURLPath = rootURLPath + "Music/MP3/"
-let flacURLPath  = rootURLPath + "Music (FLAC)/"
-let modURLPath   = rootURLPath + "Music (MOD)/"
+let m3UFile         = "Playlists.dat"
+let trackFile       = "Tracks.dat"
+let typeFile        = "Type.dat"
 
-class PlayerDataModel {
+typealias M3UDict   = [String : [String : String]]
+typealias TrackDict = [String : [String : [String]]]
+
+typealias AllM3UDict     = [String : M3UDict]
+typealias AllTracksDict  = [String : TrackDict]
+
+class PlayerDataModel : NSObject, AudioPlayer.Delegate {
   let fm: FileManager
   var bmData: Data?
+
+  var rootURLPath  = "/"
+  var musicURLPath = "/"
 
   let player: AudioPlayer
   var playerSelection: PlayerSelection
 
-  var m3UDict: [String : [String : String]]
-  var mp3Dict: [String : [String : [String]]]
+  var allM3UDict: AllM3UDict
+  var allTracksDict: AllTracksDict
 
+  var m3UDict: M3UDict
+  var tracksDict: TrackDict
+  var typesList: [String]
+
+  var type: String
   var artist: String
   var album: String
 
@@ -38,14 +49,18 @@ class PlayerDataModel {
 
   init(playerSelection: PlayerSelection) {
     self.playerSelection = playerSelection
+    self.player = AudioPlayer()
 
     self.fm = FileManager.default
-
-    self.m3UDict = PlayerDataModel.getM3UDict(m3UFile: mp3FileU)
-    self.mp3Dict = PlayerDataModel.getTrackDict(trackFile: mp3File)
-
     self.bmData = PlayerDataModel.getBookmarkData()
-    self.player = AudioPlayer()
+    self.allM3UDict = PlayerDataModel.getM3UDict(m3UFile: m3UFile)
+    self.allTracksDict = PlayerDataModel.getTrackDict(trackFile: trackFile)
+
+    self.typesList = PlayerDataModel.getTypes(typesFile: rootTypesFile)
+    self.type = PlayerDataModel.getSelectedType(typeFile: typeFile)
+
+    self.m3UDict    = allM3UDict[self.type] ?? [:]
+    self.tracksDict = allTracksDict[self.type] ?? [:]
 
     self.artist = ""
     self.album  = ""
@@ -53,8 +68,23 @@ class PlayerDataModel {
     self.playlist = ""
     self.track    = ""
 
+    // NSObject
+    super.init()
+
     Task {
-      await self.playerSelection.setAll(newArtist: self.artist, newAlbum: self.album, newList: mp3Dict.keys.sorted())
+      player.delegate = self
+
+      await playerSelection.setTypes(newType: self.type, newTypeList: self.typesList)
+      await playerSelection.setAll(newArtist: self.artist, newAlbum: self.album, newList: self.tracksDict.keys.sorted())
+    }
+  }
+
+  func audioPlayerEndOfAudio(_ audioPlayer: AudioPlayer) {
+    playlist = ""
+    track = ""
+
+    Task {
+      await playerSelection.setPlaylist(newPlaylist: playlist, newTrack: track)
     }
   }
 
@@ -65,7 +95,7 @@ class PlayerDataModel {
     album  = ""
 
     Task {
-      await playerSelection.setArtist(newArtist: artist, newList: mp3Dict.keys.sorted())
+      await playerSelection.setArtist(newArtist: artist, newList: tracksDict.keys.sorted())
     }
 
   }
@@ -76,7 +106,7 @@ class PlayerDataModel {
     album = ""
 
     Task {
-      await playerSelection.setAlbum(newAlbum: album, newList: mp3Dict[artist]!.keys.sorted())
+      await playerSelection.setAlbum(newAlbum: album, newList: tracksDict[artist]!.keys.sorted())
     }
   }
 
@@ -85,26 +115,25 @@ class PlayerDataModel {
       artist = item
 
       Task {
-        await playerSelection.setArtist(newArtist: artist, newList: mp3Dict[artist]!.keys.sorted())
+        await playerSelection.setArtist(newArtist: artist, newList: tracksDict[artist]!.keys.sorted())
       }
     } else if(album.isEmpty) {
       album = item
 
       Task {
-        await playerSelection.setAlbum(newAlbum: album, newList: mp3Dict[artist]![album]!)
+        await playerSelection.setAlbum(newAlbum: album, newList: tracksDict[artist]![album]!)
       }
     } else {
-      track = item
-
       if let bmData {
         do {
           var isStale = false
           let bmURL = try URL(resolvingBookmarkData: bmData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
           if(bmURL.startAccessingSecurityScopedResource()) {
-            let url = URL(fileURLWithPath: musicURLPath + artist + "/" + album + "/" + track)
+            let url = URL(fileURLWithPath: musicURLPath + artist + "/" + album + "/" + item)
             try player.play(url)
 
             playlist = m3UDict[artist]![album]!
+            track = item
 
             Task {
               await playerSelection.setPlaylist(newPlaylist: playlist, newTrack: track)
@@ -118,43 +147,70 @@ class PlayerDataModel {
   }
 
   func playAll() {
-    
+  }
+
+  func stopAll() {
+    player.stop()
+
+    playlist = ""
+    track = ""
+
+    Task {
+      await playerSelection.setPlaylist(newPlaylist: playlist, newTrack: track)
+    }
   }
 
   func toggleShuffle() {
-
   }
 
   func toggleRepeat() {
-    
   }
 
-  static func getM3UDict(m3UFile: String) -> [String : [String : String]] {
+  static func getM3UDict(m3UFile: String) -> AllM3UDict {
     let m3UData = NSData(contentsOfFile: m3UFile) as Data?
     guard let m3UData else {
       return [:]
     }
 
     do {
-      return try PropertyListDecoder().decode([String : [String : String]].self, from: m3UData)
+      return try PropertyListDecoder().decode(AllM3UDict.self, from: m3UData)
     }
     catch {
       return [:]
     }
   }
 
-  static func getTrackDict(trackFile: String) -> [String : [String : [String]]] {
+  static func getTrackDict(trackFile: String) -> AllTracksDict {
     let trackData = NSData(contentsOfFile: trackFile) as Data?
     guard let trackData else {
       return [:]
     }
 
     do {
-      return try PropertyListDecoder().decode([String : [String : [String]]].self, from: trackData)
+      return try PropertyListDecoder().decode(AllTracksDict.self, from: trackData)
     }
     catch {
       return [:]
     }
+  }
+
+  static func getTypes(typesFile: String) -> [String] {
+    let typesData = NSData(contentsOfFile: typesFile) as Data?
+    guard let typesData else {
+      return []
+    }
+
+    let typesStr = String(decoding: typesData, as: UTF8.self)
+    return typesStr.split(whereSeparator: \.isNewline).map(String.init)
+  }
+
+  static func getSelectedType(typeFile: String) -> String {
+    let typeData = NSData(contentsOfFile: typeFile) as Data?
+    guard let typeData else {
+      return ""
+    }
+
+    return String(decoding: typeData, as: UTF8.self)
   }
 
   static func getBookmarkData() -> Data? {
@@ -181,7 +237,12 @@ class PlayerDataModel {
         let bmData = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
         fm.createFile(atPath: rootURLFile, contents: bmData, attributes: nil)
 
-        self.scanFolders(fm: fm, bmData: bmData)
+        rootURLPath = url.path().removingPercentEncoding!
+        scanFolders(fm: fm, bmData: bmData)
+
+        Task {
+          await self.playerSelection.setRootPath(newRootPath:self.rootURLPath)
+        }
       } catch {
         // HANDLE ERROR HERE ...
         return
@@ -206,11 +267,11 @@ class PlayerDataModel {
     }
   }
 
-  func scanAlbums(artistPath: String) -> (m3U: [String : String], tracks: [String : [String]]) {
+  func scanAlbums(artistPath: String) -> (m3Us: [String : String], tracks: [String : [String]]) {
     do {
       let albums = try fm.contentsOfDirectory(atPath: artistPath)
-      var m3UDict: [String  : String] = [:]
-      var tracksDict: [String  : [String]] = [:]
+      var m3Us: [String  : String] = [:]
+      var tracks: [String  : [String]] = [:]
 
       for album in albums {
         let filePath = artistPath + album
@@ -221,30 +282,32 @@ class PlayerDataModel {
           let files = try fm.contentsOfDirectory(atPath: albumPath)
           for file in files {
             if(file.hasSuffix(".m3u")) {
-              m3UDict[album]   = file
-              tracksDict[album] = scanM3U(m3UPath: albumPath + file)
+              m3Us[album]   = file
+              tracks[album] = scanM3U(m3UPath: albumPath + file)
               break
             }
           }
         }
       }
 
-      return (m3U: m3UDict, tracks: tracksDict)
+      return (m3Us, tracks)
     } catch {
       // HANDLE ERROR HERE ...
-      return (m3U: [:], tracks: [:])
+      return ([:], [:])
     }
   }
 
   func scanFolders(fm: FileManager, bmData: Data) {
+    scanTypes()
+
     do {
       var isStale = false
       let bmURL = try URL(resolvingBookmarkData: bmData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
       if(bmURL.startAccessingSecurityScopedResource()) {
         do {
           let mp3Artists = try fm.contentsOfDirectory(atPath: musicURLPath)
-          var m3UDict: [String : [String : String]] = [:]
-          var trackDict: [String : [String : [String]]] = [:]
+          var m3Us: [String : [String : String]] = [:]
+          var tracks: [String : [String : [String]]] = [:]
 
           // Make a dictionary for each one and write it out
           for artist in mp3Artists {
@@ -254,15 +317,15 @@ class PlayerDataModel {
             if(fm.fileExists(atPath: filePath, isDirectory: &isDir) && isDir.boolValue) {
               let albumDict = scanAlbums(artistPath: filePath + "/")
 
-              m3UDict[artist]   = albumDict.m3U
-              trackDict[artist] = albumDict.tracks
+              m3Us[artist]   = albumDict.m3Us
+              tracks[artist] = albumDict.tracks
             }
           }
 
-          let data1 = try PropertyListEncoder().encode(m3UDict)
+          let data1 = try PropertyListEncoder().encode(m3Us)
           try data1.write(to: URL(fileURLWithPath:mp3FileU))
 
-          let data2 = try PropertyListEncoder().encode(trackDict)
+          let data2 = try PropertyListEncoder().encode(tracks)
           try data2.write(to: URL(fileURLWithPath:mp3File))
 
           // let flacArtists   = try fm.contentsOfDirectory(atPath: "/Volumes/Mini external/Music (FLAC)")
@@ -290,6 +353,11 @@ class PlayerDataModel {
 
   func setRootFolder() {
     bmData = nil
+
+    rootURLPath  = "/"
+    musicURLPath = "/"
+    musicTypes   = []
+
     getPermissionAndScanFolders()
   }
 
