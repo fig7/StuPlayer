@@ -24,12 +24,12 @@ typealias TrackDict = [String : [String : [String]]]
 typealias AllM3UDict     = [String : M3UDict]
 typealias AllTracksDict  = [String : TrackDict]
 
-class PlayerDataModel : NSObject, AudioPlayer.Delegate {
+class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate {
   let fm: FileManager
   var bmData: Data?
 
-  var rootPath  = ""
-  var musicPath = ""
+  var rootPath: String
+  var musicPath: String
 
   let player: AudioPlayer
   var playerSelection: PlayerSelection
@@ -64,6 +64,7 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate {
 
     self.m3UDict    = allM3UDict[self.type] ?? [:]
     self.tracksDict = allTracksDict[self.type] ?? [:]
+    self.musicPath  = rootPath + type + "/"
 
     self.artist = ""
     self.album  = ""
@@ -77,8 +78,10 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate {
     Task {
       player.delegate = self
 
-      await playerSelection.setTypes(newType: self.type, newTypeList: self.typesList)
-      await playerSelection.setAll(newArtist: self.artist, newAlbum: self.album, newList: self.tracksDict.keys.sorted())
+      await playerSelection.setDelegate(delegate: self)
+      await playerSelection.setRootPath(newRootPath: rootPath)
+      await playerSelection.setTypes(newType: type, newTypeList: typesList)
+      await playerSelection.setAll(newArtist: artist, newAlbum: album, newList: tracksDict.keys.sorted())
     }
   }
 
@@ -143,7 +146,7 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate {
             }
           }
         } catch {
-          
+          // Handle error
         }
       }
     }
@@ -236,7 +239,7 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate {
     openPanel.canCreateDirectories = false
     openPanel.canChooseFiles = false
     openPanel.prompt = "Grant Access"
-    openPanel.directoryURL = URL(fileURLWithPath: rootPath)
+    openPanel.directoryURL = URL(fileURLWithPath: "/")
 
     openPanel.begin { [weak self] result in
       guard let self else { return }
@@ -246,17 +249,19 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate {
       }
 
       do {
-        let bmData = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+        bmData = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
         fm.createFile(atPath: rootBookmark, contents: bmData, attributes: nil)
 
         rootPath = url.path().removingPercentEncoding!
+        try rootPath.write(toFile: rootFile, atomically: true, encoding: .utf8)
+
         scanFolders()
 
         Task {
-          await self.playerSelection.setRootPath(newRootPath:self.rootURLPath)
+          await self.playerSelection.setRootPath(newRootPath: self.rootPath)
         }
       } catch {
-        // HANDLE ERROR HERE ...
+        // Handle error
         return
       }
     }
@@ -279,43 +284,38 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate {
     }
   }
 
-  func scanAlbums(artistPath: String) -> (m3Us: [String : String], tracks: [String : [String]]) {
-    do {
-      let albums = try fm.contentsOfDirectory(atPath: artistPath)
-      var m3Us: [String  : String] = [:]
-      var tracks: [String  : [String]] = [:]
+  func scanAlbums(artistPath: String) throws -> (m3Us: [String : String], tracks: [String : [String]]) {
+    let albums = try fm.contentsOfDirectory(atPath: artistPath)
+    var m3Us: [String  : String] = [:]
+    var tracks: [String  : [String]] = [:]
 
-      for album in albums {
-        let filePath = artistPath + album
+    for album in albums {
+      let filePath = artistPath + album
 
-        var isDir: ObjCBool = false
-        if(fm.fileExists(atPath: filePath, isDirectory: &isDir) && isDir.boolValue) {
-          let albumPath = filePath + "/"
-          let files = try fm.contentsOfDirectory(atPath: albumPath)
-          for file in files {
-            if(file.hasSuffix(".m3u")) {
-              m3Us[album]   = file
-              tracks[album] = scanM3U(m3UPath: albumPath + file)
-              break
-            }
+      var isDir: ObjCBool = false
+      if(fm.fileExists(atPath: filePath, isDirectory: &isDir) && isDir.boolValue) {
+        let albumPath = filePath + "/"
+        let files = try fm.contentsOfDirectory(atPath: albumPath)
+        for file in files {
+          if(file.hasSuffix(".m3u")) {
+            m3Us[album]   = file
+            tracks[album] = scanM3U(m3UPath: albumPath + file)
+            break
           }
         }
       }
-
-      return (m3Us, tracks)
-    } catch {
-      // HANDLE ERROR HERE ...
-      return ([:], [:])
     }
+
+    return (m3Us, tracks)
   }
 
   func scanTypes() throws {
     typesList.removeAll()
     type = ""
 
-    let types = try fm.contentsOfDirectory(atPath: rootURLPath)
+    let types = try fm.contentsOfDirectory(atPath: rootPath)
     for type in types {
-      let filePath = rootURLPath + type
+      let filePath = rootPath + type
 
       var isDir: ObjCBool = false
       if(fm.fileExists(atPath: filePath, isDirectory: &isDir) && isDir.boolValue) {
@@ -326,28 +326,27 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate {
     typesList.sort()
     let joinedTypes = typesList.joined(separator: "\n")
     try joinedTypes.write(toFile: rootTypesFile, atomically: true, encoding: .utf8)
-
-    if(typesList.count > 0) { type = typesList[0] }
-    try type.write(toFile: typeFile, atomically: true, encoding: .utf8)
   }
 
-  func scanArtists() throws {
-    let mp3Artists = try fm.contentsOfDirectory(atPath: musicURLPath)
-    var m3Us: [String : [String : String]] = [:]
-    var tracks: [String : [String : [String]]] = [:]
+  func scanArtists(typePath: String) throws -> (m3Us: M3UDict, tracks: TrackDict) {
+    let artists = try fm.contentsOfDirectory(atPath: typePath)
+    var m3Us: M3UDict = [:]
+    var tracks: TrackDict = [:]
 
     // Make a dictionary for each one and write it out
-    for artist in mp3Artists {
-      let filePath = musicURLPath + artist
+    for artist in artists {
+      let filePath = typePath + artist
 
       var isDir: ObjCBool = false
       if(fm.fileExists(atPath: filePath, isDirectory: &isDir) && isDir.boolValue) {
-        let albumDict = scanAlbums(artistPath: filePath + "/")
+        let albumDict = try scanAlbums(artistPath: filePath + "/")
 
         m3Us[artist]   = albumDict.m3Us
         tracks[artist] = albumDict.tracks
       }
     }
+
+    return (m3Us, tracks)
   }
 
   func scanFolders() {
@@ -367,9 +366,18 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate {
         try scanTypes()
 
         for type in typesList {
-          musicURLPath = rootURLPath + type + "/"
-          try scanArtists()
+          let artistDict = try scanArtists(typePath: rootPath + type + "/")
+
+          allM3UDict[type]    = artistDict.m3Us
+          allTracksDict[type] = artistDict.tracks
         }
+
+        if(typesList.count > 0) { type = typesList[0] }
+        try type.write(toFile: typeFile, atomically: true, encoding: .utf8)
+
+        m3UDict    = allM3UDict[self.type] ?? [:]
+        tracksDict = allTracksDict[self.type] ?? [:]
+        musicPath  = rootPath + type + "/"
 
         let data1 = try PropertyListEncoder().encode(allM3UDict)
         try data1.write(to: URL(fileURLWithPath:m3UFile))
@@ -382,8 +390,8 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate {
         album  = ""
 
         Task {
-          await playerSelection.setTypes(newType: self.type, newTypeList: self.typesList)
-          await self.playerSelection.setAll(newArtist: artist, newAlbum: album, newList: tracksDict.keys.sorted())
+          await playerSelection.setTypes(newType: type, newTypeList: typesList)
+          await playerSelection.setAll(newArtist: artist, newAlbum: album, newList: tracksDict.keys.sorted())
         }
       } catch {
           // Handle error
@@ -399,5 +407,27 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate {
     musicPath = ""
 
     getPermissionAndScanFolders()
+  }
+
+  func typeChanged(newType: String) {
+    if(type == newType) { return }
+
+    type = newType
+    do {
+      try type.write(toFile: typeFile, atomically: true, encoding: .utf8)
+    } catch {
+      // Ignore error
+    }
+
+    m3UDict    = allM3UDict[self.type] ?? [:]
+    tracksDict = allTracksDict[self.type] ?? [:]
+    musicPath = rootPath + type + "/"
+
+    artist = ""
+    album  = ""
+
+    Task {
+      await playerSelection.setAll(newArtist: artist, newAlbum: album, newList: tracksDict.keys.sorted())
+    }
   }
 }

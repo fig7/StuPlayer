@@ -9,10 +9,18 @@ import Foundation
 
 @MainActor class PlayerSelection: ObservableObject
 {
+  protocol Delegate: AnyObject {
+    func typeChanged(newType: String)
+  }
+
   @Published var rootPath = ""
   @Published var typeList: [String] = []
 
-  @Published var type = ""
+  @Published var type: String = "" {
+    didSet {
+      delegate?.typeChanged(newType: type)
+    }
+  }
 
   @Published var artist = ""
   @Published var album  = ""
@@ -21,6 +29,12 @@ import Foundation
   @Published var track    = ""
 
   @Published var list: [String] = []
+
+  weak var delegate: Delegate?
+
+  func setDelegate(delegate: Delegate) {
+    self.delegate = delegate
+  }
 
   func setRootPath(newRootPath: String) {
     self.rootPath = newRootPath
