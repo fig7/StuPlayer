@@ -232,7 +232,7 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate
     return String(decoding: pathData, as: UTF8.self)
   }
 
-  func getPermissionAndScanFolders() {
+  func setRootFolder() {
     let openPanel = NSOpenPanel()
     openPanel.allowsMultipleSelection = false
     openPanel.canChooseDirectories = true
@@ -249,6 +249,8 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate
       }
 
       do {
+        stopAll()
+
         bmData = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
         fm.createFile(atPath: rootBookmark, contents: bmData, attributes: nil)
 
@@ -397,16 +399,6 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate
           // Handle error
       }
     }
-  }
-
-  func setRootFolder() {
-    stopAll()
-    bmData = nil
-
-    rootPath  = ""
-    musicPath = ""
-
-    getPermissionAndScanFolders()
   }
 
   func typeChanged(newType: String) {
