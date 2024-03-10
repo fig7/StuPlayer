@@ -59,7 +59,7 @@ struct ContentView: View {
 
       HStack {
         Button(action: model.playAll) {
-          Text(" Play ").padding(.horizontal, 10).padding(.vertical, 2)
+          Text(" Play all ").padding(.horizontal, 10).padding(.vertical, 2)
         }
 
         Spacer().frame(width: 20)

@@ -24,7 +24,7 @@ typealias TrackDict = [String : [String : [String]]]
 typealias AllM3UDict     = [String : M3UDict]
 typealias AllTracksDict  = [String : TrackDict]
 
-class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate {
+@MainActor class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate {
   let fm    = FileManager.default
   var bmURL = URL(fileURLWithPath: "/")
 
@@ -86,37 +86,33 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate
     // NSObject
     super.init()
 
-    Task {
+    Task { @MainActor in
       player.delegate = self
 
-      await playerSelection.setDelegate(delegate: self)
-      await playerSelection.setRootPath(newRootPath: rootPath)
-      await playerSelection.setTypes(newType: type, newTypeList: typesList)
-      await playerSelection.setAll(newArtist: artist, newAlbum: album, newList: tracksDict.keys.sorted())
+      playerSelection.setDelegate(delegate: self)
+      playerSelection.setRootPath(newRootPath: rootPath)
+      playerSelection.setTypes(newType: type, newTypeList: typesList)
+      playerSelection.setAll(newArtist: artist, newAlbum: album, newList: tracksDict.keys.sorted())
     }
   }
 
-  func audioPlayerEndOfAudio(_: AudioPlayer) {
-    // TODO: Force this back onto the main thread, somehow
+  nonisolated func audioPlayerEndOfAudio(_: AudioPlayer) {
+    Task { @MainActor in
+      player.stop()
+      bmURL.stopAccessingSecurityScopedResource()
 
-    player.stop()
-    bmURL.stopAccessingSecurityScopedResource()
+      playlist = ""
+      trackNum = 0
 
-    playlist = ""
-    trackNum = 0
-
-    Task {
-      await playerSelection.setPlaylist(newPlaylist: playlist, newTrackNum: trackNum)
+      playerSelection.setPlaylist(newPlaylist: playlist, newTrackNum: trackNum)
     }
   }
 
-  func audioPlayer(_: AudioPlayer, renderingWillStart: PCMDecoding, at: UInt64) {
-    // TODO: Force this back onto the main thread, somehow
+  nonisolated func audioPlayer(_: AudioPlayer, renderingWillStart: PCMDecoding, at: UInt64) {
+    Task { @MainActor in
+      trackNum += 1
 
-    trackNum += 1
-
-    Task {
-      await playerSelection.setPlaylist(newPlaylist: playlist, newTrackNum: trackNum)
+      playerSelection.setPlaylist(newPlaylist: playlist, newTrackNum: trackNum)
     }
   }
 
@@ -126,10 +122,7 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate
     artist = ""
     album  = ""
 
-    Task {
-      await playerSelection.setArtist(newArtist: artist, newList: tracksDict.keys.sorted())
-    }
-
+    playerSelection.setArtist(newArtist: artist, newList: tracksDict.keys.sorted())
   }
 
   func clearAlbum() {
@@ -137,24 +130,18 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate
 
     album = ""
 
-    Task {
-      await playerSelection.setAlbum(newAlbum: album, newList: tracksDict[artist]!.keys.sorted())
-    }
+    playerSelection.setAlbum(newAlbum: album, newList: tracksDict[artist]!.keys.sorted())
   }
 
   func itemSelected(item: String) {
     if(artist.isEmpty) {
       artist = item
 
-      Task {
-        await playerSelection.setArtist(newArtist: artist, newList: tracksDict[artist]!.keys.sorted())
-      }
+      playerSelection.setArtist(newArtist: artist, newList: tracksDict[artist]!.keys.sorted())
     } else if(album.isEmpty) {
       album = item
 
-      Task {
-        await playerSelection.setAlbum(newAlbum: album, newList: tracksDict[artist]![album]!)
-      }
+      playerSelection.setAlbum(newAlbum: album, newList: tracksDict[artist]![album]!)
     } else {
       if bmData != nil {
         do {
@@ -165,9 +152,7 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate
             let url = URL(fileURLWithPath: musicPath + artist + "/" + album + "/" + item)
             try player.play(url)
 
-            Task {
-              await playerSelection.setTracks(newTracks: [item])
-            }
+            playerSelection.setTracks(newTracks: [item])
           }
         } catch {
           // Handle error
@@ -197,9 +182,7 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate
 
               try player.play()
 
-              Task {
-                await playerSelection.setTracks(newTracks: tracks)
-              }
+              playerSelection.setTracks(newTracks: tracks)
             }
           }
         } catch {
@@ -218,9 +201,7 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate
     playlist = ""
     trackNum = 0
 
-    Task {
-      await playerSelection.setPlaylist(newPlaylist: playlist, newTrackNum: trackNum)
-    }
+    playerSelection.setPlaylist(newPlaylist: playlist, newTrackNum: trackNum)
   }
 
   func toggleShuffle() {
@@ -316,9 +297,7 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate
 
         scanFolders()
 
-        Task {
-          await self.playerSelection.setRootPath(newRootPath: self.rootPath)
-        }
+        self.playerSelection.setRootPath(newRootPath: self.rootPath)
       } catch {
         // Handle error
         return
@@ -442,10 +421,8 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate
         artist = ""
         album  = ""
 
-        Task {
-          await playerSelection.setTypes(newType: type, newTypeList: typesList)
-          await playerSelection.setAll(newArtist: artist, newAlbum: album, newList: tracksDict.keys.sorted())
-        }
+        playerSelection.setTypes(newType: type, newTypeList: typesList)
+        playerSelection.setAll(newArtist: artist, newAlbum: album, newList: tracksDict.keys.sorted())
       } catch {
           // Handle error
       }
@@ -469,8 +446,6 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate
     artist = ""
     album  = ""
 
-    Task {
-      await playerSelection.setAll(newArtist: artist, newAlbum: album, newList: tracksDict.keys.sorted())
-    }
+    playerSelection.setAll(newArtist: artist, newAlbum: album, newList: tracksDict.keys.sorted())
   }
 }

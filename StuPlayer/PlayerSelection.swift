@@ -9,7 +9,7 @@ import Foundation
 
 @MainActor class PlayerSelection: ObservableObject
 {
-  protocol Delegate: AnyObject {
+  @MainActor protocol Delegate: AnyObject {
     func typeChanged(newType: String)
   }
 
