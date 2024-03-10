@@ -97,9 +97,13 @@ struct ContentView: View {
       Spacer().frame(height: 30)
 
       HStack {
-        Text("Playlist: " + playerSelection.playlist).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+        Text(String(format: "Playlist: %@", playerSelection.playlist)).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
 
-        Text("Track 1/10: " + playerSelection.track).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+        if playerSelection.trackNum > 0 {
+          Text(String(format: "Track %d/%d: %@", playerSelection.trackNum, playerSelection.numTracks, playerSelection.track)).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+        } else {
+          Text("Track: ").frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+        }
       }
 
       Spacer().frame(height: 20)

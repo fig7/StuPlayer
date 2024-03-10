@@ -25,9 +25,10 @@ typealias AllM3UDict     = [String : M3UDict]
 typealias AllTracksDict  = [String : TrackDict]
 
 class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate {
-  let fm: FileManager
-  var bmData: Data?
+  let fm    = FileManager.default
+  var bmURL = URL(fileURLWithPath: "/")
 
+  var bmData: Data?
   var rootPath: String
   var musicPath: String
 
@@ -46,14 +47,24 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate
   var album: String
 
   var playlist: String
-  var track: String
+  var trackNum: Int
 
   init(playerSelection: PlayerSelection) {
     self.playerSelection = playerSelection
     self.player = AudioPlayer()
 
-    self.fm = FileManager.default
     self.bmData = PlayerDataModel.getBookmarkData()
+    if let bmData = self.bmData {
+      do {
+        var isStale = false
+        self.bmURL = try URL(resolvingBookmarkData: bmData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
+
+        // TODO: Handle stale bmData
+      } catch {
+        // Handle error
+      }
+    }
+
     self.rootPath = PlayerDataModel.getRootPath()
 
     self.allM3UDict = PlayerDataModel.getM3UDict(m3UFile: m3UFile)
@@ -70,7 +81,7 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate
     self.album  = ""
 
     self.playlist = ""
-    self.track    = ""
+    self.trackNum = 0
 
     // NSObject
     super.init()
@@ -85,12 +96,27 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate
     }
   }
 
-  func audioPlayerEndOfAudio(_ audioPlayer: AudioPlayer) {
+  func audioPlayerEndOfAudio(_: AudioPlayer) {
+    // TODO: Force this back onto the main thread, somehow
+
+    player.stop()
+    bmURL.stopAccessingSecurityScopedResource()
+
     playlist = ""
-    track = ""
+    trackNum = 0
 
     Task {
-      await playerSelection.setPlaylist(newPlaylist: playlist, newTrack: track)
+      await playerSelection.setPlaylist(newPlaylist: playlist, newTrackNum: trackNum)
+    }
+  }
+
+  func audioPlayer(_: AudioPlayer, renderingWillStart: PCMDecoding, at: UInt64) {
+    // TODO: Force this back onto the main thread, somehow
+
+    trackNum += 1
+
+    Task {
+      await playerSelection.setPlaylist(newPlaylist: playlist, newTrackNum: trackNum)
     }
   }
 
@@ -130,19 +156,17 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate
         await playerSelection.setAlbum(newAlbum: album, newList: tracksDict[artist]![album]!)
       }
     } else {
-      if let bmData {
+      if bmData != nil {
         do {
-          var isStale = false
-          let bmURL = try URL(resolvingBookmarkData: bmData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
-          if(bmURL.startAccessingSecurityScopedResource()) {
+          if(player.isPlaying || bmURL.startAccessingSecurityScopedResource()) {
+            playlist = m3UDict[artist]![album]!
+            trackNum = 0
+
             let url = URL(fileURLWithPath: musicPath + artist + "/" + album + "/" + item)
             try player.play(url)
 
-            playlist = m3UDict[artist]![album]!
-            track = item
-
             Task {
-              await playerSelection.setPlaylist(newPlaylist: playlist, newTrack: track)
+              await playerSelection.setTracks(newTracks: [item])
             }
           }
         } catch {
@@ -153,16 +177,49 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate
   }
 
   func playAll() {
+    if(artist.isEmpty) {
+    } else if(album.isEmpty) {
+    } else {
+      if bmData != nil {
+        do {
+          if(player.isPlaying || bmURL.startAccessingSecurityScopedResource()) {
+            player.stop()
+
+            let tracks = tracksDict[artist]![album]!
+            if(!tracks.isEmpty) {
+              for track in tracks {
+                let url  = URL(fileURLWithPath: musicPath + artist + "/" + album + "/" + track)
+                try player.enqueue(url)
+              }
+
+              playlist = m3UDict[artist]![album]!
+              trackNum = 0
+
+              try player.play()
+
+              Task {
+                await playerSelection.setTracks(newTracks: tracks)
+              }
+            }
+          }
+        } catch {
+          // Handle error
+        }
+      }
+    }
   }
 
   func stopAll() {
+    if(!player.isPlaying) { return }
+
     player.stop()
+    bmURL.stopAccessingSecurityScopedResource()
 
     playlist = ""
-    track = ""
+    trackNum = 0
 
     Task {
-      await playerSelection.setPlaylist(newPlaylist: playlist, newTrack: track)
+      await playerSelection.setPlaylist(newPlaylist: playlist, newTrackNum: trackNum)
     }
   }
 
@@ -352,19 +409,13 @@ class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate
   }
 
   func scanFolders() {
-    guard let bmData else { return }
-    var bmURL = URL(fileURLWithPath: "/")
-
-    do {
-      var isStale = false
-      bmURL = try URL(resolvingBookmarkData: bmData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
-    } catch {
-      // Handle error
-      return
-    }
+    guard bmData != nil else { return }
 
     if(bmURL.startAccessingSecurityScopedResource()) {
       do {
+        allM3UDict.removeAll()
+        allTracksDict.removeAll()
+
         try scanTypes()
 
         for type in typesList {

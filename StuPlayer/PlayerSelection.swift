@@ -28,6 +28,10 @@ import Foundation
   @Published var playlist = ""
   @Published var track    = ""
 
+  @Published var trackNum  = 0
+  @Published var numTracks = 1
+  var tracks: [String]     = []
+
   @Published var list: [String] = []
 
   weak var delegate: Delegate?
@@ -67,8 +71,19 @@ import Foundation
     self.list   = newList
   }
 
-  func setPlaylist(newPlaylist: String, newTrack: String) {
+  func setPlaylist(newPlaylist: String, newTrackNum: Int) {
     self.playlist = newPlaylist
-    self.track    = newTrack
+    self.trackNum = newTrackNum
+
+    if(newTrackNum > 0) {
+      self.track = tracks[self.trackNum - 1]
+    } else {
+      self.track = ""
+    }
+  }
+
+  func setTracks(newTracks: [String]) {
+    self.tracks    = newTracks
+    self.numTracks = newTracks.count
   }
 }
