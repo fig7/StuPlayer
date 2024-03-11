@@ -7,6 +7,10 @@
 
 import Foundation
 
+enum PlaybackState {
+  case Stopped, Playing, Paused
+}
+
 @MainActor class PlayerSelection: ObservableObject
 {
   @MainActor protocol Delegate: AnyObject {
@@ -33,6 +37,7 @@ import Foundation
   var tracks: [String]     = []
 
   @Published var list: [String] = []
+  @Published var playbackState  = PlaybackState.Stopped
 
   weak var delegate: Delegate?
 
@@ -85,5 +90,9 @@ import Foundation
   func setTracks(newTracks: [String]) {
     self.tracks    = newTracks
     self.numTracks = newTracks.count
+  }
+
+  func setPlaybackState(newPlaybackState: PlaybackState) {
+    self.playbackState = newPlaybackState
   }
 }

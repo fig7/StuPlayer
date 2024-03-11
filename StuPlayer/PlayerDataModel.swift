@@ -96,23 +96,52 @@ typealias AllTracksDict  = [String : TrackDict]
     }
   }
 
-  nonisolated func audioPlayerEndOfAudio(_: AudioPlayer) {
+  // Using audioPlayerEndOfAudio to cancel playback when we reach the end of the tracks
+  // For some reason, this appears to be getting called twice. Likely, this doesn't matter for us.
+  nonisolated func audioPlayerEndOfAudio(_ audioPlayer: AudioPlayer) {
+    // print("EndOfAudio: Playing = \(audioPlayer.isPlaying), Paused = \(audioPlayer.isPaused), Stopped = \(audioPlayer.isStopped)")
+
+    audioPlayer.stop()
+  }
+
+  // Using audioPlayerRenderingStarted for updates to the track number
+  nonisolated func audioPlayer(_ audioPlayer: AudioPlayer, renderingStarted decoder: any PCMDecoding) {
+    // print("RenderingStarted: Playing = \(audioPlayer.isPlaying), Paused = \(audioPlayer.isPaused), Stopped = \(audioPlayer.isStopped)")
+
     Task { @MainActor in
-      player.stop()
-      bmURL.stopAccessingSecurityScopedResource()
-
-      playlist = ""
-      trackNum = 0
-
+      trackNum += 1
       playerSelection.setPlaylist(newPlaylist: playlist, newTrackNum: trackNum)
     }
   }
 
-  nonisolated func audioPlayer(_: AudioPlayer, renderingWillStart: PCMDecoding, at: UInt64) {
-    Task { @MainActor in
-      trackNum += 1
+  // Using audioPlayerPlaybackStateChanged to handle state changes and update UI
+  nonisolated func audioPlayerPlaybackStateChanged(_ audioPlayer: AudioPlayer) {
+    // print("StateChange: Playing = \(audioPlayer.isPlaying), Paused = \(audioPlayer.isPaused), Stopped = \(audioPlayer.isStopped)")
 
-      playerSelection.setPlaylist(newPlaylist: playlist, newTrackNum: trackNum)
+    switch(audioPlayer.playbackState) {
+    case AudioPlayer.PlaybackState.stopped:
+      Task { @MainActor in
+        bmURL.stopAccessingSecurityScopedResource()
+
+        playlist = ""
+        trackNum = 0
+
+        playerSelection.setPlaylist(newPlaylist: playlist, newTrackNum: trackNum)
+        playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Stopped)
+      }
+
+    case AudioPlayer.PlaybackState.playing:
+      Task { @MainActor in
+        playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Playing)
+      }
+
+    case AudioPlayer.PlaybackState.paused:
+      Task { @MainActor in
+        playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Paused)
+      }
+
+    @unknown default:
+      break
     }
   }
 
@@ -143,65 +172,71 @@ typealias AllTracksDict  = [String : TrackDict]
 
       playerSelection.setAlbum(newAlbum: album, newList: tracksDict[artist]![album]!)
     } else {
-      if bmData != nil {
-        do {
-          if(player.isPlaying || bmURL.startAccessingSecurityScopedResource()) {
-            playlist = m3UDict[artist]![album]!
-            trackNum = 0
+      // Can't play if we haven't got the root folder
+      guard bmData != nil else { return }
 
-            let url = URL(fileURLWithPath: musicPath + artist + "/" + album + "/" + item)
-            try player.play(url)
+      do {
+        if(player.isPlaying || bmURL.startAccessingSecurityScopedResource()) {
+          playlist = m3UDict[artist]![album]!
+          playerSelection.setTracks(newTracks: [item])
+          trackNum = 0
 
-            playerSelection.setTracks(newTracks: [item])
-          }
-        } catch {
-          // Handle error
+          let url = URL(fileURLWithPath: musicPath + artist + "/" + album + "/" + item)
+          try player.play(url)
         }
+      } catch {
+        // Handle error
       }
     }
   }
 
   func playAll() {
+    let playing = (playerSelection.playbackState == PlaybackState.Playing)
+    let paused  = (playerSelection.playbackState == PlaybackState.Paused)
+    if(playing || paused) {
+      if(playing) {
+        player.pause()
+      } else {
+        player.resume()
+      }
+
+      return
+    }
+
+    // Can't play if we haven't got the root folder
+    guard bmData != nil else { return }
+
+    // Start playback
     if(artist.isEmpty) {
+      // TODO: Playlist generation, including shuffle and repeat
     } else if(album.isEmpty) {
+      // TODO: Playlist generation, including shuffle and repeat
     } else {
-      if bmData != nil {
-        do {
-          if(player.isPlaying || bmURL.startAccessingSecurityScopedResource()) {
-            player.stop()
-
-            let tracks = tracksDict[artist]![album]!
-            if(!tracks.isEmpty) {
-              for track in tracks {
-                let url  = URL(fileURLWithPath: musicPath + artist + "/" + album + "/" + track)
-                try player.enqueue(url)
-              }
-
-              playlist = m3UDict[artist]![album]!
-              trackNum = 0
-
-              try player.play()
-
-              playerSelection.setTracks(newTracks: tracks)
+      // Play the m3u
+      do {
+        if(bmURL.startAccessingSecurityScopedResource()) {
+          let tracks = tracksDict[artist]![album]!
+          if(!tracks.isEmpty) {
+            for track in tracks {
+              let url  = URL(fileURLWithPath: musicPath + artist + "/" + album + "/" + track)
+              try player.enqueue(url)
             }
+
+            playlist = m3UDict[artist]![album]!
+            playerSelection.setTracks(newTracks: tracks)
+            trackNum = 0
+
+            try player.play()
           }
-        } catch {
-          // Handle error
         }
+      } catch {
+        // Handle error
       }
     }
   }
 
   func stopAll() {
-    if(!player.isPlaying) { return }
-
     player.stop()
-    bmURL.stopAccessingSecurityScopedResource()
-
-    playlist = ""
-    trackNum = 0
-
-    playerSelection.setPlaylist(newPlaylist: playlist, newTrackNum: trackNum)
   }
 
   func toggleShuffle() {

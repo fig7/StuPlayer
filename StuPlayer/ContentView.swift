@@ -59,7 +59,16 @@ struct ContentView: View {
 
       HStack {
         Button(action: model.playAll) {
-          Text(" Play all ").padding(.horizontal, 10).padding(.vertical, 2)
+          switch(playerSelection.playbackState) {
+          case .Stopped:
+            Text("Play all").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
+
+          case .Playing:
+            Text("Pause").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
+
+          case .Paused:
+            Text("Resume").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
+          }
         }
 
         Spacer().frame(width: 20)
