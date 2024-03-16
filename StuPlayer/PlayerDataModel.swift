@@ -24,6 +24,8 @@ typealias TrackDict = [String : [String : [String]]]
 typealias AllM3UDict     = [String : M3UDict]
 typealias AllTracksDict  = [String : TrackDict]
 
+typealias PlayingDict = [Playlist : [String]]
+
 @MainActor class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate {
   let fm    = FileManager.default
   var bmURL = URL(fileURLWithPath: "/")
@@ -46,8 +48,16 @@ typealias AllTracksDict  = [String : TrackDict]
   var artist: String
   var album: String
 
-  var playlist: String
   var trackNum: Int
+  var playlistManager: PlaylistManager
+
+  var playlists: [Playlist : [URL]]
+  var playlistIterator: [Playlist : [URL]].Iterator
+  var playlist: [Playlist : [URL]].Element?
+
+  var tracks: [URL]
+  var trackIterator: [URL].Iterator
+  var track: [URL].Element?
 
   init(playerSelection: PlayerSelection) {
     self.playerSelection = playerSelection
@@ -80,8 +90,14 @@ typealias AllTracksDict  = [String : TrackDict]
     self.artist = ""
     self.album  = ""
 
-    self.playlist = ""
     self.trackNum = 0
+    self.playlistManager = PlaylistManager()
+
+    self.playlists = [:]
+    self.playlistIterator = self.playlists.makeIterator()
+
+    self.tracks = []
+    self.trackIterator = self.tracks.makeIterator()
 
     // NSObject
     super.init()
@@ -96,21 +112,55 @@ typealias AllTracksDict  = [String : TrackDict]
     }
   }
 
-  // Using audioPlayerEndOfAudio to cancel playback when we reach the end of the tracks
-  // For some reason, this appears to be getting called twice. Likely, this doesn't matter for us.
+  // Using audioPlayerEndOfAudio to cancel or continue playback when we reach the end of the tracks
   nonisolated func audioPlayerEndOfAudio(_ audioPlayer: AudioPlayer) {
     // print("EndOfAudio: Playing = \(audioPlayer.isPlaying), Paused = \(audioPlayer.isPaused), Stopped = \(audioPlayer.isStopped)")
 
-    audioPlayer.stop()
+    Task { @MainActor in
+      let repeatTracks = playerSelection.repeatTracks
+      if(repeatTracks) {
+        playlists = playlistManager.nextTracks(repeatTracks: repeatTracks)
+        for playlist in playlists {
+          for track in playlist.value {
+            try player.enqueue(track)
+          }
+        }
+      } else {
+        player.stop()
+      }
+    }
   }
 
-  // Using audioPlayerRenderingStarted for updates to the track number
+  // Using audioPlayerRenderingStarted for updates to the track
   nonisolated func audioPlayer(_ audioPlayer: AudioPlayer, renderingStarted decoder: any PCMDecoding) {
     // print("RenderingStarted: Playing = \(audioPlayer.isPlaying), Paused = \(audioPlayer.isPaused), Stopped = \(audioPlayer.isStopped)")
 
     Task { @MainActor in
       trackNum += 1
-      playerSelection.setPlaylist(newPlaylist: playlist, newTrackNum: trackNum)
+      track = trackIterator.next()
+      if(track == nil) {
+        playlist = playlistIterator.next()
+
+        guard let playlist else { return }
+        tracks = playlist.value
+        trackIterator = tracks.makeIterator()
+
+        track = trackIterator.next()
+        trackNum = 1
+      }
+
+      guard let playlist, let track else { return }
+      playerSelection.setTrack(newTrack: track.lastPathComponent, newTrackNum: trackNum)
+      playerSelection.setPlaylist(newPlaylist: playlist.key.playlistFile, newNumTracks: playlist.key.numTracks)
+
+      if(player.queueIsEmpty) {
+        playlists = playlistManager.nextTracks(repeatTracks: false)
+        for playlist in playlists {
+          for track in playlist.value {
+            try player.enqueue(track)
+          }
+        }
+      }
     }
   }
 
@@ -123,10 +173,9 @@ typealias AllTracksDict  = [String : TrackDict]
       Task { @MainActor in
         bmURL.stopAccessingSecurityScopedResource()
 
-        playlist = ""
         trackNum = 0
-
-        playerSelection.setPlaylist(newPlaylist: playlist, newTrackNum: trackNum)
+        playerSelection.setTrack(newTrack: "", newTrackNum: trackNum)
+        playerSelection.setPlaylist(newPlaylist: "", newNumTracks: 0)
         playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Stopped)
       }
 
@@ -176,18 +225,46 @@ typealias AllTracksDict  = [String : TrackDict]
       guard bmData != nil else { return }
 
       do {
-        if(player.isPlaying || bmURL.startAccessingSecurityScopedResource()) {
-          playlist = m3UDict[artist]![album]!
-          playerSelection.setTracks(newTracks: [item])
-          trackNum = 0
+        let playing = player.isPlaying
+        if(playing || bmURL.startAccessingSecurityScopedResource()) {
+          if(playing) {
+            player.reset()
+          }
 
-          let url = URL(fileURLWithPath: musicPath + artist + "/" + album + "/" + item)
-          try player.play(url)
+          var playingDict = PlayingDict()
+          let playlist = Playlist(playlistFile: m3UDict[artist]![album]!, playlistPath: artist + "/" + album + "/", numTracks: 1)
+          playingDict[playlist] = [item]
+
+          configurePlayback(playingDict: playingDict)
+
+          for playlist in playlists {
+            for track in playlist.value {
+              try player.enqueue(track)
+            }
+          }
+
+          if(!playing) {
+            try player.play()
+          }
         }
       } catch {
         // Handle error
       }
     }
+  }
+
+  func configurePlayback(playingDict: PlayingDict) {
+    playlistManager.setMusicPath(musicPath: musicPath)
+    playlistManager.generatePlaylist(playingDict: playingDict, shuffleTracks: false)
+    playlists = playlistManager.nextTracks(repeatTracks: false)
+
+    playlistIterator = playlists.makeIterator()
+    playlist = playlistIterator.next()
+
+    tracks = playlist?.value ?? []
+    trackIterator = tracks.makeIterator()
+
+    trackNum = 0
   }
 
   func playAll() {
@@ -217,14 +294,17 @@ typealias AllTracksDict  = [String : TrackDict]
         if(bmURL.startAccessingSecurityScopedResource()) {
           let tracks = tracksDict[artist]![album]!
           if(!tracks.isEmpty) {
-            for track in tracks {
-              let url  = URL(fileURLWithPath: musicPath + artist + "/" + album + "/" + track)
-              try player.enqueue(url)
-            }
+            var playingDict = PlayingDict()
+            let playlist = Playlist(playlistFile: m3UDict[artist]![album]!, playlistPath: artist + "/" + album + "/", numTracks: tracks.count)
+            playingDict[playlist] = tracks
 
-            playlist = m3UDict[artist]![album]!
-            playerSelection.setTracks(newTracks: tracks)
-            trackNum = 0
+            configurePlayback(playingDict: playingDict)
+
+            for playlist in playlists {
+              for track in playlist.value {
+                try player.enqueue(track)
+              }
+            }
 
             try player.play()
           }
@@ -243,6 +323,7 @@ typealias AllTracksDict  = [String : TrackDict]
   }
 
   func toggleRepeat() {
+    playerSelection.toggleRepeatTracks()
   }
 
   static func getM3UDict(m3UFile: String) -> AllM3UDict {

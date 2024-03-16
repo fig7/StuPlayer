@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1214C6332BA3159C00302CA3 /* PlaylistManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1214C6322BA3159C00302CA3 /* PlaylistManager.swift */; };
+		1214C6382BA4F7DB00302CA3 /* Playlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1214C6372BA4F7DB00302CA3 /* Playlist.swift */; };
 		1297A5B72B9619CE0017B083 /* StuPlayerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1297A5B62B9619CE0017B083 /* StuPlayerApp.swift */; };
 		1297A5B92B9619CE0017B083 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1297A5B82B9619CE0017B083 /* ContentView.swift */; };
 		1297A5BB2B9619D00017B083 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1297A5BA2B9619D00017B083 /* Assets.xcassets */; };
@@ -49,6 +51,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		1214C6322BA3159C00302CA3 /* PlaylistManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistManager.swift; sourceTree = "<group>"; };
+		1214C6372BA4F7DB00302CA3 /* Playlist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Playlist.swift; sourceTree = "<group>"; };
 		1297A5B32B9619CE0017B083 /* StuPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StuPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1297A5B62B9619CE0017B083 /* StuPlayerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StuPlayerApp.swift; sourceTree = "<group>"; };
 		1297A5B82B9619CE0017B083 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -101,6 +105,8 @@
 				1297A5BC2B9619D00017B083 /* Preview Content */,
 				1297A5C72B963B180017B083 /* PlayerDataModel.swift */,
 				1297A5C92B9778CA0017B083 /* PlayerSelection.swift */,
+				1214C6322BA3159C00302CA3 /* PlaylistManager.swift */,
+				1214C6372BA4F7DB00302CA3 /* Playlist.swift */,
 			);
 			path = StuPlayer;
 			sourceTree = "<group>";
@@ -159,7 +165,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1520;
-				LastUpgradeCheck = 1520;
+				LastUpgradeCheck = 1530;
 				TargetAttributes = {
 					1297A5B22B9619CE0017B083 = {
 						CreatedOnToolsVersion = 15.2;
@@ -228,6 +234,8 @@
 				1297A5B72B9619CE0017B083 /* StuPlayerApp.swift in Sources */,
 				1297A5C82B963B180017B083 /* PlayerDataModel.swift in Sources */,
 				1297A5CA2B9778CA0017B083 /* PlayerSelection.swift in Sources */,
+				1214C6332BA3159C00302CA3 /* PlaylistManager.swift in Sources */,
+				1214C6382BA4F7DB00302CA3 /* Playlist.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -268,6 +276,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -331,6 +340,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -361,6 +371,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"StuPlayer/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -388,6 +399,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"StuPlayer/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;

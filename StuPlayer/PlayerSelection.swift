@@ -33,8 +33,10 @@ enum PlaybackState {
   @Published var track    = ""
 
   @Published var trackNum  = 0
-  @Published var numTracks = 1
-  var tracks: [String]     = []
+  @Published var numTracks = 0
+
+  @Published var repeatTracks   = false
+  @Published var shuffleTracks  = false
 
   @Published var list: [String] = []
   @Published var playbackState  = PlaybackState.Stopped
@@ -76,23 +78,21 @@ enum PlaybackState {
     self.list   = newList
   }
 
-  func setPlaylist(newPlaylist: String, newTrackNum: Int) {
-    self.playlist = newPlaylist
+  func setTrack(newTrack: String, newTrackNum: Int) {
+    self.track    = newTrack
     self.trackNum = newTrackNum
-
-    if(newTrackNum > 0) {
-      self.track = tracks[self.trackNum - 1]
-    } else {
-      self.track = ""
-    }
   }
 
-  func setTracks(newTracks: [String]) {
-    self.tracks    = newTracks
-    self.numTracks = newTracks.count
+  func setPlaylist(newPlaylist: String, newNumTracks: Int) {
+    self.playlist  = newPlaylist
+    self.numTracks = newNumTracks
   }
 
   func setPlaybackState(newPlaybackState: PlaybackState) {
     self.playbackState = newPlaybackState
+  }
+
+  func toggleRepeatTracks() {
+    repeatTracks = !repeatTracks
   }
 }
