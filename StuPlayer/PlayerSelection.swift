@@ -92,6 +92,10 @@ enum PlaybackState {
     self.playbackState = newPlaybackState
   }
 
+  func toggleShuffle() {
+    shuffleTracks = !shuffleTracks
+  }
+
   func toggleRepeatTracks() {
     repeatTracks = !repeatTracks
   }

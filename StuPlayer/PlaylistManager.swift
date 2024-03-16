@@ -26,23 +26,12 @@ class PlaylistManager {
   }
 
   func generatePlaylist(playingDict: PlayingDict, shuffleTracks: Bool) {
-    clear()
-
     self.playingDict = playingDict
-    self.shuffleTracks = shuffleTracks
-
-    self.playingIterator = self.playingDict.makeIterator()
+    reset(shuffleTracks: shuffleTracks)
   }
 
-  func nextTracks(repeatTracks: Bool) -> [Playlist : [URL]] {
+  func nextTracks() -> [Playlist : [URL]] {
     guard !playingDict.isEmpty else { return [:] }
-
-    if(tracksIterator == nil) {
-      playlist = playingIterator?.next()
-
-      tracksIterator = playlist?.value.makeIterator()
-      track = tracksIterator?.next()
-    }
 
     var trackDict: [Playlist : [URL]] = [:]
     var urlList: [URL] = []
@@ -64,6 +53,9 @@ class PlaylistManager {
         if(playlist == nil) {
           break
         }
+
+        tracksIterator = playlist?.value.makeIterator()
+        track = tracksIterator?.next()
       }
     }
 
@@ -71,24 +63,16 @@ class PlaylistManager {
       trackDict[playlist!.key] = urlList
     }
 
-    if(trackDict.isEmpty && repeatTracks) {
-      reset()
-      return nextTracks(repeatTracks: false)
-    }
-
     return trackDict
   }
 
-  func reset() {
-    playingIterator = nil
-    playlist        = nil
+  func reset(shuffleTracks: Bool) {
+    self.shuffleTracks = shuffleTracks
 
-    tracksIterator = nil
-    track          = nil
-  }
+    playingIterator = playingDict.makeIterator()
+    playlist = playingIterator?.next()
 
-  func clear() {
-    playingDict = [:]
-    reset()
+    tracksIterator = playlist?.value.makeIterator()
+    track = tracksIterator?.next()
   }
 }

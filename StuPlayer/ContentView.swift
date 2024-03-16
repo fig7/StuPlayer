@@ -82,9 +82,9 @@ struct ContentView: View {
         Button(action: model.toggleShuffle) {
           switch(playerSelection.shuffleTracks) {
           case false:
-            Text("Order: from m3u").padding(.horizontal, 10).padding(.vertical, 2)
+            Text("Order: from m3u").frame(width: 110).padding(.horizontal, 10).padding(.vertical, 2)
           case true:
-            Text("Order: random").padding(.horizontal, 10).padding(.vertical, 2)
+            Text("Order: random").frame(width: 110).padding(.horizontal, 10).padding(.vertical, 2)
           }
         }
 
@@ -93,10 +93,10 @@ struct ContentView: View {
         Button(action: model.toggleRepeat) {
           switch(playerSelection.repeatTracks) {
           case false:
-            Text("Repeat: off").padding(.horizontal, 10).padding(.vertical, 2)
+            Text("Repeat: off").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
 
           case true:
-            Text("Repeat: on").padding(.horizontal, 10).padding(.vertical, 2)
+            Text("Repeat: on").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
           }
         }
       }

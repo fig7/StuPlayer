@@ -49,7 +49,7 @@ typealias PlayingDict = [Playlist : [String]]
   var album: String
 
   var trackNum: Int
-  var playlistManager: PlaylistManager
+  var userStop: Bool
 
   var playlists: [Playlist : [URL]]
   var playlistIterator: [Playlist : [URL]].Iterator
@@ -58,6 +58,8 @@ typealias PlayingDict = [Playlist : [String]]
   var tracks: [URL]
   var trackIterator: [URL].Iterator
   var track: [URL].Element?
+
+  var playlistManager: PlaylistManager
 
   init(playerSelection: PlayerSelection) {
     self.playerSelection = playerSelection
@@ -91,13 +93,15 @@ typealias PlayingDict = [Playlist : [String]]
     self.album  = ""
 
     self.trackNum = 0
-    self.playlistManager = PlaylistManager()
+    self.userStop = false
 
     self.playlists = [:]
     self.playlistIterator = self.playlists.makeIterator()
 
     self.tracks = []
     self.trackIterator = self.tracks.makeIterator()
+
+    self.playlistManager = PlaylistManager()
 
     // NSObject
     super.init()
@@ -112,30 +116,11 @@ typealias PlayingDict = [Playlist : [String]]
     }
   }
 
-  // Using audioPlayerEndOfAudio to cancel or continue playback when we reach the end of the tracks
-  nonisolated func audioPlayerEndOfAudio(_ audioPlayer: AudioPlayer) {
-    // print("EndOfAudio: Playing = \(audioPlayer.isPlaying), Paused = \(audioPlayer.isPaused), Stopped = \(audioPlayer.isStopped)")
+  // Using audioPlayerNowPlayingChanged to handle track changes
+  nonisolated func audioPlayerNowPlayingChanged(_ audioPlayer: AudioPlayer) {
+    if(audioPlayer.nowPlaying == nil) { return }
 
-    Task { @MainActor in
-      let repeatTracks = playerSelection.repeatTracks
-      if(repeatTracks) {
-        fetchNextTracks(repeatTracks: true)
-
-        for playlist in playlists {
-          for track in playlist.value {
-            try player.enqueue(track)
-          }
-        }
-      } else {
-        player.stop()
-      }
-    }
-  }
-
-  // Using audioPlayerRenderingStarted for updates to the track
-  nonisolated func audioPlayer(_ audioPlayer: AudioPlayer, renderingStarted decoder: any PCMDecoding) {
-    // print("RenderingStarted: Playing = \(audioPlayer.isPlaying), Paused = \(audioPlayer.isPaused), Stopped = \(audioPlayer.isStopped)")
-
+    // Handle next track
     Task { @MainActor in
       trackNum += 1
       track = trackIterator.next()
@@ -153,7 +138,7 @@ typealias PlayingDict = [Playlist : [String]]
       playerSelection.setPlaylist(newPlaylist: playlist!.key.playlistFile, newNumTracks: playlist!.key.numTracks)
 
       if(player.queueIsEmpty) {
-        fetchNextTracks(repeatTracks: false)
+        fetchNextTracks()
 
         for playlist in playlists {
           for track in playlist.value {
@@ -171,12 +156,27 @@ typealias PlayingDict = [Playlist : [String]]
     switch(audioPlayer.playbackState) {
     case AudioPlayer.PlaybackState.stopped:
       Task { @MainActor in
-        bmURL.stopAccessingSecurityScopedResource()
-
         trackNum = 0
-        playerSelection.setTrack(newTrack: "", newTrackNum: trackNum)
-        playerSelection.setPlaylist(newPlaylist: "", newNumTracks: 0)
-        playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Stopped)
+
+        if(userStop) {
+          userStop = false
+          bmURL.stopAccessingSecurityScopedResource()
+
+          playerSelection.setTrack(newTrack: "", newTrackNum: trackNum)
+          playerSelection.setPlaylist(newPlaylist: "", newNumTracks: 0)
+          playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Stopped)
+        } else if(playerSelection.repeatTracks) {
+          playlistManager.reset(shuffleTracks: playerSelection.shuffleTracks)
+          fetchNextTracks()
+
+          for playlist in playlists {
+            for track in playlist.value {
+              try player.enqueue(track)
+            }
+          }
+
+          try player.play()
+        }
       }
 
     case AudioPlayer.PlaybackState.playing:
@@ -256,13 +256,15 @@ typealias PlayingDict = [Playlist : [String]]
   func configurePlayback(playingDict: PlayingDict) {
     playlistManager.setMusicPath(musicPath: musicPath)
     playlistManager.generatePlaylist(playingDict: playingDict, shuffleTracks: false)
-    trackNum = 0
 
-    fetchNextTracks(repeatTracks: false)
+    trackNum = 0
+    userStop = false
+
+    fetchNextTracks()
   }
 
-  func fetchNextTracks(repeatTracks: Bool) {
-    playlists = playlistManager.nextTracks(repeatTracks: repeatTracks)
+  func fetchNextTracks() {
+    playlists = playlistManager.nextTracks()
 
     playlistIterator = playlists.makeIterator()
     playlist = playlistIterator.next()
@@ -292,6 +294,7 @@ typealias PlayingDict = [Playlist : [String]]
       // TODO: Playlist generation, including shuffle and repeat
     } else if(album.isEmpty) {
       // TODO: Playlist generation, including shuffle and repeat
+
     } else {
       // Play the m3u
       do {
@@ -320,10 +323,12 @@ typealias PlayingDict = [Playlist : [String]]
   }
 
   func stopAll() {
+    userStop = true
     player.stop()
   }
 
   func toggleShuffle() {
+    playerSelection.toggleShuffle()
   }
 
   func toggleRepeat() {
