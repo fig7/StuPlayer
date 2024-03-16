@@ -119,7 +119,8 @@ typealias PlayingDict = [Playlist : [String]]
     Task { @MainActor in
       let repeatTracks = playerSelection.repeatTracks
       if(repeatTracks) {
-        playlists = playlistManager.nextTracks(repeatTracks: repeatTracks)
+        fetchNextTracks(repeatTracks: true)
+
         for playlist in playlists {
           for track in playlist.value {
             try player.enqueue(track)
@@ -141,20 +142,19 @@ typealias PlayingDict = [Playlist : [String]]
       if(track == nil) {
         playlist = playlistIterator.next()
 
-        guard let playlist else { return }
-        tracks = playlist.value
+        tracks = playlist!.value
         trackIterator = tracks.makeIterator()
 
         track = trackIterator.next()
         trackNum = 1
       }
 
-      guard let playlist, let track else { return }
-      playerSelection.setTrack(newTrack: track.lastPathComponent, newTrackNum: trackNum)
-      playerSelection.setPlaylist(newPlaylist: playlist.key.playlistFile, newNumTracks: playlist.key.numTracks)
+      playerSelection.setTrack(newTrack: track!.lastPathComponent, newTrackNum: trackNum)
+      playerSelection.setPlaylist(newPlaylist: playlist!.key.playlistFile, newNumTracks: playlist!.key.numTracks)
 
       if(player.queueIsEmpty) {
-        playlists = playlistManager.nextTracks(repeatTracks: false)
+        fetchNextTracks(repeatTracks: false)
+
         for playlist in playlists {
           for track in playlist.value {
             try player.enqueue(track)
@@ -256,15 +256,19 @@ typealias PlayingDict = [Playlist : [String]]
   func configurePlayback(playingDict: PlayingDict) {
     playlistManager.setMusicPath(musicPath: musicPath)
     playlistManager.generatePlaylist(playingDict: playingDict, shuffleTracks: false)
-    playlists = playlistManager.nextTracks(repeatTracks: false)
+    trackNum = 0
+
+    fetchNextTracks(repeatTracks: false)
+  }
+
+  func fetchNextTracks(repeatTracks: Bool) {
+    playlists = playlistManager.nextTracks(repeatTracks: repeatTracks)
 
     playlistIterator = playlists.makeIterator()
     playlist = playlistIterator.next()
 
     tracks = playlist?.value ?? []
     trackIterator = tracks.makeIterator()
-
-    trackNum = 0
   }
 
   func playAll() {
