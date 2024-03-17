@@ -24,7 +24,7 @@ typealias TrackDict = [String : [String : [String]]]
 typealias AllM3UDict     = [String : M3UDict]
 typealias AllTracksDict  = [String : TrackDict]
 
-typealias PlayingDict = [Playlist : [String]]
+typealias Playlists = [Playlist]
 
 @MainActor class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate {
   let fm    = FileManager.default
@@ -51,13 +51,13 @@ typealias PlayingDict = [Playlist : [String]]
   var trackNum: Int
   var userStop: Bool
 
-  var playlists: [Playlist : [URL]]
-  var playlistIterator: [Playlist : [URL]].Iterator
-  var playlist: [Playlist : [URL]].Element?
+  var trackLists: [Tracklist]
+  var trackListIterator: [Tracklist].Iterator
+  var tracklist: Tracklist?
 
   var tracks: [URL]
   var trackIterator: [URL].Iterator
-  var track: [URL].Element?
+  var track: URL?
 
   var playlistManager: PlaylistManager
 
@@ -95,8 +95,8 @@ typealias PlayingDict = [Playlist : [String]]
     self.trackNum = 0
     self.userStop = false
 
-    self.playlists = [:]
-    self.playlistIterator = self.playlists.makeIterator()
+    self.trackLists = []
+    self.trackListIterator = self.trackLists.makeIterator()
 
     self.tracks = []
     self.trackIterator = self.tracks.makeIterator()
@@ -125,23 +125,24 @@ typealias PlayingDict = [Playlist : [String]]
       trackNum += 1
       track = trackIterator.next()
       if(track == nil) {
-        playlist = playlistIterator.next()
+        tracklist = trackListIterator.next()
 
-        tracks = playlist!.value
+        tracks = tracklist?.tracks ?? []
         trackIterator = tracks.makeIterator()
 
         track = trackIterator.next()
         trackNum = 1
       }
 
+      let playlistInfo = tracklist!.playlistInfo
       playerSelection.setTrack(newTrack: track!.lastPathComponent, newTrackNum: trackNum)
-      playerSelection.setPlaylist(newPlaylist: playlist!.key.playlistFile, newNumTracks: playlist!.key.numTracks)
+      playerSelection.setPlaylist(newPlaylist: playlistInfo.playlistFile, newNumTracks: playlistInfo.numTracks)
 
       if(player.queueIsEmpty) {
         fetchNextTracks()
 
-        for playlist in playlists {
-          for track in playlist.value {
+        for trackList in trackLists {
+          for track in trackList.tracks {
             try player.enqueue(track)
           }
         }
@@ -169,8 +170,8 @@ typealias PlayingDict = [Playlist : [String]]
           playlistManager.reset(shuffleTracks: playerSelection.shuffleTracks)
           fetchNextTracks()
 
-          for playlist in playlists {
-            for track in playlist.value {
+          for trackList in trackLists {
+            for track in trackList.tracks {
               try player.enqueue(track)
             }
           }
@@ -231,21 +232,11 @@ typealias PlayingDict = [Playlist : [String]]
             player.reset()
           }
 
-          var playingDict = PlayingDict()
-          let playlist = Playlist(playlistFile: m3UDict[artist]![album]!, playlistPath: artist + "/" + album + "/", numTracks: 1)
-          playingDict[playlist] = [item]
+          var playlists    = Playlists()
+          let playlistInfo = PlaylistInfo(playlistFile: m3UDict[artist]![album]!, playlistPath: artist + "/" + album + "/", numTracks: 1)
+          playlists.append((playlistInfo, [item]))
 
-          configurePlayback(playingDict: playingDict)
-
-          for playlist in playlists {
-            for track in playlist.value {
-              try player.enqueue(track)
-            }
-          }
-
-          if(!playing) {
-            try player.play()
-          }
+          try playTracks(alreadyPlaying: playing, playlists: playlists)
         }
       } catch {
         // Handle error
@@ -253,9 +244,9 @@ typealias PlayingDict = [Playlist : [String]]
     }
   }
 
-  func configurePlayback(playingDict: PlayingDict) {
+  func configurePlayback(playlists: Playlists) {
     playlistManager.setMusicPath(musicPath: musicPath)
-    playlistManager.generatePlaylist(playingDict: playingDict, shuffleTracks: false)
+    playlistManager.generatePlaylist(playlists: playlists, shuffleTracks: false)
 
     trackNum = 0
     userStop = false
@@ -264,13 +255,27 @@ typealias PlayingDict = [Playlist : [String]]
   }
 
   func fetchNextTracks() {
-    playlists = playlistManager.nextTracks()
+    trackLists = playlistManager.nextTracks()
 
-    playlistIterator = playlists.makeIterator()
-    playlist = playlistIterator.next()
+    trackListIterator = trackLists.makeIterator()
+    tracklist = trackListIterator.next()
 
-    tracks = playlist?.value ?? []
+    tracks = tracklist?.tracks ?? []
     trackIterator = tracks.makeIterator()
+  }
+
+  func playTracks(alreadyPlaying: Bool, playlists: Playlists) throws {
+    configurePlayback(playlists: playlists)
+
+    for tracklist in trackLists {
+      for track in tracklist.tracks {
+        try player.enqueue(track)
+      }
+    }
+
+    if(!alreadyPlaying) {
+      try player.play()
+    }
   }
 
   func playAll() {
@@ -291,29 +296,41 @@ typealias PlayingDict = [Playlist : [String]]
 
     // Start playback
     if(artist.isEmpty) {
-      // TODO: Playlist generation, including shuffle and repeat
+      // Play all artists
     } else if(album.isEmpty) {
-      // TODO: Playlist generation, including shuffle and repeat
-
+      // Play all albums
+      do {
+        if(bmURL.startAccessingSecurityScopedResource()) {
+          let albums = tracksDict[artist]!
+          if(!albums.isEmpty) {
+            var playlists = Playlists()
+            for album in albums.keys.sorted() {
+              let albumTracks = albums[album]!
+              if(!albumTracks.isEmpty) {
+                let playlistInfo = PlaylistInfo(playlistFile: m3UDict[artist]![album]!, playlistPath: artist + "/" + album + "/", numTracks: albumTracks.count)
+                playlists.append((playlistInfo, albumTracks))
+              }
+            }
+            
+            if(!playlists.isEmpty) {
+              try playTracks(alreadyPlaying: false, playlists: playlists)
+            }
+          }
+        }
+      } catch {
+        // Handle error
+      }
     } else {
       // Play the m3u
       do {
         if(bmURL.startAccessingSecurityScopedResource()) {
-          let tracks = tracksDict[artist]![album]!
-          if(!tracks.isEmpty) {
-            var playingDict = PlayingDict()
-            let playlist = Playlist(playlistFile: m3UDict[artist]![album]!, playlistPath: artist + "/" + album + "/", numTracks: tracks.count)
-            playingDict[playlist] = tracks
+          let m3UTracks = tracksDict[artist]![album]!
+          if(!m3UTracks.isEmpty) {
+            var playlists = Playlists()
+            let playlistInfo = PlaylistInfo(playlistFile: m3UDict[artist]![album]!, playlistPath: artist + "/" + album + "/", numTracks: m3UTracks.count)
+            playlists.append((playlistInfo, m3UTracks))
 
-            configurePlayback(playingDict: playingDict)
-
-            for playlist in playlists {
-              for track in playlist.value {
-                try player.enqueue(track)
-              }
-            }
-
-            try player.play()
+            try playTracks(alreadyPlaying: false, playlists: playlists)
           }
         }
       } catch {

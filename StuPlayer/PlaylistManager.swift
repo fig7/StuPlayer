@@ -10,12 +10,13 @@ import Foundation
 class PlaylistManager {
   let queueSize = 8
 
-  var playingDict: PlayingDict = [:]
-  var playingIterator: PlayingDict.Iterator?
-  var playlist: PlayingDict.Element?
+  var playlists: Playlists = []
+
+  var playlistIterator: Playlists.Iterator?
+  var playlist: Playlist?
 
   var tracksIterator: [String].Iterator?
-  var track: [String].Element?
+  var track: String?
 
   var shuffleTracks = false
 
@@ -25,54 +26,54 @@ class PlaylistManager {
     self.musicPath = musicPath
   }
 
-  func generatePlaylist(playingDict: PlayingDict, shuffleTracks: Bool) {
-    self.playingDict = playingDict
+  func generatePlaylist(playlists: Playlists, shuffleTracks: Bool) {
+    self.playlists = playlists
     reset(shuffleTracks: shuffleTracks)
   }
 
-  func nextTracks() -> [Playlist : [URL]] {
-    guard !playingDict.isEmpty else { return [:] }
+  func nextTracks() -> [Tracklist] {
+    guard !playlists.isEmpty else { return [] }
 
-    var trackDict: [Playlist : [URL]] = [:]
+    var trackList: [Tracklist] = []
     var urlList: [URL] = []
     for _ in 0..<queueSize {
       if(playlist == nil) { break }
       if(track == nil)    { break }
 
-      let baseURL  = URL(fileURLWithPath: musicPath + playlist!.key.playlistPath)
+      let baseURL  = URL(fileURLWithPath: musicPath + playlist!.playlistInfo.playlistPath)
       let trackURL = baseURL.appending(path: track!, directoryHint: URL.DirectoryHint.notDirectory)
       urlList.append(trackURL)
 
       // Go through tracks in the playlist. If we come to an end, we go to the next one.
       track = tracksIterator?.next()
       if(track == nil) {
-        trackDict[playlist!.key] = urlList
+        trackList.append((playlist!.playlistInfo, urlList))
         urlList = []
 
-        playlist = playingIterator?.next()
+        playlist = playlistIterator?.next()
         if(playlist == nil) {
           break
         }
 
-        tracksIterator = playlist?.value.makeIterator()
+        tracksIterator = playlist?.tracks.makeIterator()
         track = tracksIterator?.next()
       }
     }
 
     if(!urlList.isEmpty) {
-      trackDict[playlist!.key] = urlList
+      trackList.append((playlist!.playlistInfo, urlList))
     }
 
-    return trackDict
+    return trackList
   }
 
   func reset(shuffleTracks: Bool) {
     self.shuffleTracks = shuffleTracks
 
-    playingIterator = playingDict.makeIterator()
-    playlist = playingIterator?.next()
+    playlistIterator = playlists.makeIterator()
+    playlist = playlistIterator?.next()
 
-    tracksIterator = playlist?.value.makeIterator()
+    tracksIterator = playlist?.tracks.makeIterator()
     track = tracksIterator?.next()
   }
 }
