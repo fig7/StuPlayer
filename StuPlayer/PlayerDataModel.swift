@@ -26,6 +26,8 @@ typealias AllTracksDict  = [String : TrackDict]
 
 typealias Playlists = [Playlist]
 
+enum StoppingReason { case EndOfAudio, StopPressed, TrackPressed }
+
 @MainActor class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate {
   let fm    = FileManager.default
   var bmURL = URL(fileURLWithPath: "/")
@@ -49,7 +51,8 @@ typealias Playlists = [Playlist]
   var album: String
 
   var trackNum: Int
-  var userStop: Bool
+  var stopReason: StoppingReason
+  var pendingTrack: String?
 
   var trackLists: [Tracklist]
   var trackListIterator: [Tracklist].Iterator
@@ -93,7 +96,7 @@ typealias Playlists = [Playlist]
     self.album  = ""
 
     self.trackNum = 0
-    self.userStop = false
+    self.stopReason = StoppingReason.EndOfAudio
 
     self.trackLists = []
     self.trackListIterator = self.trackLists.makeIterator()
@@ -117,6 +120,7 @@ typealias Playlists = [Playlist]
   }
 
   // Using audioPlayerNowPlayingChanged to handle track changes
+  // NB. nowPlaying -> nil is ignored, audioPlayerPlaybackStateChanged() handles end of audio instead (playbackState -> Stopped)
   nonisolated func audioPlayerNowPlayingChanged(_ audioPlayer: AudioPlayer) {
     if(audioPlayer.nowPlaying == nil) { return }
 
@@ -159,25 +163,44 @@ typealias Playlists = [Playlist]
       Task { @MainActor in
         trackNum = 0
 
-        if(userStop) {
-          userStop = false
+        switch(stopReason) {
+        case .EndOfAudio:
+          if(playerSelection.repeatTracks) {
+            playlistManager.reset(shuffleTracks: playerSelection.shuffleTracks)
+            fetchNextTracks()
+
+            for trackList in trackLists {
+              for track in trackList.tracks {
+                try player.enqueue(track)
+              }
+            }
+
+            try player.play()
+          } else {
+            bmURL.stopAccessingSecurityScopedResource()
+
+            playerSelection.setTrack(newTrack: "", newTrackNum: trackNum)
+            playerSelection.setPlaylist(newPlaylist: "", newNumTracks: 0)
+            playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Stopped)
+          }
+
+        case .StopPressed:
           bmURL.stopAccessingSecurityScopedResource()
 
           playerSelection.setTrack(newTrack: "", newTrackNum: trackNum)
           playerSelection.setPlaylist(newPlaylist: "", newNumTracks: 0)
           playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Stopped)
-        } else if(playerSelection.repeatTracks) {
-          playlistManager.reset(shuffleTracks: playerSelection.shuffleTracks)
-          fetchNextTracks()
 
-          for trackList in trackLists {
-            for track in trackList.tracks {
-              try player.enqueue(track)
-            }
-          }
+        case .TrackPressed:
+          var playlists    = Playlists()
+          let playlistInfo = PlaylistInfo(playlistFile: m3UDict[artist]![album]!, playlistPath: artist + "/" + album + "/", numTracks: 1)
+          playlists.append((playlistInfo, [pendingTrack!]))
 
-          try player.play()
+          try playTracks(playlists: playlists)
+          pendingTrack = nil
         }
+
+        stopReason = StoppingReason.EndOfAudio
       }
 
     case AudioPlayer.PlaybackState.playing:
@@ -226,17 +249,21 @@ typealias Playlists = [Playlist]
       guard bmData != nil else { return }
 
       do {
-        let playing = player.isPlaying
-        if(playing || bmURL.startAccessingSecurityScopedResource()) {
-          if(playing) {
-            player.reset()
-          }
+        if(player.isPlaying) {
+          pendingTrack = item
 
+          stopReason = StoppingReason.TrackPressed
+          player.stop()
+          return
+
+        }
+
+        if(bmURL.startAccessingSecurityScopedResource()) {
           var playlists    = Playlists()
           let playlistInfo = PlaylistInfo(playlistFile: m3UDict[artist]![album]!, playlistPath: artist + "/" + album + "/", numTracks: 1)
           playlists.append((playlistInfo, [item]))
 
-          try playTracks(alreadyPlaying: playing, playlists: playlists)
+          try playTracks(playlists: playlists)
         }
       } catch {
         // Handle error
@@ -249,7 +276,7 @@ typealias Playlists = [Playlist]
     playlistManager.generatePlaylist(playlists: playlists, shuffleTracks: false)
 
     trackNum = 0
-    userStop = false
+    stopReason = StoppingReason.EndOfAudio
 
     fetchNextTracks()
   }
@@ -264,7 +291,7 @@ typealias Playlists = [Playlist]
     trackIterator = tracks.makeIterator()
   }
 
-  func playTracks(alreadyPlaying: Bool, playlists: Playlists) throws {
+  func playTracks(playlists: Playlists) throws {
     configurePlayback(playlists: playlists)
 
     for tracklist in trackLists {
@@ -273,9 +300,7 @@ typealias Playlists = [Playlist]
       }
     }
 
-    if(!alreadyPlaying) {
-      try player.play()
-    }
+    try player.play()
   }
 
   func playAll() {
@@ -299,6 +324,7 @@ typealias Playlists = [Playlist]
       // Play all artists
     } else if(album.isEmpty) {
       // Play all albums
+      
       do {
         if(bmURL.startAccessingSecurityScopedResource()) {
           let albums = tracksDict[artist]!
@@ -313,7 +339,7 @@ typealias Playlists = [Playlist]
             }
             
             if(!playlists.isEmpty) {
-              try playTracks(alreadyPlaying: false, playlists: playlists)
+              try playTracks(playlists: playlists)
             }
           }
         }
@@ -330,7 +356,7 @@ typealias Playlists = [Playlist]
             let playlistInfo = PlaylistInfo(playlistFile: m3UDict[artist]![album]!, playlistPath: artist + "/" + album + "/", numTracks: m3UTracks.count)
             playlists.append((playlistInfo, m3UTracks))
 
-            try playTracks(alreadyPlaying: false, playlists: playlists)
+            try playTracks(playlists: playlists)
           }
         }
       } catch {
@@ -340,7 +366,7 @@ typealias Playlists = [Playlist]
   }
 
   func stopAll() {
-    userStop = true
+    stopReason = StoppingReason.StopPressed
     player.stop()
   }
 
