@@ -46,9 +46,9 @@ enum StoppingReason { case EndOfAudio, StopPressed, TrackPressed }
   var tracksDict: TrackDict
   var typesList: [String]
 
-  var type: String
-  var artist: String
-  var album: String
+  var selectedType: String
+  var selectedArtist: String
+  var selectedAlbum: String
 
   var trackNum: Int
   var stopReason: StoppingReason
@@ -80,20 +80,21 @@ enum StoppingReason { case EndOfAudio, StopPressed, TrackPressed }
       }
     }
 
+    // TODO: Handle errors when initialising from stored data
     self.rootPath = PlayerDataModel.getRootPath()
 
-    self.allM3UDict = PlayerDataModel.getM3UDict(m3UFile: m3UFile)
+    self.allM3UDict    = PlayerDataModel.getM3UDict(m3UFile: m3UFile)
     self.allTracksDict = PlayerDataModel.getTrackDict(trackFile: trackFile)
 
-    self.typesList = PlayerDataModel.getTypes(typesFile: rootTypesFile)
-    self.type = PlayerDataModel.getSelectedType(typeFile: typeFile)
+    self.typesList    = PlayerDataModel.getTypes(typesFile: rootTypesFile)
+    self.selectedType = PlayerDataModel.getSelectedType(typeFile: typeFile)
 
-    self.m3UDict    = allM3UDict[self.type] ?? [:]
-    self.tracksDict = allTracksDict[self.type] ?? [:]
-    self.musicPath  = rootPath + type + "/"
+    self.m3UDict    = allM3UDict[selectedType]!
+    self.tracksDict = allTracksDict[selectedType]!
+    self.musicPath  = rootPath + selectedType + "/"
 
-    self.artist = ""
-    self.album  = ""
+    self.selectedArtist = ""
+    self.selectedAlbum  = ""
 
     self.trackNum = 0
     self.stopReason = StoppingReason.EndOfAudio
@@ -114,8 +115,8 @@ enum StoppingReason { case EndOfAudio, StopPressed, TrackPressed }
 
       playerSelection.setDelegate(delegate: self)
       playerSelection.setRootPath(newRootPath: rootPath)
-      playerSelection.setTypes(newType: type, newTypeList: typesList)
-      playerSelection.setAll(newArtist: artist, newAlbum: album, newList: tracksDict.keys.sorted())
+      playerSelection.setTypes(newType: selectedType, newTypeList: typesList)
+      playerSelection.setAll(newArtist: selectedArtist, newAlbum: selectedAlbum, newList: tracksDict.keys.sorted())
     }
   }
 
@@ -193,7 +194,7 @@ enum StoppingReason { case EndOfAudio, StopPressed, TrackPressed }
 
         case .TrackPressed:
           var playlists    = Playlists()
-          let playlistInfo = PlaylistInfo(playlistFile: m3UDict[artist]![album]!, playlistPath: artist + "/" + album + "/", numTracks: 1)
+          let playlistInfo = PlaylistInfo(playlistFile: m3UDict[selectedArtist]![selectedAlbum]!, playlistPath: selectedArtist + "/" + selectedAlbum + "/", numTracks: 1)
           playlists.append((playlistInfo, [pendingTrack!]))
 
           try playTracks(playlists: playlists)
@@ -219,55 +220,57 @@ enum StoppingReason { case EndOfAudio, StopPressed, TrackPressed }
   }
 
   func clearArtist() {
-    if(artist.isEmpty) { return }
+    if(selectedArtist.isEmpty) { return }
 
-    artist = ""
-    album  = ""
-
-    playerSelection.setArtist(newArtist: artist, newList: tracksDict.keys.sorted())
+    selectedArtist = ""
+    selectedAlbum  = ""
+    playerSelection.setArtist(newArtist: "", newList: tracksDict.keys.sorted())
   }
 
   func clearAlbum() {
-    if(album.isEmpty) { return }
+    if(selectedAlbum.isEmpty) { return }
 
-    album = ""
-
-    playerSelection.setAlbum(newAlbum: album, newList: tracksDict[artist]!.keys.sorted())
+    selectedAlbum = ""
+    playerSelection.setAlbum(newAlbum: "", newList: tracksDict[selectedArtist]!.keys.sorted())
   }
 
   func itemSelected(item: String) {
-    if(artist.isEmpty) {
-      artist = item
+    if(selectedArtist.isEmpty) {
+      selectedArtist = item
+      playerSelection.setArtist(newArtist: selectedArtist, newList: tracksDict[selectedArtist]!.keys.sorted())
+      return
+    }
 
-      playerSelection.setArtist(newArtist: artist, newList: tracksDict[artist]!.keys.sorted())
-    } else if(album.isEmpty) {
-      album = item
+    if(selectedAlbum.isEmpty) {
+      selectedAlbum = item
+      playerSelection.setAlbum(newAlbum: selectedAlbum, newList: tracksDict[selectedArtist]![selectedAlbum]!)
+      return
+    }
 
-      playerSelection.setAlbum(newAlbum: album, newList: tracksDict[artist]![album]!)
-    } else {
-      // Can't play if we haven't got the root folder
-      guard bmData != nil else { return }
+    if(player.isPlaying) {
+      pendingTrack = item
+      stopReason   = StoppingReason.TrackPressed
 
-      do {
-        if(player.isPlaying) {
-          pendingTrack = item
+      player.stop()
+      return
+    }
 
-          stopReason = StoppingReason.TrackPressed
-          player.stop()
-          return
+    // Can't play if we haven't got the root folder
+    guard bmData != nil else { return }
 
-        }
+    if(!bmURL.startAccessingSecurityScopedResource()) {
+      // Handle error
+      return
+    }
 
-        if(bmURL.startAccessingSecurityScopedResource()) {
-          var playlists    = Playlists()
-          let playlistInfo = PlaylistInfo(playlistFile: m3UDict[artist]![album]!, playlistPath: artist + "/" + album + "/", numTracks: 1)
-          playlists.append((playlistInfo, [item]))
+    var playlists    = Playlists()
+    let playlistInfo = PlaylistInfo(playlistFile: m3UDict[selectedArtist]![selectedAlbum]!, playlistPath: selectedArtist + "/" + selectedAlbum + "/", numTracks: 1)
+    playlists.append((playlistInfo, [item]))
 
-          try playTracks(playlists: playlists)
-        }
-      } catch {
+    do {
+      try playTracks(playlists: playlists)
+    } catch {
         // Handle error
-      }
     }
   }
 
@@ -303,6 +306,64 @@ enum StoppingReason { case EndOfAudio, StopPressed, TrackPressed }
     try player.play()
   }
 
+  func playAllArtists() throws {
+    if(!bmURL.startAccessingSecurityScopedResource()) {
+      // TODO: Throw an error
+      return
+    }
+
+    var playlists = Playlists()
+    for artist in tracksDict.keys.sorted() {
+      let albums = tracksDict[artist]!
+      for album in albums.keys.sorted() {
+        let albumTracks = albums[album]!
+        if(!albumTracks.isEmpty) {
+          let playlistInfo = PlaylistInfo(playlistFile: m3UDict[artist]![album]!, playlistPath: artist + "/" + album + "/", numTracks: albumTracks.count)
+          playlists.append((playlistInfo, albumTracks))
+        }
+      }
+    }
+
+    if(playlists.isEmpty) { return }
+    try playTracks(playlists: playlists)
+  }
+
+  func playAllAlbums() throws {
+    if(!bmURL.startAccessingSecurityScopedResource()) {
+      // TODO: Throw an error
+      return
+    }
+
+    var playlists = Playlists()
+    let albums = tracksDict[selectedArtist]!
+    for album in albums.keys.sorted() {
+      let albumTracks = albums[album]!
+      if(!albumTracks.isEmpty) {
+        let playlistInfo = PlaylistInfo(playlistFile: m3UDict[selectedArtist]![album]!, playlistPath: selectedArtist + "/" + album + "/", numTracks: albumTracks.count)
+        playlists.append((playlistInfo, albumTracks))
+      }
+    }
+
+    if(playlists.isEmpty) { return }
+    try playTracks(playlists: playlists)
+  }
+
+  func playAlbum() throws {
+    if(!bmURL.startAccessingSecurityScopedResource()) {
+      // TODO: Throw an error
+      return
+    }
+
+    let albumTracks = tracksDict[selectedArtist]![selectedAlbum]!
+    if(albumTracks.isEmpty) { return }
+
+    var playlists = Playlists()
+    let playlistInfo = PlaylistInfo(playlistFile: m3UDict[selectedArtist]![selectedAlbum]!, playlistPath: selectedArtist + "/" + selectedAlbum + "/", numTracks: albumTracks.count)
+    playlists.append((playlistInfo, albumTracks))
+
+    try playTracks(playlists: playlists)
+  }
+
   func playAll() {
     let playing = (playerSelection.playbackState == PlaybackState.Playing)
     let paused  = (playerSelection.playbackState == PlaybackState.Paused)
@@ -312,56 +373,26 @@ enum StoppingReason { case EndOfAudio, StopPressed, TrackPressed }
       } else {
         player.resume()
       }
-
       return
     }
 
     // Can't play if we haven't got the root folder
     guard bmData != nil else { return }
 
-    // Start playback
-    if(artist.isEmpty) {
-      // Play all artists
-    } else if(album.isEmpty) {
-      // Play all albums
-      
-      do {
-        if(bmURL.startAccessingSecurityScopedResource()) {
-          let albums = tracksDict[artist]!
-          if(!albums.isEmpty) {
-            var playlists = Playlists()
-            for album in albums.keys.sorted() {
-              let albumTracks = albums[album]!
-              if(!albumTracks.isEmpty) {
-                let playlistInfo = PlaylistInfo(playlistFile: m3UDict[artist]![album]!, playlistPath: artist + "/" + album + "/", numTracks: albumTracks.count)
-                playlists.append((playlistInfo, albumTracks))
-              }
-            }
-            
-            if(!playlists.isEmpty) {
-              try playTracks(playlists: playlists)
-            }
-          }
-        }
-      } catch {
-        // Handle error
+    do {
+      if(selectedArtist.isEmpty && !tracksDict.isEmpty) {
+        try playAllArtists()
+        return
       }
-    } else {
-      // Play the m3u
-      do {
-        if(bmURL.startAccessingSecurityScopedResource()) {
-          let m3UTracks = tracksDict[artist]![album]!
-          if(!m3UTracks.isEmpty) {
-            var playlists = Playlists()
-            let playlistInfo = PlaylistInfo(playlistFile: m3UDict[artist]![album]!, playlistPath: artist + "/" + album + "/", numTracks: m3UTracks.count)
-            playlists.append((playlistInfo, m3UTracks))
 
-            try playTracks(playlists: playlists)
-          }
-        }
-      } catch {
-        // Handle error
+      if(selectedArtist.isEmpty && !tracksDict[selectedArtist]!.isEmpty) {
+        try playAllAlbums()
+        return
       }
+
+      try playAlbum()
+    } catch {
+      // Handle error
     }
   }
 
@@ -431,9 +462,7 @@ enum StoppingReason { case EndOfAudio, StopPressed, TrackPressed }
 
   static func getRootPath() -> String {
     let pathData = NSData(contentsOfFile:rootFile) as Data?
-    guard let pathData else {
-      return ""
-    }
+    guard let pathData else { return "" }
 
     return String(decoding: pathData, as: UTF8.self)
   }
@@ -517,7 +546,7 @@ enum StoppingReason { case EndOfAudio, StopPressed, TrackPressed }
 
   func scanTypes() throws {
     typesList.removeAll()
-    type = ""
+    selectedType = ""
 
     let types = try fm.contentsOfDirectory(atPath: rootPath)
     for type in types {
@@ -532,6 +561,12 @@ enum StoppingReason { case EndOfAudio, StopPressed, TrackPressed }
     typesList.sort()
     let joinedTypes = typesList.joined(separator: "\n")
     try joinedTypes.write(toFile: rootTypesFile, atomically: true, encoding: .utf8)
+
+    if(typesList.count > 0) {
+      selectedType = typesList[0]
+    }
+
+    try selectedType.write(toFile: typeFile, atomically: true, encoding: .utf8)
   }
 
   func scanArtists(typePath: String) throws -> (m3Us: M3UDict, tracks: TrackDict) {
@@ -558,62 +593,60 @@ enum StoppingReason { case EndOfAudio, StopPressed, TrackPressed }
   func scanFolders() {
     guard bmData != nil else { return }
 
-    if(bmURL.startAccessingSecurityScopedResource()) {
-      do {
-        allM3UDict.removeAll()
-        allTracksDict.removeAll()
-
-        try scanTypes()
-
-        for type in typesList {
-          let artistDict = try scanArtists(typePath: rootPath + type + "/")
-
-          allM3UDict[type]    = artistDict.m3Us
-          allTracksDict[type] = artistDict.tracks
-        }
-
-        if(typesList.count > 0) { type = typesList[0] }
-        try type.write(toFile: typeFile, atomically: true, encoding: .utf8)
-
-        m3UDict    = allM3UDict[self.type] ?? [:]
-        tracksDict = allTracksDict[self.type] ?? [:]
-        musicPath  = rootPath + type + "/"
-
-        let data1 = try PropertyListEncoder().encode(allM3UDict)
-        try data1.write(to: URL(fileURLWithPath:m3UFile))
-
-        let data2 = try PropertyListEncoder().encode(allTracksDict)
-        try data2.write(to: URL(fileURLWithPath:trackFile))
-        bmURL.stopAccessingSecurityScopedResource()
-
-        artist = ""
-        album  = ""
-
-        playerSelection.setTypes(newType: type, newTypeList: typesList)
-        playerSelection.setAll(newArtist: artist, newAlbum: album, newList: tracksDict.keys.sorted())
-      } catch {
-          // Handle error
-      }
+    if(!bmURL.startAccessingSecurityScopedResource()) {
+      // Handle error
+      return
     }
+
+    allM3UDict.removeAll()
+    allTracksDict.removeAll()
+
+    do {
+      try scanTypes()
+
+      for type in typesList {
+        let artistDict = try scanArtists(typePath: rootPath + type + "/")
+
+        allM3UDict[type]    = artistDict.m3Us
+        allTracksDict[type] = artistDict.tracks
+      }
+
+      m3UDict    = allM3UDict[selectedType]!
+      tracksDict = allTracksDict[selectedType]!
+      musicPath  = rootPath + selectedType + "/"
+
+      let data1 = try PropertyListEncoder().encode(allM3UDict)
+      try data1.write(to: URL(fileURLWithPath:m3UFile))
+
+      let data2 = try PropertyListEncoder().encode(allTracksDict)
+      try data2.write(to: URL(fileURLWithPath:trackFile))
+      bmURL.stopAccessingSecurityScopedResource()
+    } catch {
+      // Handle error
+    }
+
+    selectedArtist = ""
+    selectedAlbum  = ""
+    playerSelection.setAll(newArtist: selectedArtist, newAlbum: selectedAlbum, newList: tracksDict.keys.sorted())
+    playerSelection.setTypes(newType: selectedType, newTypeList: typesList)
   }
 
   func typeChanged(newType: String) {
-    if(type == newType) { return }
+    if(selectedType == newType) { return }
 
-    type = newType
+    selectedType = newType
     do {
-      try type.write(toFile: typeFile, atomically: true, encoding: .utf8)
+      try selectedType.write(toFile: typeFile, atomically: true, encoding: .utf8)
     } catch {
       // Ignore error
     }
 
-    m3UDict    = allM3UDict[self.type] ?? [:]
-    tracksDict = allTracksDict[self.type] ?? [:]
-    musicPath = rootPath + type + "/"
+    m3UDict    = allM3UDict[selectedType]!
+    tracksDict = allTracksDict[selectedType]!
+    musicPath  = rootPath + selectedType + "/"
 
-    artist = ""
-    album  = ""
-
-    playerSelection.setAll(newArtist: artist, newAlbum: album, newList: tracksDict.keys.sorted())
+    selectedArtist = ""
+    selectedAlbum  = ""
+    playerSelection.setAll(newArtist: "", newAlbum: "", newList: tracksDict.keys.sorted())
   }
 }
