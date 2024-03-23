@@ -102,12 +102,6 @@ struct ContentView: View {
             Text("Repeat: all").frame(width: 90).padding(.horizontal, 10).padding(.vertical, 2)
           }
         }
-
-        Spacer().frame(width: 20)
-
-        if(playerSelection.playPosition > 0) {
-          Text(String(format: "Playing: %d/%d", playerSelection.playPosition, playerSelection.playTotal)).padding(.horizontal, 10).padding(.vertical, 2)
-        }
       }
 
       Spacer().frame(height: 10)
@@ -124,15 +118,27 @@ struct ContentView: View {
 
       Spacer().frame(height: 30)
 
+      if(playerSelection.playPosition > 0) {
+        Text(String(format: "Playing: %d/%d", playerSelection.playPosition, playerSelection.playTotal))
+      } else {
+        Text("Playing: ")
+      }
+
       HStack {
-        Text(String(format: "Playlist: %@", playerSelection.playlist)).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+        Text(String(format: "Playlist: %@", playerSelection.playlist)).frame(minWidth: 120, alignment: .leading).padding(.vertical, 2)
+
+        Spacer().frame(width: 20)
 
         if playerSelection.trackNum > 0 {
           Text(String(format: "Track %d/%d: %@", playerSelection.trackNum, playerSelection.numTracks, playerSelection.track)).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
         } else {
           Text("Track: ").frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
         }
+      }
 
+      Spacer().frame(height: 15)
+
+      HStack {
         Button(action: model.playPreviousTrack) {
           Text("Previous").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
         }
@@ -144,7 +150,7 @@ struct ContentView: View {
         }
       }
 
-      Spacer().frame(height: 20)
+      Spacer().frame(height: 10)
     }
     .padding()
     .frame(minWidth:  200, maxWidth: .infinity, minHeight: 200, maxHeight: .infinity, alignment: .topLeading)
