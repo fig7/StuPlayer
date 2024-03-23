@@ -11,6 +11,10 @@ enum PlaybackState {
   case Stopped, Playing, Paused
 }
 
+enum RepeatState {
+  case None, Track, All
+}
+
 @MainActor class PlayerSelection: ObservableObject
 {
   @MainActor protocol Delegate: AnyObject {
@@ -35,11 +39,14 @@ enum PlaybackState {
   @Published var trackNum  = 0
   @Published var numTracks = 0
 
-  @Published var repeatTracks   = false
+  @Published var repeatTracks   = RepeatState.None
   @Published var shuffleTracks  = false
 
   @Published var list: [String] = []
   @Published var playbackState  = PlaybackState.Stopped
+
+  @Published var playPosition = 0
+  @Published var playTotal    = 0
 
   weak var delegate: Delegate?
 
@@ -78,18 +85,37 @@ enum PlaybackState {
     self.list   = newList
   }
 
-  func setTrack(newTrack: String, newTrackNum: Int) {
-    self.track    = newTrack
-    self.trackNum = newTrackNum
+  func setTrack(newTrack: TrackInfo?) {
+    setPlaylist(newPlaylist: newTrack?.playlistInfo)
+
+    guard let newTrack else {
+      self.track    = ""
+      self.trackNum = 0
+      return
+    }
+
+    self.track    = newTrack.trackURL.lastPathComponent
+    self.trackNum = newTrack.trackNum
   }
 
-  func setPlaylist(newPlaylist: String, newNumTracks: Int) {
-    self.playlist  = newPlaylist
-    self.numTracks = newNumTracks
+  func setPlaylist(newPlaylist: PlaylistInfo?) {
+    guard let newPlaylist else {
+      self.playlist  = ""
+      self.numTracks = 0
+      return
+    }
+
+    self.playlist  = newPlaylist.playlistFile
+    self.numTracks = newPlaylist.numTracks
   }
 
   func setPlaybackState(newPlaybackState: PlaybackState) {
     self.playbackState = newPlaybackState
+  }
+
+  func setPlayingPosition(playPosition: Int, playTotal: Int) {
+    self.playPosition = playPosition
+    self.playTotal    = playTotal
   }
 
   func toggleShuffle() {
@@ -97,6 +123,15 @@ enum PlaybackState {
   }
 
   func toggleRepeatTracks() {
-    repeatTracks = !repeatTracks
+    switch(repeatTracks) {
+    case RepeatState.None:
+      repeatTracks = RepeatState.Track
+
+    case RepeatState.Track:
+      repeatTracks = RepeatState.All
+
+    case RepeatState.All:
+      repeatTracks = RepeatState.None
+    }
   }
 }
