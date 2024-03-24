@@ -186,7 +186,7 @@ enum StoppingReason { case EndOfAudio, StopPressed, TrackPressed, PreviousPresse
           pendingTrack = nil
 
         case .PreviousPressed:
-          nextTrack = playlistManager.moveTo(trackNum: playPosition-1, shuffleTracks: playerSelection.shuffleTracks)
+          nextTrack = playlistManager.moveTo(trackNum: playPosition-1)
 
           playPosition -= 2
           try player.play(nextTrack!.trackURL)
@@ -198,7 +198,7 @@ enum StoppingReason { case EndOfAudio, StopPressed, TrackPressed, PreviousPresse
             playPosition = 0
           }
 
-          nextTrack = playlistManager.moveTo(trackNum: nextTrackNum, shuffleTracks: playerSelection.shuffleTracks)
+          nextTrack = playlistManager.moveTo(trackNum: nextTrackNum)
           try player.play(nextTrack!.trackURL)
         }
 
@@ -276,21 +276,23 @@ enum StoppingReason { case EndOfAudio, StopPressed, TrackPressed, PreviousPresse
   }
 
   func configurePlayback(playlist: Playlist, trackNum: Int) {
+    let shuffleTracks = playerSelection.shuffleTracks
     playlistManager.setMusicPath(musicPath: musicPath)
-    playlistManager.generatePlaylist(playlist: playlist, trackNum: trackNum, shuffleTracks: false)
-    nextTrack = playlistManager.nextTrack()
+    playlistManager.generatePlaylist(playlist: playlist, trackNum: trackNum, shuffleTracks: shuffleTracks)
 
-    playPosition = trackNum-1
-    stopReason = StoppingReason.EndOfAudio
+    playPosition = (shuffleTracks) ? 0 : trackNum-1
+    stopReason   = StoppingReason.EndOfAudio
+    nextTrack    = playlistManager.nextTrack()
   }
 
   func configurePlayback(playlists: Playlists) {
+    let shuffleTracks = playerSelection.shuffleTracks
     playlistManager.setMusicPath(musicPath: musicPath)
-    playlistManager.generatePlaylist(playlists: playlists, shuffleTracks: false)
-    nextTrack = playlistManager.nextTrack()
+    playlistManager.generatePlaylist(playlists: playlists, shuffleTracks: shuffleTracks)
 
     playPosition = 0
-    stopReason = StoppingReason.EndOfAudio
+    stopReason   = StoppingReason.EndOfAudio
+    nextTrack    = playlistManager.nextTrack()
   }
 
   func playTracks(playlist: Playlist, trackNum: Int) throws {
@@ -426,12 +428,30 @@ enum StoppingReason { case EndOfAudio, StopPressed, TrackPressed, PreviousPresse
   }
 
   func toggleRepeat() {
-    // TODO: What to do if repeat toggled during playback?
+    // Toggling from repeat all to none has no effect (the next track remains queued)
+    // Toggling from repeat none to track clears the queue and re-queues the current track
+    // Toggling from repeat track to all clears the queue and queues the next track
 
-    // Clear queued tracks
-    // And re-queue as appropriate
-
+    let repeatAll = (playerSelection.repeatTracks == RepeatState.All)
     playerSelection.toggleRepeatTracks()
+
+    if(!player.isPlaying || repeatAll) { return }
+    player.clearQueue()
+
+    let repeatingTrack = (playerSelection.repeatTracks == RepeatState.Track)
+    if(repeatingTrack) {
+      nextTrack = playlistManager.moveTo(trackNum: playPosition)
+    } else {
+      nextTrack = playlistManager.nextTrack()
+    }
+
+    if(nextTrack != nil) {
+      do {
+        try player.enqueue(nextTrack!.trackURL)
+      } catch {
+        // Handle error
+      }
+    }
   }
 
   static func getM3UDict(m3UFile: String) -> AllM3UDict {
