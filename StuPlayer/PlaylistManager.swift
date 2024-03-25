@@ -18,6 +18,7 @@ class PlaylistManager {
 
   var shuffleList: [(trackIndex: Int, track: TrackInfo)] = []
   var nextShuffleIndex = 0
+  var shuffleTracks = false
 
   func setMusicPath(musicPath: String) {
     self.musicPath = musicPath
@@ -45,8 +46,9 @@ class PlaylistManager {
     shuffleList.removeAll()
 
     // Copy the tracks to the shuffle list
+    let startIndex = (shuffleTracks) ? Int.random(in: 0..<trackCount) : nextTrackIndex
     for (trackIndex, track) in trackList.enumerated() {
-      if(nextTrackIndex == trackIndex) {
+      if(startIndex == trackIndex) {
         // Skip the track we are going to start with
         continue
       }
@@ -58,20 +60,22 @@ class PlaylistManager {
     shuffleList.shuffle()
 
     // Insert first element into new list at the beginning
-    shuffleList.insert((nextTrackIndex, trackList[nextTrackIndex]), at: 0)
+    shuffleList.insert((startIndex, trackList[startIndex]), at: 0)
   }
 
   func generatePlaylist(playlist: Playlist, trackNum: Int, shuffleTracks: Bool) {
     self.playlists = [playlist]
-    generateTrackList()
+    self.shuffleTracks = shuffleTracks
 
+    generateTrackList()
     reset(trackNum: trackNum, shuffleTracks: shuffleTracks)
   }
 
   func generatePlaylist(playlists: Playlists, shuffleTracks: Bool) {
     self.playlists = playlists
-    generateTrackList()
+    self.shuffleTracks = shuffleTracks
 
+    generateTrackList()
     reset(shuffleTracks: shuffleTracks)
   }
 
@@ -80,7 +84,7 @@ class PlaylistManager {
   }
 
   func peekNextTrack() -> TrackInfo? {
-    if(!shuffleList.isEmpty) { return peekNextShuffleTrack() }
+    if(shuffleTracks) { return peekNextShuffleTrack() }
     return (nextTrackIndex == trackCount) ? nil : trackList[nextTrackIndex]
   }
 
@@ -96,7 +100,7 @@ class PlaylistManager {
   }
 
   func nextTrack() -> TrackInfo? {
-    if(!shuffleList.isEmpty) { return nextShuffleTrack() }
+    if(shuffleTracks) { return nextShuffleTrack() }
 
     if(nextTrackIndex == trackCount) {
       return nil
@@ -108,20 +112,9 @@ class PlaylistManager {
     return track
   }
 
-  func reset(shuffleTracks: Bool) {
-    let trackNum = (shuffleTracks) ? Int.random(in: 1...trackCount) : 1
-    reset(trackNum: trackNum, shuffleTracks: shuffleTracks)
-  }
-
-  func reset(trackNum: Int, shuffleTracks: Bool) {
+  func reset(trackNum: Int = 1, shuffleTracks: Bool) {
     nextTrackIndex = trackNum-1
-
-    nextShuffleIndex = 0
-    shuffleList.removeAll()
-
-    if(shuffleTracks) {
-      generateShuffleList()
-    }
+    generateShuffleList()
   }
 
   func hasPrevious(trackNum: Int) -> Bool {
@@ -135,7 +128,7 @@ class PlaylistManager {
   func moveTo(trackNum: Int) -> TrackInfo? {
     if(trackNum > trackCount) { return nil }
 
-    if(!shuffleList.isEmpty) {
+    if(shuffleTracks) {
       nextShuffleIndex = trackNum-1
       return peekNextTrack()
     }
@@ -145,22 +138,22 @@ class PlaylistManager {
   }
 
   func shuffleChanged(shuffleTracks: Bool) -> Int {
+    self.shuffleTracks = shuffleTracks
+
     if(!shuffleTracks) {
-      // Reset nextTrackIndex, remove the shuffleList, and return the new track position
+      // Reset nextTrackIndex and return the new track num
       let currentTrack = shuffleList[nextShuffleIndex-1]
       nextTrackIndex = currentTrack.trackIndex + 1
 
-      nextShuffleIndex = 0
-      shuffleList.removeAll()
-
       return nextTrackIndex
     } else {
-      // Remove next track (go back 1), generate a new shuffleList, and return the new track position (1)
-      nextTrackIndex -= 1
+      // Advance the nextShuffle index, if it hasn't been already
+      if(nextShuffleIndex == 0) {
+        nextShuffleIndex += 1
+      }
 
-      generateShuffleList()
-      nextShuffleIndex = 1
-      return 1
+      // Return the new shuffled track num
+      return nextShuffleIndex
     }
   }
 }
