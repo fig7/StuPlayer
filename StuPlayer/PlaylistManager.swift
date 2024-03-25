@@ -13,151 +13,105 @@ class PlaylistManager {
   var playlists: Playlists = []
   var trackCount = 0
 
-  var currentPlaylist: Playlist?
-  var currentPlaylistIndex = 0
+  var trackList: [TrackInfo] = []
+  var nextTrackIndex = 0
 
-  var currentTrack: String?
-  var currentTrackIndex = 0
-
-  var shuffleList: [(playlistIndex: Int, trackIndex: Int, track: TrackInfo)] = []
-  var currentShuffleIndex = 0
+  var shuffleList: [(trackIndex: Int, track: TrackInfo)] = []
+  var nextShuffleIndex = 0
 
   func setMusicPath(musicPath: String) {
     self.musicPath = musicPath
   }
 
-  func generatePlaylist(playlist: Playlist, trackNum: Int, shuffleTracks: Bool) {
-    self.playlists = [playlist]
-    calculateTrackCount()
+  func generateTrackList() {
+    nextTrackIndex = 0
+    trackList.removeAll()
 
-    reset(trackNum: trackNum, shuffleTracks: shuffleTracks)
-  }
-
-  func generatePlaylist(playlists: Playlists, shuffleTracks: Bool) {
-    self.playlists = playlists
-    calculateTrackCount()
-
-    var playlistIndex = 0
-    var trackIndex    = 0
-    if(shuffleTracks) {
-      var randomIndex = Int.random(in: 0..<trackCount)
-      randomTrackSearch: for playlist in playlists {
-        trackIndex = 0
-        for _ in playlist.tracks {
-          if(randomIndex == 0) {
-            break randomTrackSearch
-          }
-
-          randomIndex -= 1
-          trackIndex  += 1
-        }
-
-        playlistIndex += 1
-      }
-    }
-
-    reset(playlistNum: playlistIndex+1, trackNum: trackIndex+1, shuffleTracks: shuffleTracks)
-  }
-
-  func nextTrack() -> TrackInfo? {
-    if(currentPlaylist == nil) { return nil }
-    if(!shuffleList.isEmpty) {
-      if(currentShuffleIndex == trackCount) {
-        return nil
-      }
-
-      let shuffledTrack = shuffleList[currentShuffleIndex]
-      let trackInfo = shuffledTrack.track
-      currentPlaylistIndex = shuffledTrack.playlistIndex
-      currentTrackIndex    = shuffledTrack.trackIndex
-
-      currentPlaylist = playlists[currentPlaylistIndex]
-      currentTrack    = currentPlaylist!.tracks[currentTrackIndex]
-
-      currentShuffleIndex += 1
-      return trackInfo
-    }
-
-    let playlistInfo = currentPlaylist!.playlistInfo
-    let tracks       = currentPlaylist!.tracks
-
-    let baseURL   = URL(fileURLWithPath: musicPath + playlistInfo.playlistPath)
-    let trackURL  = baseURL.appending(path: currentTrack!, directoryHint: URL.DirectoryHint.notDirectory)
-    let trackInfo = TrackInfo(playlistInfo: playlistInfo, trackNum: currentTrackIndex+1, trackURL: trackURL)
-
-    currentTrackIndex += 1
-    if(currentTrackIndex >= tracks.count) {
-      currentPlaylistIndex += 1
-      currentTrackIndex = 0
-    }
-
-    if(currentPlaylistIndex < playlists.count) {
-      currentPlaylist = playlists[currentPlaylistIndex]
-      currentTrack    = currentPlaylist!.tracks[currentTrackIndex]
-    } else {
-      currentPlaylist = nil
-      currentTrack    = nil
-    }
-
-    return trackInfo
-  }
-
-  func generateShuffleList() {
-    guard !playlists.isEmpty else { return }
-
-    // Copy the tracks to the shuffle list
-    var playlistIndex = 0
     for playlist in playlists {
       let playlistInfo = playlist.playlistInfo
-
-      var trackIndex = 0
-      for track in playlist.tracks {
-        if((playlistIndex == currentPlaylistIndex) && (trackIndex == currentTrackIndex)) {
-          // Skip the track we are going to start with
-          trackIndex += 1
-          continue
-        }
-
+      for (trackIndex, track) in playlist.tracks.enumerated() {
         let baseURL   = URL(fileURLWithPath: musicPath + playlistInfo.playlistPath)
         let trackURL  = baseURL.appending(path: track, directoryHint: URL.DirectoryHint.notDirectory)
         let trackInfo = TrackInfo(playlistInfo: playlistInfo, trackNum: trackIndex+1, trackURL: trackURL)
+        trackList.append(trackInfo)
+      }
+    }
 
-        shuffleList.append((playlistIndex, trackIndex, trackInfo))
-        trackIndex += 1
+    trackCount = trackList.count
+  }
+
+  func generateShuffleList() {
+    nextShuffleIndex = 0
+    shuffleList.removeAll()
+
+    // Copy the tracks to the shuffle list
+    for (trackIndex, track) in trackList.enumerated() {
+      if(nextTrackIndex == trackIndex) {
+        // Skip the track we are going to start with
+        continue
       }
 
-      playlistIndex += 1
+      shuffleList.append((trackIndex, track))
     }
 
     // Shuffle all the tracks
     shuffleList.shuffle()
 
     // Insert first element into new list at the beginning
-    let playlistInfo = currentPlaylist!.playlistInfo
-
-    let baseURL   = URL(fileURLWithPath: musicPath + playlistInfo.playlistPath)
-    let trackURL  = baseURL.appending(path: currentTrack!, directoryHint: URL.DirectoryHint.notDirectory)
-    let trackInfo = TrackInfo(playlistInfo: playlistInfo, trackNum: currentTrackIndex+1, trackURL: trackURL)
-
-    shuffleList.insert((currentPlaylistIndex, currentTrackIndex, trackInfo), at: 0)
+    shuffleList.insert((nextTrackIndex, trackList[nextTrackIndex]), at: 0)
   }
 
-  func calculateTrackCount() {
-    trackCount = 0
-    for playlist in playlists {
-      trackCount += playlist.tracks.count
+  func generatePlaylist(playlist: Playlist, trackNum: Int, shuffleTracks: Bool) {
+    self.playlists = [playlist]
+
+    generateTrackList()
+    reset(trackNum: trackNum, shuffleTracks: shuffleTracks)
+  }
+
+  func generatePlaylist(playlists: Playlists, shuffleTracks: Bool) {
+    self.playlists = playlists
+
+    generateTrackList()
+
+    let trackIndex = (shuffleTracks) ? Int.random(in: 0..<trackCount) : 0
+    reset(trackNum: trackIndex+1, shuffleTracks: shuffleTracks)
+  }
+
+  func peekNextShuffleTrack() -> TrackInfo? {
+    return (nextShuffleIndex == trackCount) ? nil : shuffleList[nextShuffleIndex].track
+  }
+
+  func peekNextTrack() -> TrackInfo? {
+    if(!shuffleList.isEmpty) { return peekNextShuffleTrack() }
+    return (nextTrackIndex == trackCount) ? nil : trackList[nextTrackIndex]
+  }
+
+  func nextShuffleTrack() -> TrackInfo? {
+    if(nextShuffleIndex == trackCount) {
+      return nil
     }
+
+    let track = shuffleList[nextShuffleIndex].track
+    nextShuffleIndex += 1
+
+    return track
   }
 
-  func reset(playlistNum: Int = 1, trackNum: Int = 1, shuffleTracks: Bool) {
-    currentPlaylistIndex = playlistNum-1
-    currentTrackIndex    = trackNum-1
+  func nextTrack() -> TrackInfo? {
+    if(!shuffleList.isEmpty) { return nextShuffleTrack() }
 
-    currentPlaylist = playlists[currentPlaylistIndex]
-    currentTrack    = currentPlaylist!.tracks[currentTrackIndex]
+    if(nextTrackIndex == trackCount) {
+      return nil
+    }
 
-    currentShuffleIndex = 0
-    shuffleList.removeAll()
+    let track = trackList[nextTrackIndex]
+    nextTrackIndex += 1
+
+    return track
+  }
+
+  func reset(trackNum: Int = 1, shuffleTracks: Bool) {
+    nextTrackIndex = trackNum-1
 
     if(shuffleTracks) {
       generateShuffleList()
@@ -176,31 +130,31 @@ class PlaylistManager {
     if(trackNum > trackCount) { return nil }
 
     if(!shuffleList.isEmpty) {
-      currentShuffleIndex = trackNum-1
-      return nextTrack()
+      nextShuffleIndex = trackNum-1
+      return peekNextTrack()
     }
 
-    currentPlaylistIndex = 0
-    var i = 1
+    nextTrackIndex = trackNum-1
+    return peekNextTrack()
+  }
 
-    for playlist in playlists {
-      currentPlaylist = playlist
+  func shuffleChanged(shuffleTracks: Bool) -> Int {
+    if(!shuffleTracks) {
+      // Reset nextTrackIndex, remove the shuffleList, and return the new track position
+      let currentTrack = shuffleList[nextShuffleIndex-1]
+      nextTrackIndex = currentTrack.trackIndex + 1
 
-      currentTrackIndex = 0
-      for track in playlist.tracks {
-        currentTrack = track
-        if(i == trackNum) {
-          return nextTrack()
-        }
+      nextShuffleIndex = 0
+      shuffleList.removeAll()
 
-        i += 1
-        currentTrackIndex += 1
-      }
+      return nextTrackIndex
+    } else {
+      // Remove next track (go back 1), generate a new shuffleList, and return the new track position (1)
+      nextTrackIndex -= 1
 
-      currentPlaylistIndex += 1
+      generateShuffleList()
+      nextShuffleIndex = 1
+      return 1
     }
-
-    // Unreachable
-    return nil
   }
 }
