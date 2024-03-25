@@ -59,25 +59,10 @@ struct ContentView: View {
 
       HStack {
         Button(action: model.playAll) {
-          switch(playerSelection.playbackState) {
-          case .Stopped:
-            Text("Play all").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
-
-          case .Playing:
-            Text("Pause").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
-
-          case .Paused:
-            Text("Resume").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
-          }
+          Text("Play all").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
         }
 
-        Spacer().frame(width: 20)
-
-        Button(action: model.stopAll) {
-          Text(" Stop ").padding(.horizontal, 10).padding(.vertical, 2)
-        }
-
-        Spacer().frame(width: 30)
+        Spacer().frame(width: 40)
 
         Button(action: model.toggleShuffle) {
           switch(playerSelection.shuffleTracks) {
@@ -139,6 +124,27 @@ struct ContentView: View {
       Spacer().frame(height: 15)
 
       HStack {
+        Button(action: model.togglePause) {
+          switch(playerSelection.playbackState) {
+          case .Stopped:
+            Text("Pause").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
+
+          case .Playing:
+            Text("Pause").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
+
+          case .Paused:
+            Text("Resume").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
+          }
+        }
+
+        Spacer().frame(width: 20)
+
+        Button(action: model.stopAll) {
+          Text(" Stop ").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
+        }
+
+        Spacer().frame(width: 40)
+
         Button(action: model.playPreviousTrack) {
           Text("Previous").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
         }
@@ -147,6 +153,18 @@ struct ContentView: View {
 
         Button(action: model.playNextTrack) {
           Text("Next").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
+        }
+
+        Spacer().frame(width: 20)
+
+        Button(action: model.restartAll) {
+          switch(playerSelection.shuffleTracks) {
+          case false:
+            Text("Restart").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
+            
+          case true:
+            Text("Reshuffle").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
+          }
         }
       }
 
