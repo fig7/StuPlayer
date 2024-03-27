@@ -41,12 +41,11 @@ class PlaylistManager {
     trackCount = trackList.count
   }
 
-  func generateShuffleList() {
+  func generateShuffleList(startIndex: Int) {
     nextShuffleIndex = 0
     shuffleList.removeAll()
 
     // Copy the tracks to the shuffle list
-    let startIndex = (shuffleTracks) ? Int.random(in: 0..<trackCount) : nextTrackIndex
     for (trackIndex, track) in trackList.enumerated() {
       if(startIndex == trackIndex) {
         // Skip the track we are going to start with
@@ -112,9 +111,14 @@ class PlaylistManager {
     return track
   }
 
-  func reset(trackNum: Int = 1, shuffleTracks: Bool) {
+  func reset(shuffleTracks: Bool) {
+    nextTrackIndex = 0
+    generateShuffleList(startIndex: (shuffleTracks) ? Int.random(in: 0..<trackCount) : 0)
+  }
+
+  func reset(trackNum: Int, shuffleTracks: Bool) {
     nextTrackIndex = trackNum-1
-    generateShuffleList()
+    generateShuffleList(startIndex: nextTrackIndex)
   }
 
   func hasPrevious(trackNum: Int) -> Bool {

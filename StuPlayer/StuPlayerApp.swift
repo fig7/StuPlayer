@@ -19,6 +19,6 @@ struct StuPlayerApp: App {
   var body: some Scene {
     WindowGroup() {
       ContentView(model: playerDataModel, playerSelection: playerDataModel.playerSelection)
-    }
+    } .defaultSize(width: 928, height: 494)
   }
 }

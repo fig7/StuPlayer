@@ -84,8 +84,8 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
     self.typesList    = PlayerDataModel.getTypes(typesFile: rootTypesFile)
     self.selectedType = PlayerDataModel.getSelectedType(typeFile: typeFile)
 
-    self.m3UDict    = allM3UDict[selectedType]!
-    self.tracksDict = allTracksDict[selectedType]!
+    self.m3UDict    = allM3UDict[selectedType] ?? [:]
+    self.tracksDict = allTracksDict[selectedType] ?? [:]
     self.musicPath  = rootPath + selectedType + "/"
 
     self.selectedArtist = ""
@@ -568,6 +568,17 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
 
         rootPath = url.path().removingPercentEncoding!
         try rootPath.write(toFile: rootFile, atomically: true, encoding: .utf8)
+
+        if let bmData = self.bmData {
+          do {
+            var isStale = false
+            self.bmURL = try URL(resolvingBookmarkData: bmData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
+
+            // TODO: Handle stale bmData
+          } catch {
+            // Handle error
+          }
+        }
 
         scanFolders()
 
