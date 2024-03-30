@@ -29,8 +29,9 @@ typealias Playlists = [Playlist]
 enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed, PreviousPressed, NextPressed, RestartPressed }
 
 @MainActor class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate {
-  let fm    = FileManager.default
-  var bmURL = URL(fileURLWithPath: "/")
+  let fm         = FileManager.default
+  let logManager = LogFileManager()
+  var bmURL      = URL(fileURLWithPath: "/")
 
   var bmData: Data?
   var rootPath: String
@@ -68,6 +69,7 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
       do {
         var isStale = false
         self.bmURL = try URL(resolvingBookmarkData: bmData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
+        self.logManager.setURL(baseURL: bmURL)
 
         // TODO: Handle stale bmData
       } catch {
@@ -119,19 +121,24 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
     Task { @MainActor in
       let repeatingTrack = (playerSelection.repeatTracks == RepeatState.Track)
       if(!nowPlaying || !repeatingTrack) {
+        if(!nowPlaying) {
+          logManager.append(logCat: .LogInfo, logMessage: "Now playing: true")
+          nowPlaying = true
+        }
+
         playPosition += 1
         currentTrack = playlistManager.nextTrack()
       }
 
       playerSelection.setTrack(newTrack: currentTrack!)
       playerSelection.setPlayingPosition(playPosition: playPosition, playTotal: playlistManager.trackCount)
+      logManager.append(logCat: .LogInfo, logMessage: "Track playing: " + currentTrack!.trackURL.path(percentEncoded: false))
 
       let nextTrack = (repeatingTrack) ? currentTrack : playlistManager.peekNextTrack()
       if(nextTrack != nil) {
+        logManager.append(logCat: .LogInfo, logMessage: "Track queued:  " + nextTrack!.trackURL.path(percentEncoded: false))
         try player.enqueue(nextTrack!.trackURL)
       }
-
-      nowPlaying = true
     }
   }
 
@@ -140,6 +147,7 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
     switch(audioPlayer.playbackState) {
     case AudioPlayer.PlaybackState.stopped:
       Task { @MainActor in
+        logManager.append(logCat: .LogInfo, logMessage: "Player stopped: \(stopReason)\n")
         nowPlaying = false
 
         switch(stopReason) {
@@ -209,16 +217,27 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
 
     case AudioPlayer.PlaybackState.playing:
       Task { @MainActor in
+        logManager.append(logCat: .LogInfo, logMessage: "Player playing")
         playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Playing)
       }
 
     case AudioPlayer.PlaybackState.paused:
       Task { @MainActor in
+        logManager.append(logCat: .LogInfo, logMessage: "Player paused")
         playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Paused)
       }
 
     @unknown default:
       break
+    }
+  }
+
+  nonisolated func audioPlayer(_ audioPlayer: AudioPlayer, encounteredError error: any Error) {
+    Task { @MainActor in
+      logManager.append(logCat: .LogPlaybackError, logMessage: error.localizedDescription)
+
+      // Handle the error (stop or skip to next track, somehow!?)
+      player.stop()
     }
   }
 
@@ -262,7 +281,7 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
     guard bmData != nil else { return }
 
     if(!bmURL.startAccessingSecurityScopedResource()) {
-      // Handle error
+      // Handle error somehow
       return
     }
 
@@ -273,7 +292,10 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
     do {
       try playTracks(playlist: (playlistInfo, albumTracks), trackNum: itemIndex+1)
     } catch {
-      // Handle error
+      bmURL.stopAccessingSecurityScopedResource()
+      logManager.append(logCat: .LogPlaybackError, logMessage: "Play all: playback start failed")
+
+      // Handle error somehow
     }
   }
 
@@ -311,8 +333,7 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
 
   func playAllArtists() throws {
     if(!bmURL.startAccessingSecurityScopedResource()) {
-      // TODO: Throw an error
-      return
+      throw SPError.URLAccess
     }
 
     var playlists = Playlists()
@@ -333,8 +354,7 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
 
   func playAllAlbums() throws {
     if(!bmURL.startAccessingSecurityScopedResource()) {
-      // TODO: Throw an error
-      return
+      throw SPError.URLAccess
     }
 
     var playlists = Playlists()
@@ -353,8 +373,7 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
 
   func playAlbum() throws {
     if(!bmURL.startAccessingSecurityScopedResource()) {
-      // TODO: Throw an error
-      return
+      throw SPError.URLAccess
     }
 
     let albumTracks = tracksDict[selectedArtist]![selectedAlbum]!
@@ -389,8 +408,15 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
       }
 
       try playAlbum()
+    } catch SPError.URLAccess {
+      logManager.append(throwType: "URLAccess", logMessage: "Play all: failed to access URL")
+
+      // Handle error somehow
     } catch {
-      // Handle error
+      bmURL.stopAccessingSecurityScopedResource()
+      logManager.append(logCat: .LogPlaybackError, logMessage: "Play all: playback start failed")
+
+      // Handle error somehow
     }
   }
 
@@ -566,13 +592,14 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
         bmData = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
         fm.createFile(atPath: rootBookmark, contents: bmData, attributes: nil)
 
-        rootPath = url.path().removingPercentEncoding!
+        rootPath = url.path(percentEncoded: false)
         try rootPath.write(toFile: rootFile, atomically: true, encoding: .utf8)
 
         if let bmData = self.bmData {
           do {
             var isStale = false
             self.bmURL = try URL(resolvingBookmarkData: bmData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
+            self.logManager.setURL(baseURL: bmURL)
 
             // TODO: Handle stale bmData
           } catch {
@@ -685,6 +712,7 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
       // Handle error
       return
     }
+    defer { bmURL.stopAccessingSecurityScopedResource() }
 
     allM3UDict.removeAll()
     allTracksDict.removeAll()
@@ -708,7 +736,6 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
 
       let data2 = try PropertyListEncoder().encode(allTracksDict)
       try data2.write(to: URL(fileURLWithPath:trackFile))
-      bmURL.stopAccessingSecurityScopedResource()
     } catch {
       // Handle error
     }
