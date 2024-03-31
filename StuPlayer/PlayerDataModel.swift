@@ -136,8 +136,15 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
 
       let nextTrack = (repeatingTrack) ? currentTrack : playlistManager.peekNextTrack()
       if(nextTrack != nil) {
-        logManager.append(logCat: .LogInfo, logMessage: "Track queued:  " + nextTrack!.trackURL.path(percentEncoded: false))
-        try player.enqueue(nextTrack!.trackURL)
+        do {
+          try player.enqueue(nextTrack!.trackURL)
+          logManager.append(logCat: .LogInfo, logMessage: "Track queued:  " + nextTrack!.trackURL.path(percentEncoded: false))
+        } catch {
+          logManager.append(logCat: .LogPlaybackError, logMessage: "Track enqueue failed for " + nextTrack!.trackURL.path(percentEncoded: false))
+          logManager.append(logCat: .LogThrownError,   logMessage: "Enqueue error: " + error.localizedDescription)
+
+          // Handle error somehow
+        }
       }
     }
   }
@@ -293,7 +300,8 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
       try playTracks(playlist: (playlistInfo, albumTracks), trackNum: itemIndex+1)
     } catch {
       bmURL.stopAccessingSecurityScopedResource()
-      logManager.append(logCat: .LogPlaybackError, logMessage: "Play all: playback start failed")
+      logManager.append(logCat: .LogPlaybackError, logMessage: "Play track failed for " + albumTracks[itemIndex])
+      logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
 
       // Handle error somehow
     }
@@ -409,12 +417,13 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
 
       try playAlbum()
     } catch SPError.URLAccess {
-      logManager.append(throwType: "URLAccess", logMessage: "Play all: failed to access URL")
+      logManager.append(throwType: "URLAccess", logMessage: "Play all failed to access URL")
 
       // Handle error somehow
     } catch {
       bmURL.stopAccessingSecurityScopedResource()
-      logManager.append(logCat: .LogPlaybackError, logMessage: "Play all: playback start failed")
+      logManager.append(logCat: .LogPlaybackError, logMessage: "Play all start failed")
+      logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
 
       // Handle error somehow
     }
@@ -480,12 +489,18 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
 
     // Re-queue tracks
     player.clearQueue()
+    logManager.append(logCat: .LogInfo, logMessage: "Queue cleared")
+
     let nextTrack = playlistManager.peekNextTrack()
     if(nextTrack != nil) {
       do {
         try player.enqueue(nextTrack!.trackURL)
+        logManager.append(logCat: .LogInfo, logMessage: "Track queued:  " + nextTrack!.trackURL.path(percentEncoded: false))
       } catch {
-        // Handle error
+        logManager.append(logCat: .LogPlaybackError, logMessage: "Track enqueue failed: " + nextTrack!.trackURL.path(percentEncoded: false))
+        logManager.append(logCat: .LogThrownError,   logMessage: "Enqueue error: " + error.localizedDescription)
+
+        // Handle error somehow
       }
     }
   }
@@ -499,15 +514,21 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
     playerSelection.toggleRepeatTracks()
 
     if(!player.isPlaying || repeatAll) { return }
+
     player.clearQueue()
+    logManager.append(logCat: .LogInfo, logMessage: "Queue cleared")
 
     let repeatingTrack = (playerSelection.repeatTracks == RepeatState.Track)
     let nextTrack = (repeatingTrack) ? currentTrack : playlistManager.peekNextTrack()
     if(nextTrack != nil) {
       do {
         try player.enqueue(nextTrack!.trackURL)
+        logManager.append(logCat: .LogInfo, logMessage: "Track queued:  " + nextTrack!.trackURL.path(percentEncoded: false))
       } catch {
-        // Handle error
+        logManager.append(logCat: .LogPlaybackError, logMessage: "Track enqueue failed: " + nextTrack!.trackURL.path(percentEncoded: false))
+        logManager.append(logCat: .LogThrownError,   logMessage: "Enqueue error: " + error.localizedDescription)
+
+        // Handle error somehow
       }
     }
   }
@@ -618,12 +639,18 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
   }
 
   func scanM3U(m3UPath: String) -> [String] {
-    let m3UData = NSData(contentsOfFile:m3UPath) as Data?
+    let m3UData = NSData(contentsOfFile: m3UPath) as Data?
     guard let m3UData else {
+      logManager.append(logCat: .LogScanError, logMessage: "Nil data for " + m3UPath)
       return []
     }
 
-    let m3UStr = String(decoding: m3UData, as: UTF8.self)
+    let m3UStr = String(data: m3UData, encoding: .utf8)
+    guard let m3UStr else {
+      logManager.append(logCat: .LogScanError, logMessage: "Nil string for " + m3UPath)
+      return []
+    }
+
     var tracks = m3UStr.split(whereSeparator: \.isNewline).map(String.init)
     tracks.indices.forEach {
       tracks[$0] = tracks[$0].trimmingCharacters(in: .whitespaces)

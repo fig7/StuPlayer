@@ -8,7 +8,7 @@
 import Foundation
 
 enum LogCategory {
-  case LogInfo, LogThrownError, LogPlaybackError
+  case LogInfo, LogInitError, LogScanError, LogThrownError, LogPlaybackError
 }
 
 class LogFileManager {
@@ -40,6 +40,7 @@ class LogFileManager {
         }
 
         try (logStart + "\n").write(toFile: logFilePath, atomically: true, encoding: .utf8)
+
         self.logFileURL = logFileURL
         return
       } else if(isDir.boolValue) {
@@ -60,9 +61,10 @@ class LogFileManager {
           if(fm.fileExists(atPath: logFile2Path)) {
             try fm.removeItem(atPath: logFile2Path)
           }
-          try fm.copyItem(atPath: logFilePath, toPath: logFile2Path)
 
+          try fm.copyItem(atPath: logFilePath, toPath: logFile2Path)
           try (logStart + "\n").write(toFile: logFilePath, atomically: true, encoding: .utf8)
+
           self.logFileURL = logFileURL
           return
         }
@@ -74,8 +76,19 @@ class LogFileManager {
       return
     }
 
+    // Append logStart to existing log file
+    do {
+      let fileHandle = try FileHandle(forWritingTo: logFileURL)
+      fileHandle.seekToEndOfFile()
+
+      let textData = Data(("\n\n" + logStart + "\n").utf8)
+      fileHandle.write(textData)
+      fileHandle.closeFile()
+    } catch {
+      print("Error creating log file 7")
+    }
+
     self.logFileURL = logFileURL
-    append(logString: "\n\n" + logStart)
   }
 
   func append(throwType: String, logMessage: String) {
@@ -87,29 +100,17 @@ class LogFileManager {
     switch(logCat) {
     case .LogInfo:
       logString = "Info: "
+    case .LogInitError:
+      logString = "Init error: "
+    case .LogScanError:
+      logString = "Scan error: "
     case .LogThrownError:
-      logString = "Exception: "
+      logString = "Exception error: "
     case .LogPlaybackError:
       logString = "Playback error: "
     }
 
     logString = logString + logMessage
-    print(logString)
-
-    do {
-      guard let logFileURL else { print("Log file not set"); return }
-      let fileHandle = try FileHandle(forWritingTo: logFileURL)
-      fileHandle.seekToEndOfFile()
-
-      let textData = Data((logString + "\n").utf8)
-      fileHandle.write(textData)
-      fileHandle.closeFile()
-    } catch {
-      print("Logging to file failed")
-    }
-  }
-
-  func append(logString: String) {
     print(logString)
 
     do {
