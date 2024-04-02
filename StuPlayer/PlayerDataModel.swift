@@ -10,13 +10,11 @@ import AppKit
 import SFBAudioEngine
 
 // Local storage paths
-let rootFile      = "RootFile.dat"
 let rootBookmark  = "RootBM.dat"
 let rootTypesFile = "RootTypes.dat"
 
 let m3UFile         = "Playlists.dat"
 let trackFile       = "Tracks.dat"
-let typeFile        = "Type.dat"
 
 typealias M3UDict   = [String : [String : String]]
 typealias TrackDict = [String : [String : [String]]]
@@ -27,79 +25,90 @@ typealias AllTracksDict  = [String : TrackDict]
 typealias Playlists = [Playlist]
 
 enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed, PreviousPressed, NextPressed, RestartPressed }
+enum StorageError: Error { case BookmarkCreationFailed, TypesCreationFailed, DictionaryCreationFailed, ReadingTypesFailed }
+enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, ReadingAlbumsFailed, MissingM3U }
 
 @MainActor class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate {
-  let fm         = FileManager.default
-  let logManager = LogFileManager()
-  var bmURL      = URL(fileURLWithPath: "/")
-
-  var bmData: Data?
-  var rootPath: String
-  var musicPath: String
-
-  let player: AudioPlayer
+  var playerAlert: PlayerAlert
   var playerSelection: PlayerSelection
 
-  var allM3UDict: AllM3UDict
-  var allTracksDict: AllTracksDict
+  let fm     = FileManager.default
+  let player = AudioPlayer()
 
-  var m3UDict: M3UDict
-  var tracksDict: TrackDict
-  var typesList: [String]
+  let logManager      = LogFileManager()
+  let playlistManager = PlaylistManager()
 
-  var selectedType: String
-  var selectedArtist: String
-  var selectedAlbum: String
+  var bmData: Data?
+  var bmURL = URL(fileURLWithPath: "/")
 
-  var playPosition: Int
-  var nowPlaying: Bool
+  var rootPath    = "/"
+  var musicPath   = "/"
+  var trackErrors = false
 
-  var stopReason: StoppingReason
+  var allM3UDict: AllM3UDict       = [:]
+  var allTracksDict: AllTracksDict = [:]
+
+  var m3UDict: M3UDict      = [:]
+  var tracksDict: TrackDict = [:]
+  var typesList: [String]   = []
+
+  var selectedType   = ""
+  var selectedArtist = ""
+  var selectedAlbum  = ""
+
+  var playPosition = 0
+  var nowPlaying   = false
+  var stopReason   = StoppingReason.EndOfAudio
+
   var pendingTrack: Int?
-
-  var playlistManager: PlaylistManager
   var currentTrack: TrackInfo?
 
-  init(playerSelection: PlayerSelection) {
+  init(playerAlert: PlayerAlert, playerSelection: PlayerSelection) {
+    self.playerAlert     = playerAlert
     self.playerSelection = playerSelection
-    self.player = AudioPlayer()
+    self.bmData          = PlayerDataModel.getBookmarkData()
 
-    self.bmData = PlayerDataModel.getBookmarkData()
     if let bmData = self.bmData {
       do {
         var isStale = false
         self.bmURL = try URL(resolvingBookmarkData: bmData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
-        self.logManager.setURL(baseURL: bmURL)
 
-        // TODO: Handle stale bmData
+        if(isStale) {
+          self.bmData = try PlayerDataModel.refreshBookmarkData(bmURL: self.bmURL)
+        }
+
+        self.rootPath = self.bmURL.path(percentEncoded: false)
+        self.logManager.setURL(baseURL: bmURL)
       } catch {
-        // Handle error
+        self.bmData = nil
+        self.bmURL  = URL(fileURLWithPath: "/")
+        logManager.append(logCat: .LogInitError,   logMessage: "Error reading bookmark data")
+        logManager.append(logCat: .LogThrownError, logMessage: "Bookmark error: " + error.localizedDescription)
+
+        playerAlert.triggerAlert(alertMessage: "Error opening root folder. Check log file for details.")
+        super.init()
+        return
       }
     }
 
-    // TODO: Handle errors when initialising from stored data
-    self.rootPath = PlayerDataModel.getRootPath()
+    do {
+      try (self.selectedType, self.typesList) = PlayerDataModel.getTypes(typesFile: rootTypesFile)
+    } catch {
+      logManager.append(logCat: .LogInitError,   logMessage: "Error reading types")
+      logManager.append(logCat: .LogThrownError, logMessage: "Types error: " + error.localizedDescription)
+      
+      playerAlert.triggerAlert(alertMessage: "Error reading types. Check log file for details.")
+      super.init()
+      return
+    }
 
+    // TODO: Handle errors occuring here
     self.allM3UDict    = PlayerDataModel.getM3UDict(m3UFile: m3UFile)
     self.allTracksDict = PlayerDataModel.getTrackDict(trackFile: trackFile)
-
-    self.typesList    = PlayerDataModel.getTypes(typesFile: rootTypesFile)
-    self.selectedType = PlayerDataModel.getSelectedType(typeFile: typeFile)
 
     self.m3UDict    = allM3UDict[selectedType] ?? [:]
     self.tracksDict = allTracksDict[selectedType] ?? [:]
     self.musicPath  = rootPath + selectedType + "/"
-
-    self.selectedArtist = ""
-    self.selectedAlbum  = ""
-
-    self.playPosition = 0
-    self.nowPlaying   = false
-    self.stopReason   = StoppingReason.EndOfAudio
-
-    self.playlistManager = PlaylistManager()
-
-    // NSObject
     super.init()
 
     Task { @MainActor in
@@ -561,92 +570,105 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
     }
   }
 
-  static func getTypes(typesFile: String) -> [String] {
+  static func getTypes(typesFile: String) throws -> (String, [String]) {
     let typesData = NSData(contentsOfFile: typesFile) as Data?
     guard let typesData else {
-      return []
+      return ("", [])
     }
 
-    let typesStr = String(decoding: typesData, as: UTF8.self)
-    return typesStr.split(whereSeparator: \.isNewline).map(String.init)
-  }
+    let typesStr   = String(decoding: typesData, as: UTF8.self)
+    let typesSplit = typesStr.split(whereSeparator: \.isNewline)
+    switch(typesSplit.count) {
+    case 0:
+      return ("", [])
 
-  static func getSelectedType(typeFile: String) -> String {
-    let typeData = NSData(contentsOfFile: typeFile) as Data?
-    guard let typeData else {
-      return ""
+    case 1:
+      // Unexpected (there should be no entries or >= 2 entries)
+      throw StorageError.ReadingTypesFailed
+
+    default:
+      return (String(typesSplit[0]), typesSplit.dropFirst().map(String.init))
     }
-
-    return String(decoding: typeData, as: UTF8.self)
   }
 
   static func getBookmarkData() -> Data? {
     return NSData(contentsOfFile: rootBookmark) as Data?
   }
 
-  static func getRootPath() -> String {
-    let pathData = NSData(contentsOfFile:rootFile) as Data?
-    guard let pathData else { return "" }
+  static func refreshBookmarkData(bmURL: URL) throws -> Data? {
+    let fm = FileManager.default
 
-    return String(decoding: pathData, as: UTF8.self)
+    let bmData = try bmURL.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+    if(!fm.createFile(atPath: rootBookmark, contents: bmData, attributes: nil)) {
+      throw StorageError.BookmarkCreationFailed
+    }
+
+    return bmData
+  }
+
+  func reconfigureRoot(rootURL: URL) {
+    stopAll()
+
+    var newBMData: Data?
+    do {
+      newBMData = try rootURL.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+      if(!fm.createFile(atPath: rootBookmark, contents: newBMData, attributes: nil)) {
+        throw StorageError.BookmarkCreationFailed
+      }
+    } catch {
+      playerAlert.triggerAlert(alertMessage: "Setting root folder failed")
+      return
+    }
+
+    // Update stored data
+    bmData = newBMData
+
+    // Update URL and path
+    bmURL    = rootURL
+    rootPath = rootURL.path(percentEncoded: false)
+
+    logManager.setURL(baseURL: bmURL)
+    playerSelection.setRootPath(newRootPath: self.rootPath)
+
+    // Scan folders
+    scanFolders()
   }
 
   func setRootFolder() {
     let openPanel = NSOpenPanel()
     openPanel.allowsMultipleSelection = false
-    openPanel.canChooseDirectories = true
-    openPanel.canCreateDirectories = false
-    openPanel.canChooseFiles = false
-    openPanel.prompt = "Grant Access"
+    openPanel.canChooseDirectories    = true
+    openPanel.canCreateDirectories    = false
+    openPanel.canChooseFiles          = false
+
     openPanel.directoryURL = URL(fileURLWithPath: "/")
+    openPanel.prompt       = "Grant Access"
 
     openPanel.begin { [weak self] result in
       guard let self else { return }
       guard (result == .OK), let url = openPanel.url else {
-        // HANDLE ERROR HERE ...
-        return
-      }
-
-      do {
-        stopAll()
-
-        bmData = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
-        fm.createFile(atPath: rootBookmark, contents: bmData, attributes: nil)
-
-        rootPath = url.path(percentEncoded: false)
-        try rootPath.write(toFile: rootFile, atomically: true, encoding: .utf8)
-
-        if let bmData = self.bmData {
-          do {
-            var isStale = false
-            self.bmURL = try URL(resolvingBookmarkData: bmData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
-            self.logManager.setURL(baseURL: bmURL)
-
-            // TODO: Handle stale bmData
-          } catch {
-            // Handle error
-          }
+        if((result == .OK) && (openPanel.url == nil)) {
+          playerAlert.triggerAlert(alertMessage: "Invalid folder selected")
         }
 
-        scanFolders()
-
-        self.playerSelection.setRootPath(newRootPath: self.rootPath)
-      } catch {
-        // Handle error
         return
       }
+
+      self.reconfigureRoot(rootURL: url)
     }
   }
 
   func scanM3U(m3UPath: String) -> [String] {
     let m3UData = NSData(contentsOfFile: m3UPath) as Data?
     guard let m3UData else {
+      trackErrors = true
       logManager.append(logCat: .LogScanError, logMessage: "Nil data for " + m3UPath)
       return []
     }
 
     let m3UStr = String(data: m3UData, encoding: .utf8)
     guard let m3UStr else {
+      trackErrors = true
       logManager.append(logCat: .LogScanError, logMessage: "Nil string for " + m3UPath)
       return []
     }
@@ -661,72 +683,145 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
     }
   }
 
-  func scanAlbums(artistPath: String) throws -> (m3Us: [String : String], tracks: [String : [String]]) {
-    let albums = try fm.contentsOfDirectory(atPath: artistPath)
-    var m3Us: [String  : String] = [:]
-    var tracks: [String  : [String]] = [:]
+  func scanAlbum(albumPath: String) -> (String, [String]) {
+    var m3U = ""
+    var tracks: [String] = []
 
-    for album in albums {
-      let filePath = artistPath + album
+    do {
+      let files = try fm.contentsOfDirectory(atPath: albumPath)
 
-      var isDir: ObjCBool = false
-      if(fm.fileExists(atPath: filePath, isDirectory: &isDir) && isDir.boolValue) {
-        let albumPath = filePath + "/"
-        let files = try fm.contentsOfDirectory(atPath: albumPath)
-        for file in files {
-          if(file.hasSuffix(".m3u")) {
-            m3Us[album]   = file
-            tracks[album] = scanM3U(m3UPath: albumPath + file)
-            break
+      var m3UFound = false
+      for file in files {
+        if(file.hasSuffix(".m3u")) {
+          if(m3UFound) {
+            trackErrors = true
+            logManager.append(logCat: .LogScanError,   logMessage: "Skipping " + file + "for: " + albumPath)
+            continue
           }
+
+          m3U      = file
+          tracks   = scanM3U(m3UPath: albumPath + file)
+          m3UFound = true
         }
       }
+
+      if(!m3UFound) {
+        trackErrors = true
+        logManager.append(logCat: .LogScanError,   logMessage: "Missing m3U for: " + albumPath)
+      }
+    } catch {
+      trackErrors = true
+      logManager.append(logCat: .LogScanError,   logMessage: "Scanning album: " + albumPath + " failed")
+      logManager.append(logCat: .LogThrownError, logMessage: "Scan error: " + error.localizedDescription)
+    }
+
+    return (m3U, tracks)
+  }
+
+  func scanAlbums(artistPath: String) -> (m3Us: [String : String], tracks: [String : [String]]) {
+    var m3Us: [String : String] = [:]
+    var tracks: [String : [String]] = [:]
+
+    do {
+      let albums = try fm.contentsOfDirectory(atPath: artistPath)
+      for album in albums {
+        let filePath = artistPath + album
+
+        var isDir: ObjCBool = false
+        if(fm.fileExists(atPath: filePath, isDirectory: &isDir) && isDir.boolValue) {
+          (m3Us[album], tracks[album]) = scanAlbum(albumPath: filePath + "/")
+        }
+      }
+    } catch {
+      trackErrors = true
+      logManager.append(logCat: .LogScanError,   logMessage: "Scanning artist: " + artistPath + " failed")
+      logManager.append(logCat: .LogThrownError, logMessage: "Scan error: " + error.localizedDescription)
     }
 
     return (m3Us, tracks)
+  }
+
+  func saveTypes() throws {
+    let joinedTypes = selectedType + "\n" + typesList.joined(separator: "\n")
+    try joinedTypes.write(toFile: rootTypesFile, atomically: true, encoding: .utf8)
   }
 
   func scanTypes() throws {
     typesList.removeAll()
     selectedType = ""
 
-    let types = try fm.contentsOfDirectory(atPath: rootPath)
-    for type in types {
-      let filePath = rootPath + type
+    do {
+      let types = try fm.contentsOfDirectory(atPath: rootPath)
+      for type in types {
+        let filePath = rootPath + type
 
-      var isDir: ObjCBool = false
-      if(fm.fileExists(atPath: filePath, isDirectory: &isDir) && isDir.boolValue) {
-        typesList.append(type)
+        var isDir: ObjCBool = false
+        if(fm.fileExists(atPath: filePath, isDirectory: &isDir) && isDir.boolValue) {
+          typesList.append(type)
+        }
       }
+
+      typesList.sort()
+      if(typesList.count > 0) {
+        selectedType = typesList[0]
+      }
+
+      try saveTypes()
+    } catch {
+      logManager.append(logCat: .LogScanError,   logMessage: "Updating types failed")
+      logManager.append(logCat: .LogThrownError, logMessage: "Scan error: " + error.localizedDescription)
+      throw StorageError.TypesCreationFailed
     }
-
-    typesList.sort()
-    let joinedTypes = typesList.joined(separator: "\n")
-    try joinedTypes.write(toFile: rootTypesFile, atomically: true, encoding: .utf8)
-
-    if(typesList.count > 0) {
-      selectedType = typesList[0]
-    }
-
-    try selectedType.write(toFile: typeFile, atomically: true, encoding: .utf8)
   }
 
-  func scanArtists(typePath: String) throws -> (m3Us: M3UDict, tracks: TrackDict) {
-    let artists = try fm.contentsOfDirectory(atPath: typePath)
+  func saveDicts() throws {
+    do {
+      let data1 = try PropertyListEncoder().encode(allM3UDict)
+      try data1.write(to: URL(fileURLWithPath: m3UFile))
+
+      let data2 = try PropertyListEncoder().encode(allTracksDict)
+      try data2.write(to: URL(fileURLWithPath: trackFile))
+    } catch {
+      logManager.append(logCat: .LogScanError,   logMessage: "Saving tracks failed")
+      logManager.append(logCat: .LogThrownError, logMessage: "Scan error: " + error.localizedDescription)
+      throw StorageError.DictionaryCreationFailed
+    }
+  }
+
+  func scanArtists() throws {
+    trackErrors = false
+    for type in typesList {
+      let artistDict = scanArtists(typePath: rootPath + type + "/")
+
+      allM3UDict[type]    = artistDict.m3Us
+      allTracksDict[type] = artistDict.tracks
+    }
+
+    if(trackErrors) {
+      throw TrackError.ReadingArtistsFailed
+    }
+  }
+
+  func scanArtists(typePath: String) -> (m3Us: M3UDict, tracks: TrackDict) {
     var m3Us: M3UDict = [:]
     var tracks: TrackDict = [:]
 
-    // Make a dictionary for each one and write it out
-    for artist in artists {
-      let filePath = typePath + artist
+    do {
+      let artists = try fm.contentsOfDirectory(atPath: typePath)
 
-      var isDir: ObjCBool = false
-      if(fm.fileExists(atPath: filePath, isDirectory: &isDir) && isDir.boolValue) {
-        let albumDict = try scanAlbums(artistPath: filePath + "/")
+      // Make a dictionary for each one and write it out
+      for artist in artists {
+        let filePath = typePath + artist
 
-        m3Us[artist]   = albumDict.m3Us
-        tracks[artist] = albumDict.tracks
+        var isDir: ObjCBool = false
+        if(fm.fileExists(atPath: filePath, isDirectory: &isDir) && isDir.boolValue) {
+          (m3Us[artist], tracks[artist]) = scanAlbums(artistPath: filePath + "/")
+        }
       }
+    } catch {
+      trackErrors = true
+      logManager.append(logCat: .LogScanError,   logMessage: "Scanning type: " + typePath + " failed")
+      logManager.append(logCat: .LogThrownError, logMessage: "Scan error: " + error.localizedDescription)
     }
 
     return (m3Us, tracks)
@@ -736,7 +831,7 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
     guard bmData != nil else { return }
 
     if(!bmURL.startAccessingSecurityScopedResource()) {
-      // Handle error
+      playerAlert.triggerAlert(alertMessage: "Unable to scan folders: access denied")
       return
     }
     defer { bmURL.stopAccessingSecurityScopedResource() }
@@ -744,48 +839,50 @@ enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed
     allM3UDict.removeAll()
     allTracksDict.removeAll()
 
+    var scanError = ""
     do {
       try scanTypes()
-
-      for type in typesList {
-        let artistDict = try scanArtists(typePath: rootPath + type + "/")
-
-        allM3UDict[type]    = artistDict.m3Us
-        allTracksDict[type] = artistDict.tracks
-      }
-
-      m3UDict    = allM3UDict[selectedType]!
-      tracksDict = allTracksDict[selectedType]!
-      musicPath  = rootPath + selectedType + "/"
-
-      let data1 = try PropertyListEncoder().encode(allM3UDict)
-      try data1.write(to: URL(fileURLWithPath:m3UFile))
-
-      let data2 = try PropertyListEncoder().encode(allTracksDict)
-      try data2.write(to: URL(fileURLWithPath:trackFile))
+      try scanArtists()
     } catch {
-      // Handle error
+      scanError += "Errors found while scanning. "
+    }
+
+    do {
+      try saveDicts()
+    } catch {
+      scanError += "Error saving tracks. "
     }
 
     selectedArtist = ""
     selectedAlbum  = ""
+
+    m3UDict    = allM3UDict[selectedType]!
+    tracksDict = allTracksDict[selectedType]!
+    musicPath  = rootPath + selectedType + "/"
+
     playerSelection.setAll(newArtist: selectedArtist, newAlbum: selectedAlbum, newList: tracksDict.keys.sorted())
     playerSelection.setTypes(newType: selectedType, newTypeList: typesList)
+
+    if(!scanError.isEmpty) {
+      scanError += "Check log file for details."
+      playerAlert.triggerAlert(alertMessage: scanError)
+    }
   }
 
   func typeChanged(newType: String) {
     if(selectedType == newType) { return }
 
-    selectedType = newType
     do {
-      try selectedType.write(toFile: typeFile, atomically: true, encoding: .utf8)
+      selectedType = newType
+      try saveTypes()
     } catch {
       // Ignore error
+      // (it's not critical)
     }
 
-    m3UDict    = allM3UDict[selectedType]!
-    tracksDict = allTracksDict[selectedType]!
-    musicPath  = rootPath + selectedType + "/"
+    m3UDict      = allM3UDict[selectedType]!
+    tracksDict   = allTracksDict[selectedType]!
+    musicPath    = rootPath + selectedType + "/"
 
     selectedArtist = ""
     selectedAlbum  = ""

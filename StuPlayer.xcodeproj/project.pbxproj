@@ -19,6 +19,7 @@
 		1297A5CA2B9778CA0017B083 /* PlayerSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1297A5C92B9778CA0017B083 /* PlayerSelection.swift */; };
 		1297A6022B9791AA0017B083 /* SFBAudioEngine.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1297A5FF2B9790290017B083 /* SFBAudioEngine.framework */; };
 		1297A6032B9791AA0017B083 /* SFBAudioEngine.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 1297A5FF2B9790290017B083 /* SFBAudioEngine.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		12B87E2B2BBC02580064E6B8 /* PlayerAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */; };
 		12C617DD2BB4BCB700B1EE65 /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = 12C617DC2BB4BCB700B1EE65 /* Credits.html */; };
 /* End PBXBuildFile section */
 
@@ -68,6 +69,7 @@
 		1297A5C92B9778CA0017B083 /* PlayerSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSelection.swift; sourceTree = "<group>"; };
 		1297A5F22B978DB30017B083 /* SFBAudioEngine.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = SFBAudioEngine.xcframework; path = ../build/SFBAudioEngine.xcframework; sourceTree = "<group>"; };
 		1297A5F82B9790290017B083 /* SFBAudioEngine.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = SFBAudioEngine.xcodeproj; path = ../SFBAudioEngine.xcodeproj; sourceTree = "<group>"; };
+		12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerAlert.swift; sourceTree = "<group>"; };
 		12C617DC2BB4BCB700B1EE65 /* Credits.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Credits.html; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -110,6 +112,7 @@
 				1297A5BF2B9619D00017B083 /* StuPlayer.entitlements */,
 				1297A5BC2B9619D00017B083 /* Preview Content */,
 				125432A12BB763B600CB6A64 /* LogFileManager.swift */,
+				12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */,
 				1297A5C72B963B180017B083 /* PlayerDataModel.swift */,
 				1297A5C92B9778CA0017B083 /* PlayerSelection.swift */,
 				1214C6322BA3159C00302CA3 /* PlaylistManager.swift */,
@@ -240,6 +243,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				12B87E2B2BBC02580064E6B8 /* PlayerAlert.swift in Sources */,
 				125432A22BB763B600CB6A64 /* LogFileManager.swift in Sources */,
 				1297A5B92B9619CE0017B083 /* ContentView.swift in Sources */,
 				1297A5B72B9619CE0017B083 /* StuPlayerApp.swift in Sources */,

@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
   let model: PlayerDataModel
+  @ObservedObject var playerAlert: PlayerAlert
   @ObservedObject var playerSelection: PlayerSelection
 
   var body: some View {
@@ -172,5 +173,6 @@ struct ContentView: View {
     }
     .padding()
     .frame(minWidth:  200, maxWidth: .infinity, minHeight: 200, maxHeight: .infinity, alignment: .topLeading)
+    .alert(playerAlert.alertMessage, isPresented: $playerAlert.alertTriggered) { }
   }
 }

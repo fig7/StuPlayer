@@ -17,7 +17,7 @@ class LogFileManager {
 
   func setURL(baseURL: URL) {
     if(!baseURL.startAccessingSecurityScopedResource()) {
-      print("Error creating log file 1")
+      print("Error creating log file: URL access denied")
       return
     }
 
@@ -34,17 +34,12 @@ class LogFileManager {
     do {
       var isDir: ObjCBool = false
       if(!fm.fileExists(atPath: logFilePath, isDirectory: &isDir)) {
-        let success = fm.createFile(atPath: logFilePath, contents: nil)
-        if(!success) {
-          print("Error creating log file 2")
-        }
-
         try (logStart + "\n").write(toFile: logFilePath, atomically: true, encoding: .utf8)
 
         self.logFileURL = logFileURL
         return
       } else if(isDir.boolValue) {
-        print("Error creating log file 3")
+        print("Error creating log file: " + logFilePath + " is a directory")
         return
       }
 
@@ -52,11 +47,11 @@ class LogFileManager {
       do {
         let logFileAtt = try fm.attributesOfItem(atPath: logFilePath)
         let fileSize = logFileAtt[.size] as? UInt64
-        guard let fileSize else { print("Error creating log file 4"); return }
+        guard let fileSize else { print("Error creating log file: " + logFilePath + " has no size attribute"); return }
 
         if(fileSize > 100000) {
           let logFile2URL  = baseURL.appending(path: "SPLogFile.1", directoryHint: URL.DirectoryHint.notDirectory)
-          let logFile2Path = logFile2URL.path()
+          let logFile2Path = logFile2URL.path(percentEncoded: false)
 
           if(fm.fileExists(atPath: logFile2Path)) {
             try fm.removeItem(atPath: logFile2Path)
@@ -69,10 +64,12 @@ class LogFileManager {
           return
         }
       } catch {
-        print("Error creating log file 5")
+        print("Error extending log file: " + logFilePath)
+        print("Error thrown:" + error.localizedDescription)
       }
     } catch {
-      print("Error creating log file 6")
+      print("Error creating log file: " + logFilePath)
+      print("Error thrown:" + error.localizedDescription)
       return
     }
 
@@ -85,7 +82,7 @@ class LogFileManager {
       fileHandle.write(textData)
       fileHandle.closeFile()
     } catch {
-      print("Error creating log file 7")
+      print("Error appending to log file: " + logFilePath)
     }
 
     self.logFileURL = logFileURL
