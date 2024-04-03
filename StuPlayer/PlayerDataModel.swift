@@ -97,18 +97,44 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
       logManager.append(logCat: .LogInitError,   logMessage: "Error reading types")
       logManager.append(logCat: .LogThrownError, logMessage: "Types error: " + error.localizedDescription)
       
-      playerAlert.triggerAlert(alertMessage: "Error reading types. Check log file for details.")
+      playerAlert.triggerAlert(alertMessage: "Error loading types. Check log file for details.")
       super.init()
       return
     }
 
-    // TODO: Handle errors occuring here
-    self.allM3UDict    = PlayerDataModel.getM3UDict(m3UFile: m3UFile)
-    self.allTracksDict = PlayerDataModel.getTrackDict(trackFile: trackFile)
+    do {
+      self.allM3UDict = try PlayerDataModel.getM3UDict(m3UFile: m3UFile)
+      if(allM3UDict.isEmpty) {
+        logManager.append(logCat: .LogInitError, logMessage: "Empty M3UDict (missing or file error?)")
+      }
+    } catch {
+      logManager.append(logCat: .LogInitError,   logMessage: "Error reading m3u dictionary")
+      logManager.append(logCat: .LogThrownError, logMessage: "M3U error: " + error.localizedDescription)
+
+      playerAlert.triggerAlert(alertMessage: "Error loading m3u data. Check log file for details.")
+      super.init()
+      return
+    }
+
+    do {
+      self.allTracksDict = try PlayerDataModel.getTrackDict(trackFile: trackFile)
+      if(allTracksDict.isEmpty) {
+        logManager.append(logCat: .LogInitError, logMessage: "Empty TracksDict (missing or file error?)")
+      }
+    } catch {
+      logManager.append(logCat: .LogInitError,   logMessage: "Error reading tracks dictionary")
+      logManager.append(logCat: .LogThrownError, logMessage: "Tracks error: " + error.localizedDescription)
+
+      playerAlert.triggerAlert(alertMessage: "Error loading tracks data. Check log file for details.")
+      super.init()
+      return
+    }
 
     self.m3UDict    = allM3UDict[selectedType] ?? [:]
     self.tracksDict = allTracksDict[selectedType] ?? [:]
     self.musicPath  = rootPath + selectedType + "/"
+
+    // NSObject
     super.init()
 
     Task { @MainActor in
@@ -542,32 +568,22 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     }
   }
 
-  static func getM3UDict(m3UFile: String) -> AllM3UDict {
+  static func getM3UDict(m3UFile: String) throws -> AllM3UDict {
     let m3UData = NSData(contentsOfFile: m3UFile) as Data?
     guard let m3UData else {
       return [:]
     }
 
-    do {
-      return try PropertyListDecoder().decode(AllM3UDict.self, from: m3UData)
-    }
-    catch {
-      return [:]
-    }
+    return try PropertyListDecoder().decode(AllM3UDict.self, from: m3UData)
   }
 
-  static func getTrackDict(trackFile: String) -> AllTracksDict {
+  static func getTrackDict(trackFile: String) throws -> AllTracksDict {
     let trackData = NSData(contentsOfFile: trackFile) as Data?
     guard let trackData else {
       return [:]
     }
 
-    do {
-      return try PropertyListDecoder().decode(AllTracksDict.self, from: trackData)
-    }
-    catch {
-      return [:]
-    }
+    return try PropertyListDecoder().decode(AllTracksDict.self, from: trackData)
   }
 
   static func getTypes(typesFile: String) throws -> (String, [String]) {
