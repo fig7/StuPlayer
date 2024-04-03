@@ -24,7 +24,7 @@ typealias AllTracksDict  = [String : TrackDict]
 
 typealias Playlists = [Playlist]
 
-enum StoppingReason { case EndOfAudio, PlayAllPressed, StopPressed, TrackPressed, PreviousPressed, NextPressed, RestartPressed }
+enum StoppingReason { case PlaybackError, EndOfAudio, PlayAllPressed, StopPressed, TrackPressed, PreviousPressed, NextPressed, RestartPressed }
 enum StorageError: Error { case BookmarkCreationFailed, TypesCreationFailed, DictionaryCreationFailed, ReadingTypesFailed }
 enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, ReadingAlbumsFailed, MissingM3U }
 
@@ -84,8 +84,8 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
         self.bmURL  = URL(fileURLWithPath: "/")
         logManager.append(logCat: .LogInitError,   logMessage: "Error reading bookmark data")
         logManager.append(logCat: .LogThrownError, logMessage: "Bookmark error: " + error.localizedDescription)
-
         playerAlert.triggerAlert(alertMessage: "Error opening root folder. Check log file for details.")
+
         super.init()
         return
       }
@@ -96,8 +96,8 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     } catch {
       logManager.append(logCat: .LogInitError,   logMessage: "Error reading types")
       logManager.append(logCat: .LogThrownError, logMessage: "Types error: " + error.localizedDescription)
-      
       playerAlert.triggerAlert(alertMessage: "Error loading types. Check log file for details.")
+
       super.init()
       return
     }
@@ -110,8 +110,8 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     } catch {
       logManager.append(logCat: .LogInitError,   logMessage: "Error reading m3u dictionary")
       logManager.append(logCat: .LogThrownError, logMessage: "M3U error: " + error.localizedDescription)
-
       playerAlert.triggerAlert(alertMessage: "Error loading m3u data. Check log file for details.")
+
       super.init()
       return
     }
@@ -124,8 +124,8 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     } catch {
       logManager.append(logCat: .LogInitError,   logMessage: "Error reading tracks dictionary")
       logManager.append(logCat: .LogThrownError, logMessage: "Tracks error: " + error.localizedDescription)
-
       playerAlert.triggerAlert(alertMessage: "Error loading tracks data. Check log file for details.")
+
       super.init()
       return
     }
@@ -171,14 +171,16 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
 
       let nextTrack = (repeatingTrack) ? currentTrack : playlistManager.peekNextTrack()
       if(nextTrack != nil) {
-        do {
-          try player.enqueue(nextTrack!.trackURL)
-          logManager.append(logCat: .LogInfo, logMessage: "Track queued:  " + nextTrack!.trackURL.path(percentEncoded: false))
-        } catch {
-          logManager.append(logCat: .LogPlaybackError, logMessage: "Track enqueue failed for " + nextTrack!.trackURL.path(percentEncoded: false))
-          logManager.append(logCat: .LogThrownError,   logMessage: "Enqueue error: " + error.localizedDescription)
+        let trackURL  = nextTrack!.trackURL
+        let trackPath = trackURL.path(percentEncoded: false)
 
-          // Handle error somehow
+        do {
+          try player.enqueue(trackURL)
+          logManager.append(logCat: .LogInfo, logMessage: "Track queued:  " + trackPath)
+        } catch {
+          logManager.append(logCat: .LogPlaybackError, logMessage: "Track enqueue failed for " + trackPath)
+          logManager.append(logCat: .LogThrownError,   logMessage: "Enqueue error: " + error.localizedDescription)
+          playerAlert.triggerAlert(alertMessage: "Error queueing next track. Check log file for details.")
         }
       }
     }
@@ -186,28 +188,50 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
 
   // Using audioPlayerPlaybackStateChanged to handle state changes and update UI
   nonisolated func audioPlayerPlaybackStateChanged(_ audioPlayer: AudioPlayer) {
-    switch(audioPlayer.playbackState) {
+    let playbackState = audioPlayer.playbackState
+
+    switch(playbackState) {
     case AudioPlayer.PlaybackState.stopped:
       Task { @MainActor in
         logManager.append(logCat: .LogInfo, logMessage: "Player stopped: \(stopReason)\n")
         nowPlaying = false
 
         switch(stopReason) {
+        case .PlaybackError:
+          playPosition = 0
+          bmURL.stopAccessingSecurityScopedResource()
+
+          playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
+          playerSelection.setTrack(newTrack: nil)
+          playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Stopped)
+
+          playerAlert.triggerAlert(alertMessage: "A playback error occurred. Check log file for details.")
+
         case .EndOfAudio:
           playPosition = 0
           if(playerSelection.repeatTracks == RepeatState.All) {
             playlistManager.reset(shuffleTracks: playerSelection.shuffleTracks)
-
             let firstTrack = playlistManager.peekNextTrack()
-            try player.play(firstTrack!.trackURL)
-          } else {
-            bmURL.stopAccessingSecurityScopedResource()
 
-            playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
-            playerSelection.setTrack(newTrack: nil)
+            let trackURL   = firstTrack!.trackURL
+            let trackPath  = trackURL.path(percentEncoded: false)
 
-            playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Stopped)
+            do {
+              try player.play(trackURL)
+              logManager.append(logCat: .LogInfo, logMessage: "Repeat all: Starting playback of " + trackPath)
+              return
+            } catch {
+              logManager.append(logCat: .LogPlaybackError, logMessage: "Repeat all: Playback of " + trackPath + " failed")
+              logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
+              playerAlert.triggerAlert(alertMessage: "Error repeating tracks. Check log file for details.")
+            }
           }
+           
+          bmURL.stopAccessingSecurityScopedResource()
+          
+          playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
+          playerSelection.setTrack(newTrack: nil)
+          playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Stopped)
 
         case .PlayAllPressed:
           playPosition = 0
@@ -219,7 +243,6 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
 
           playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
           playerSelection.setTrack(newTrack: nil)
-
           playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Stopped)
 
         case .TrackPressed:
@@ -228,13 +251,24 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
           let albumTracks = tracksDict[selectedArtist]![selectedAlbum]!
 
           let playlistInfo = PlaylistInfo(playlistFile: playlistFile, playlistPath: selectedArtist + "/" + selectedAlbum + "/", numTracks: albumTracks.count)
-          try playTracks(playlist: Playlist(playlistInfo, albumTracks), trackNum: pendingTrack!)
+          playTracks(playlist: Playlist(playlistInfo, albumTracks), trackNum: pendingTrack!)
           pendingTrack = nil
 
         case .PreviousPressed:
           playPosition -= 2
           let previousTrack = playlistManager.moveTo(trackNum: playPosition+1)
-          try player.play(previousTrack!.trackURL)
+
+          let trackURL   = previousTrack!.trackURL
+          let trackPath  = trackURL.path(percentEncoded: false)
+
+          do {
+            try player.play(trackURL)
+            logManager.append(logCat: .LogInfo, logMessage: "Previous track: Starting playback of " + trackPath)
+          } catch {
+            logManager.append(logCat: .LogPlaybackError, logMessage: "Previous track: Playback of " + trackPath + " failed")
+            logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
+            playerAlert.triggerAlert(alertMessage: "Error playing previous track. Check log file for details.")
+          }
 
         case .NextPressed:
           var nextTrackNum = playPosition+1
@@ -242,16 +276,36 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
             nextTrackNum = 1
             playPosition = 0
           }
-
           let nextTrack = playlistManager.moveTo(trackNum: nextTrackNum)
-          try player.play(nextTrack!.trackURL)
+
+          let trackURL   = nextTrack!.trackURL
+          let trackPath  = trackURL.path(percentEncoded: false)
+
+          do {
+            try player.play(trackURL)
+            logManager.append(logCat: .LogInfo, logMessage: "Next track: Starting playback of " + trackPath)
+          } catch {
+            logManager.append(logCat: .LogPlaybackError, logMessage: "Next track: Playback of " + trackPath + " failed")
+            logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
+            playerAlert.triggerAlert(alertMessage: "Error playing next track. Check log file for details.")
+          }
 
         case .RestartPressed:
           playPosition = 0
           playlistManager.reset(shuffleTracks: playerSelection.shuffleTracks)
-
           let firstTrack = playlistManager.peekNextTrack()
-          try player.play(firstTrack!.trackURL)
+
+          let trackURL   = firstTrack!.trackURL
+          let trackPath  = trackURL.path(percentEncoded: false)
+
+          do {
+            try player.play(trackURL)
+            logManager.append(logCat: .LogInfo, logMessage: "Restart: Starting playback of " + trackPath)
+          } catch {
+            logManager.append(logCat: .LogPlaybackError, logMessage: "Restart: Playback of " + trackPath + " failed")
+            logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
+            playerAlert.triggerAlert(alertMessage: "Error restarting tracks. Check log file for details.")
+          }
         }
 
         stopReason = StoppingReason.EndOfAudio
@@ -270,7 +324,9 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
       }
 
     @unknown default:
-      break
+      Task { @MainActor in
+        logManager.append(logCat: .LogInfo, logMessage: "Unknown player state received: \(playbackState)")
+      }
     }
   }
 
@@ -278,7 +334,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     Task { @MainActor in
       logManager.append(logCat: .LogPlaybackError, logMessage: error.localizedDescription)
 
-      // Handle the error (stop or skip to next track, somehow!?)
+      stopReason = StoppingReason.PlaybackError
       player.stop()
     }
   }
@@ -323,23 +379,15 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     guard bmData != nil else { return }
 
     if(!bmURL.startAccessingSecurityScopedResource()) {
-      // Handle error somehow
+      logManager.append(throwType: "URLAccess", logMessage: "Play track failed to access: " + bmURL.path(percentEncoded: false))
+      playerAlert.triggerAlert(alertMessage: "Unable to play: Access denied. Check log file for details.")
       return
     }
 
     let playlistFile = m3UDict[selectedArtist]![selectedAlbum]!
     let albumTracks  = tracksDict[selectedArtist]![selectedAlbum]!
     let playlistInfo = PlaylistInfo(playlistFile: playlistFile, playlistPath: selectedArtist + "/" + selectedAlbum + "/", numTracks: albumTracks.count)
-
-    do {
-      try playTracks(playlist: (playlistInfo, albumTracks), trackNum: itemIndex+1)
-    } catch {
-      bmURL.stopAccessingSecurityScopedResource()
-      logManager.append(logCat: .LogPlaybackError, logMessage: "Play track failed for " + albumTracks[itemIndex])
-      logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
-
-      // Handle error somehow
-    }
+    playTracks(playlist: (playlistInfo, albumTracks), trackNum: itemIndex+1)
   }
 
   func configurePlayback(playlist: Playlist, trackNum: Int) {
@@ -360,25 +408,45 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     stopReason   = StoppingReason.EndOfAudio
   }
 
-  func playTracks(playlist: Playlist, trackNum: Int) throws {
+  func playTracks(playlist: Playlist, trackNum: Int) {
     configurePlayback(playlist: playlist, trackNum: trackNum)
-
     let firstTrack = playlistManager.peekNextTrack()
-    try player.play(firstTrack!.trackURL)
-  }
 
-  func playTracks(playlists: Playlists) throws {
-    configurePlayback(playlists: playlists)
+    let trackURL   = firstTrack!.trackURL
+    let trackPath  = trackURL.path(percentEncoded: false)
 
-    let firstTrack = playlistManager.peekNextTrack()
-    try player.play(firstTrack!.trackURL)
-  }
+    do {
+      try player.play(trackURL)
+      logManager.append(logCat: .LogInfo, logMessage: "Play tracks: Starting playback of " + trackPath)
+    } catch {
+      bmURL.stopAccessingSecurityScopedResource()
 
-  func playAllArtists() throws {
-    if(!bmURL.startAccessingSecurityScopedResource()) {
-      throw SPError.URLAccess
+      logManager.append(logCat: .LogPlaybackError, logMessage: "Play tracks: Playback of " + trackPath + " failed")
+      logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
+      playerAlert.triggerAlert(alertMessage: "Error playing tracks. Check log file for details.")
     }
+  }
 
+  func playTracks(playlists: Playlists) {
+    configurePlayback(playlists: playlists)
+    let firstTrack = playlistManager.peekNextTrack()
+
+    let trackURL   = firstTrack!.trackURL
+    let trackPath  = trackURL.path(percentEncoded: false)
+
+    do {
+      try player.play(trackURL)
+      logManager.append(logCat: .LogInfo, logMessage: "Play tracks: Starting playback of " + trackPath)
+    } catch {
+      bmURL.stopAccessingSecurityScopedResource()
+
+      logManager.append(logCat: .LogPlaybackError, logMessage: "Play tracks: Playback of " + trackPath + " failed")
+      logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
+      playerAlert.triggerAlert(alertMessage: "Error playing tracks. Check log file for details.")
+    }
+  }
+
+  func playAllArtists() {
     var playlists = Playlists()
     for artist in tracksDict.keys.sorted() {
       let albums = tracksDict[artist]!
@@ -392,14 +460,10 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     }
 
     if(playlists.isEmpty) { return }
-    try playTracks(playlists: playlists)
+    playTracks(playlists: playlists)
   }
 
-  func playAllAlbums() throws {
-    if(!bmURL.startAccessingSecurityScopedResource()) {
-      throw SPError.URLAccess
-    }
-
+  func playAllAlbums() {
     var playlists = Playlists()
     let albums = tracksDict[selectedArtist]!
     for album in albums.keys.sorted() {
@@ -411,14 +475,10 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     }
 
     if(playlists.isEmpty) { return }
-    try playTracks(playlists: playlists)
+    playTracks(playlists: playlists)
   }
 
-  func playAlbum() throws {
-    if(!bmURL.startAccessingSecurityScopedResource()) {
-      throw SPError.URLAccess
-    }
-
+  func playAlbum() {
     let albumTracks = tracksDict[selectedArtist]![selectedAlbum]!
     if(albumTracks.isEmpty) { return }
 
@@ -426,7 +486,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     let playlistInfo = PlaylistInfo(playlistFile: m3UDict[selectedArtist]![selectedAlbum]!, playlistPath: selectedArtist + "/" + selectedAlbum + "/", numTracks: albumTracks.count)
     playlists.append((playlistInfo, albumTracks))
 
-    try playTracks(playlists: playlists)
+    playTracks(playlists: playlists)
   }
 
   func playAll() {
@@ -439,29 +499,23 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
       return
     }
 
-    do {
-      if(selectedArtist.isEmpty && !tracksDict.isEmpty) {
-        try playAllArtists()
-        return
-      }
-
-      if(selectedAlbum.isEmpty && !tracksDict[selectedArtist]!.isEmpty) {
-        try playAllAlbums()
-        return
-      }
-
-      try playAlbum()
-    } catch SPError.URLAccess {
-      logManager.append(throwType: "URLAccess", logMessage: "Play all failed to access URL")
-
-      // Handle error somehow
-    } catch {
-      bmURL.stopAccessingSecurityScopedResource()
-      logManager.append(logCat: .LogPlaybackError, logMessage: "Play all start failed")
-      logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
-
-      // Handle error somehow
+    if(!bmURL.startAccessingSecurityScopedResource()) {
+      logManager.append(throwType: "URLAccess", logMessage: "Play all failed to access: " + bmURL.path(percentEncoded: false))
+      playerAlert.triggerAlert(alertMessage: "Unable to play: Access denied. Check log file for details.")
+      return
     }
+
+    if(selectedArtist.isEmpty && !tracksDict.isEmpty) {
+      playAllArtists()
+      return
+    }
+
+    if(selectedAlbum.isEmpty && !tracksDict[selectedArtist]!.isEmpty) {
+      playAllAlbums()
+      return
+    }
+
+    playAlbum()
   }
 
   func stopAll() {
@@ -528,14 +582,16 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
 
     let nextTrack = playlistManager.peekNextTrack()
     if(nextTrack != nil) {
-      do {
-        try player.enqueue(nextTrack!.trackURL)
-        logManager.append(logCat: .LogInfo, logMessage: "Track queued:  " + nextTrack!.trackURL.path(percentEncoded: false))
-      } catch {
-        logManager.append(logCat: .LogPlaybackError, logMessage: "Track enqueue failed: " + nextTrack!.trackURL.path(percentEncoded: false))
-        logManager.append(logCat: .LogThrownError,   logMessage: "Enqueue error: " + error.localizedDescription)
+      let trackURL  = nextTrack!.trackURL
+      let trackPath = trackURL.path(percentEncoded: false)
 
-        // Handle error somehow
+      do {
+        try player.enqueue(trackURL)
+        logManager.append(logCat: .LogInfo, logMessage: "Track queued:  " + trackPath)
+      } catch {
+        logManager.append(logCat: .LogPlaybackError, logMessage: "Track enqueue failed for " + trackPath)
+        logManager.append(logCat: .LogThrownError,   logMessage: "Enqueue error: " + error.localizedDescription)
+        playerAlert.triggerAlert(alertMessage: "Error queueing next track. Check log file for details.")
       }
     }
   }
@@ -556,14 +612,16 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     let repeatingTrack = (playerSelection.repeatTracks == RepeatState.Track)
     let nextTrack = (repeatingTrack) ? currentTrack : playlistManager.peekNextTrack()
     if(nextTrack != nil) {
-      do {
-        try player.enqueue(nextTrack!.trackURL)
-        logManager.append(logCat: .LogInfo, logMessage: "Track queued:  " + nextTrack!.trackURL.path(percentEncoded: false))
-      } catch {
-        logManager.append(logCat: .LogPlaybackError, logMessage: "Track enqueue failed: " + nextTrack!.trackURL.path(percentEncoded: false))
-        logManager.append(logCat: .LogThrownError,   logMessage: "Enqueue error: " + error.localizedDescription)
+      let trackURL  = nextTrack!.trackURL
+      let trackPath = trackURL.path(percentEncoded: false)
 
-        // Handle error somehow
+      do {
+        try player.enqueue(trackURL)
+        logManager.append(logCat: .LogInfo, logMessage: "Track queued:  " + trackPath)
+      } catch {
+        logManager.append(logCat: .LogPlaybackError, logMessage: "Track enqueue failed for " + trackPath)
+        logManager.append(logCat: .LogThrownError,   logMessage: "Enqueue error: " + error.localizedDescription)
+        playerAlert.triggerAlert(alertMessage: "Error queueing next track. Check log file for details.")
       }
     }
   }
@@ -847,7 +905,8 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     guard bmData != nil else { return }
 
     if(!bmURL.startAccessingSecurityScopedResource()) {
-      playerAlert.triggerAlert(alertMessage: "Unable to scan folders: access denied")
+      logManager.append(throwType: "URLAccess", logMessage: "Scan folders failed to access: " + bmURL.path(percentEncoded: false))
+      playerAlert.triggerAlert(alertMessage: "Unable to scan folders: Access denied. Check log file for details.")
       return
     }
     defer { bmURL.stopAccessingSecurityScopedResource() }
