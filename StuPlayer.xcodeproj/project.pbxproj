@@ -13,7 +13,6 @@
 		1297A5B72B9619CE0017B083 /* StuPlayerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1297A5B62B9619CE0017B083 /* StuPlayerApp.swift */; };
 		1297A5B92B9619CE0017B083 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1297A5B82B9619CE0017B083 /* ContentView.swift */; };
 		1297A5BB2B9619D00017B083 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1297A5BA2B9619D00017B083 /* Assets.xcassets */; };
-		1297A5BE2B9619D00017B083 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1297A5BD2B9619D00017B083 /* Preview Assets.xcassets */; };
 		1297A5C82B963B180017B083 /* PlayerDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1297A5C72B963B180017B083 /* PlayerDataModel.swift */; };
 		1297A5CA2B9778CA0017B083 /* PlayerSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1297A5C92B9778CA0017B083 /* PlayerSelection.swift */; };
 		1297A6022B9791AA0017B083 /* SFBAudioEngine.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1297A5FF2B9790290017B083 /* SFBAudioEngine.framework */; };
@@ -62,7 +61,6 @@
 		1297A5B62B9619CE0017B083 /* StuPlayerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StuPlayerApp.swift; sourceTree = "<group>"; };
 		1297A5B82B9619CE0017B083 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		1297A5BA2B9619D00017B083 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		1297A5BD2B9619D00017B083 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		1297A5BF2B9619D00017B083 /* StuPlayer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StuPlayer.entitlements; sourceTree = "<group>"; };
 		1297A5C72B963B180017B083 /* PlayerDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerDataModel.swift; sourceTree = "<group>"; };
 		1297A5C92B9778CA0017B083 /* PlayerSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSelection.swift; sourceTree = "<group>"; };
@@ -90,7 +88,6 @@
 			children = (
 				1297A5F82B9790290017B083 /* SFBAudioEngine.xcodeproj */,
 				1297A5B52B9619CE0017B083 /* StuPlayer */,
-				1297A5BC2B9619D00017B083 /* Preview Content */,
 				1297A5B42B9619CE0017B083 /* Products */,
 				1297A5CB2B9787260017B083 /* Frameworks */,
 			);
@@ -121,14 +118,6 @@
 				1297A5BF2B9619D00017B083 /* StuPlayer.entitlements */,
 			);
 			path = StuPlayer;
-			sourceTree = "<group>";
-		};
-		1297A5BC2B9619D00017B083 /* Preview Content */ = {
-			isa = PBXGroup;
-			children = (
-				1297A5BD2B9619D00017B083 /* Preview Assets.xcassets */,
-			);
-			path = "Preview Content";
 			sourceTree = "<group>";
 		};
 		1297A5CB2B9787260017B083 /* Frameworks */ = {
@@ -238,7 +227,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1297A5BE2B9619D00017B083 /* Preview Assets.xcassets in Resources */,
 				12C617DD2BB4BCB700B1EE65 /* Credits.html in Resources */,
 				1297A5BB2B9619D00017B083 /* Assets.xcassets in Resources */,
 			);
