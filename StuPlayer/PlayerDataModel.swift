@@ -77,7 +77,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
           self.bmData = try PlayerDataModel.refreshBookmarkData(bmURL: self.bmURL)
         }
 
-        self.rootPath = self.bmURL.path(percentEncoded: false)
+        self.rootPath = self.bmURL.filePath()
         self.logManager.setURL(baseURL: bmURL)
       } catch {
         self.bmData = nil
@@ -167,12 +167,12 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
 
       playerSelection.setTrack(newTrack: currentTrack!)
       playerSelection.setPlayingPosition(playPosition: playPosition, playTotal: playlistManager.trackCount)
-      logManager.append(logCat: .LogInfo, logMessage: "Track playing: " + currentTrack!.trackURL.path(percentEncoded: false))
+      logManager.append(logCat: .LogInfo, logMessage: "Track playing: " + currentTrack!.trackURL.filePath())
 
       let nextTrack = (repeatingTrack) ? currentTrack : playlistManager.peekNextTrack()
       if(nextTrack != nil) {
         let trackURL  = nextTrack!.trackURL
-        let trackPath = trackURL.path(percentEncoded: false)
+        let trackPath = trackURL.filePath()
 
         do {
           try player.enqueue(trackURL)
@@ -199,11 +199,10 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
         switch(stopReason) {
         case .PlaybackError:
           playPosition = 0
-          bmURL.stopAccessingSecurityScopedResource()
-
           playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
           playerSelection.setTrack(newTrack: nil)
           playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Stopped)
+          bmURL.stopAccessingSecurityScopedResource()
 
           playerAlert.triggerAlert(alertMessage: "A playback error occurred. Check log file for details.")
 
@@ -214,7 +213,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
             let firstTrack = playlistManager.peekNextTrack()
 
             let trackURL   = firstTrack!.trackURL
-            let trackPath  = trackURL.path(percentEncoded: false)
+            let trackPath  = trackURL.filePath()
 
             do {
               try player.play(trackURL)
@@ -226,12 +225,11 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
               playerAlert.triggerAlert(alertMessage: "Error repeating tracks. Check log file for details.")
             }
           }
-           
-          bmURL.stopAccessingSecurityScopedResource()
-          
+
           playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
           playerSelection.setTrack(newTrack: nil)
           playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Stopped)
+          bmURL.stopAccessingSecurityScopedResource()
 
         case .PlayAllPressed:
           playPosition = 0
@@ -239,11 +237,10 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
 
         case .StopPressed:
           playPosition = 0
-          bmURL.stopAccessingSecurityScopedResource()
-
           playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
           playerSelection.setTrack(newTrack: nil)
           playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Stopped)
+          bmURL.stopAccessingSecurityScopedResource()
 
         case .TrackPressed:
           playPosition = 0
@@ -259,7 +256,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
           let previousTrack = playlistManager.moveTo(trackNum: playPosition+1)
 
           let trackURL   = previousTrack!.trackURL
-          let trackPath  = trackURL.path(percentEncoded: false)
+          let trackPath  = trackURL.filePath()
 
           do {
             try player.play(trackURL)
@@ -279,7 +276,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
           let nextTrack = playlistManager.moveTo(trackNum: nextTrackNum)
 
           let trackURL   = nextTrack!.trackURL
-          let trackPath  = trackURL.path(percentEncoded: false)
+          let trackPath  = trackURL.filePath()
 
           do {
             try player.play(trackURL)
@@ -296,7 +293,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
           let firstTrack = playlistManager.peekNextTrack()
 
           let trackURL   = firstTrack!.trackURL
-          let trackPath  = trackURL.path(percentEncoded: false)
+          let trackPath  = trackURL.filePath()
 
           do {
             try player.play(trackURL)
@@ -379,7 +376,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     guard bmData != nil else { return }
 
     if(!bmURL.startAccessingSecurityScopedResource()) {
-      logManager.append(throwType: "URLAccess", logMessage: "Play track failed to access: " + bmURL.path(percentEncoded: false))
+      logManager.append(throwType: "URLAccess", logMessage: "Play track failed to access: " + bmURL.filePath())
       playerAlert.triggerAlert(alertMessage: "Unable to play: Access denied. Check log file for details.")
       return
     }
@@ -413,16 +410,22 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     let firstTrack = playlistManager.peekNextTrack()
 
     let trackURL   = firstTrack!.trackURL
-    let trackPath  = trackURL.path(percentEncoded: false)
+    let trackPath  = trackURL.filePath()
 
     do {
       try player.play(trackURL)
       logManager.append(logCat: .LogInfo, logMessage: "Play tracks: Starting playback of " + trackPath)
     } catch {
-      bmURL.stopAccessingSecurityScopedResource()
-
       logManager.append(logCat: .LogPlaybackError, logMessage: "Play tracks: Playback of " + trackPath + " failed")
       logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
+
+      // Undefined error: 0 isn't very helpful (it's probably a missing file)
+      // So, check that here and add a log entry if the file is AWOL
+      if(!fm.fileExists(atPath: trackPath)) {
+        logManager.append(logCat: .LogFileError, logMessage:trackPath + " is missing!")
+      }
+      bmURL.stopAccessingSecurityScopedResource()
+
       playerAlert.triggerAlert(alertMessage: "Error playing tracks. Check log file for details.")
     }
   }
@@ -432,16 +435,22 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     let firstTrack = playlistManager.peekNextTrack()
 
     let trackURL   = firstTrack!.trackURL
-    let trackPath  = trackURL.path(percentEncoded: false)
+    let trackPath  = trackURL.filePath()
 
     do {
       try player.play(trackURL)
       logManager.append(logCat: .LogInfo, logMessage: "Play tracks: Starting playback of " + trackPath)
     } catch {
-      bmURL.stopAccessingSecurityScopedResource()
-
       logManager.append(logCat: .LogPlaybackError, logMessage: "Play tracks: Playback of " + trackPath + " failed")
       logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
+
+      // Undefined error: 0 isn't very helpful (it's probably a missing file)
+      // So, check that here and add a log entry if the file is AWOL
+      if(!fm.fileExists(atPath: trackPath)) {
+        logManager.append(logCat: .LogFileError, logMessage:trackPath + " is missing!")
+      }
+      bmURL.stopAccessingSecurityScopedResource()
+
       playerAlert.triggerAlert(alertMessage: "Error playing tracks. Check log file for details.")
     }
   }
@@ -500,7 +509,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     }
 
     if(!bmURL.startAccessingSecurityScopedResource()) {
-      logManager.append(throwType: "URLAccess", logMessage: "Play all failed to access: " + bmURL.path(percentEncoded: false))
+      logManager.append(throwType: "URLAccess", logMessage: "Play all failed to access: " + bmURL.filePath())
       playerAlert.triggerAlert(alertMessage: "Unable to play: Access denied. Check log file for details.")
       return
     }
@@ -583,7 +592,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     let nextTrack = playlistManager.peekNextTrack()
     if(nextTrack != nil) {
       let trackURL  = nextTrack!.trackURL
-      let trackPath = trackURL.path(percentEncoded: false)
+      let trackPath = trackURL.filePath()
 
       do {
         try player.enqueue(trackURL)
@@ -613,7 +622,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     let nextTrack = (repeatingTrack) ? currentTrack : playlistManager.peekNextTrack()
     if(nextTrack != nil) {
       let trackURL  = nextTrack!.trackURL
-      let trackPath = trackURL.path(percentEncoded: false)
+      let trackPath = trackURL.filePath()
 
       do {
         try player.enqueue(trackURL)
@@ -699,7 +708,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
 
     // Update URL and path
     bmURL    = rootURL
-    rootPath = rootURL.path(percentEncoded: false)
+    rootPath = rootURL.filePath()
 
     logManager.setURL(baseURL: bmURL)
     playerSelection.setRootPath(newRootPath: self.rootPath)
@@ -766,7 +775,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
 
       var m3UFound = false
       for file in files {
-        if(file.hasSuffix(".m3u")) {
+        if(file.hasSuffix(".m3u") || file.hasSuffix(".m3u8")) {
           if(m3UFound) {
             trackErrors = true
             logManager.append(logCat: .LogScanError,   logMessage: "Skipping " + file + "for: " + albumPath)
@@ -905,7 +914,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     guard bmData != nil else { return }
 
     if(!bmURL.startAccessingSecurityScopedResource()) {
-      logManager.append(throwType: "URLAccess", logMessage: "Scan folders failed to access: " + bmURL.path(percentEncoded: false))
+      logManager.append(throwType: "URLAccess", logMessage: "Scan folders failed to access: " + bmURL.filePath())
       playerAlert.triggerAlert(alertMessage: "Unable to scan folders: Access denied. Check log file for details.")
       return
     }

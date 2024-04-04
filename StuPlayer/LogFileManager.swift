@@ -8,7 +8,7 @@
 import Foundation
 
 enum LogCategory {
-  case LogInfo, LogInitError, LogScanError, LogThrownError, LogPlaybackError
+  case LogInfo, LogInitError, LogScanError, LogThrownError, LogPlaybackError, LogFileError
 }
 
 class LogFileManager {
@@ -25,10 +25,10 @@ class LogFileManager {
     defer { baseURL.stopAccessingSecurityScopedResource() }
 
     // Create logfile, if it does not exist
-    let logFileURL  = baseURL.appending(path: "SPLogFile.0", directoryHint: URL.DirectoryHint.notDirectory)
-    let logFilePath = logFileURL.path(percentEncoded: false)
+    let logFileURL  = baseURL.appendingFile(file: "SPLogFile0.log")
+    let logFilePath = logFileURL.filePath()
 
-    let logStart = "StuPlayer log for " + baseURL.path(percentEncoded: false) + " at " + Date().description + "...\n"
+    let logStart = "StuPlayer log for " + baseURL.filePath() + " at " + Date().description + "...\n"
     print(logStart)
 
     do {
@@ -50,8 +50,8 @@ class LogFileManager {
         guard let fileSize else { print("Error creating log file: " + logFilePath + " has no size attribute"); return }
 
         if(fileSize > 100000) {
-          let logFile2URL  = baseURL.appending(path: "SPLogFile.1", directoryHint: URL.DirectoryHint.notDirectory)
-          let logFile2Path = logFile2URL.path(percentEncoded: false)
+          let logFile2URL  = baseURL.appendingFile(file: "SPLogFile1.log")
+          let logFile2Path = logFile2URL.filePath()
 
           if(fm.fileExists(atPath: logFile2Path)) {
             try fm.removeItem(atPath: logFile2Path)
@@ -105,6 +105,8 @@ class LogFileManager {
       logString = "Exception error: "
     case .LogPlaybackError:
       logString = "Playback error: "
+    case .LogFileError:
+      logString = "File error: "
     }
 
     logString = logString + logMessage

@@ -10,7 +10,6 @@
 		1214C6332BA3159C00302CA3 /* PlaylistManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1214C6322BA3159C00302CA3 /* PlaylistManager.swift */; };
 		1214C6382BA4F7DB00302CA3 /* Playlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1214C6372BA4F7DB00302CA3 /* Playlist.swift */; };
 		125432A22BB763B600CB6A64 /* LogFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 125432A12BB763B600CB6A64 /* LogFileManager.swift */; };
-		125432A72BB8863900CB6A64 /* SPError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 125432A62BB8863900CB6A64 /* SPError.swift */; };
 		1297A5B72B9619CE0017B083 /* StuPlayerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1297A5B62B9619CE0017B083 /* StuPlayerApp.swift */; };
 		1297A5B92B9619CE0017B083 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1297A5B82B9619CE0017B083 /* ContentView.swift */; };
 		1297A5BB2B9619D00017B083 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1297A5BA2B9619D00017B083 /* Assets.xcassets */; };
@@ -20,6 +19,7 @@
 		1297A6022B9791AA0017B083 /* SFBAudioEngine.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1297A5FF2B9790290017B083 /* SFBAudioEngine.framework */; };
 		1297A6032B9791AA0017B083 /* SFBAudioEngine.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 1297A5FF2B9790290017B083 /* SFBAudioEngine.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		12B87E2B2BBC02580064E6B8 /* PlayerAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */; };
+		12B87E2E2BBECE7A0064E6B8 /* URL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B87E2D2BBECE7A0064E6B8 /* URL.swift */; };
 		12C617DD2BB4BCB700B1EE65 /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = 12C617DC2BB4BCB700B1EE65 /* Credits.html */; };
 /* End PBXBuildFile section */
 
@@ -58,7 +58,6 @@
 		1214C6322BA3159C00302CA3 /* PlaylistManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistManager.swift; sourceTree = "<group>"; };
 		1214C6372BA4F7DB00302CA3 /* Playlist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Playlist.swift; sourceTree = "<group>"; };
 		125432A12BB763B600CB6A64 /* LogFileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogFileManager.swift; sourceTree = "<group>"; };
-		125432A62BB8863900CB6A64 /* SPError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SPError.swift; sourceTree = "<group>"; };
 		1297A5B32B9619CE0017B083 /* StuPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StuPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1297A5B62B9619CE0017B083 /* StuPlayerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StuPlayerApp.swift; sourceTree = "<group>"; };
 		1297A5B82B9619CE0017B083 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -70,6 +69,7 @@
 		1297A5F22B978DB30017B083 /* SFBAudioEngine.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = SFBAudioEngine.xcframework; path = ../build/SFBAudioEngine.xcframework; sourceTree = "<group>"; };
 		1297A5F82B9790290017B083 /* SFBAudioEngine.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = SFBAudioEngine.xcodeproj; path = ../SFBAudioEngine.xcodeproj; sourceTree = "<group>"; };
 		12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerAlert.swift; sourceTree = "<group>"; };
+		12B87E2D2BBECE7A0064E6B8 /* URL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URL.swift; sourceTree = "<group>"; };
 		12C617DC2BB4BCB700B1EE65 /* Credits.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Credits.html; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -90,6 +90,7 @@
 			children = (
 				1297A5F82B9790290017B083 /* SFBAudioEngine.xcodeproj */,
 				1297A5B52B9619CE0017B083 /* StuPlayer */,
+				1297A5BC2B9619D00017B083 /* Preview Content */,
 				1297A5B42B9619CE0017B083 /* Products */,
 				1297A5CB2B9787260017B083 /* Frameworks */,
 			);
@@ -106,19 +107,18 @@
 		1297A5B52B9619CE0017B083 /* StuPlayer */ = {
 			isa = PBXGroup;
 			children = (
+				12B87E2C2BBECE400064E6B8 /* Ext */,
 				1297A5B62B9619CE0017B083 /* StuPlayerApp.swift */,
 				1297A5B82B9619CE0017B083 /* ContentView.swift */,
-				1297A5BA2B9619D00017B083 /* Assets.xcassets */,
-				1297A5BF2B9619D00017B083 /* StuPlayer.entitlements */,
-				1297A5BC2B9619D00017B083 /* Preview Content */,
 				125432A12BB763B600CB6A64 /* LogFileManager.swift */,
 				12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */,
 				1297A5C72B963B180017B083 /* PlayerDataModel.swift */,
 				1297A5C92B9778CA0017B083 /* PlayerSelection.swift */,
 				1214C6322BA3159C00302CA3 /* PlaylistManager.swift */,
 				1214C6372BA4F7DB00302CA3 /* Playlist.swift */,
-				125432A62BB8863900CB6A64 /* SPError.swift */,
 				12C617DC2BB4BCB700B1EE65 /* Credits.html */,
+				1297A5BA2B9619D00017B083 /* Assets.xcassets */,
+				1297A5BF2B9619D00017B083 /* StuPlayer.entitlements */,
 			);
 			path = StuPlayer;
 			sourceTree = "<group>";
@@ -146,6 +146,14 @@
 				1297A6012B9790290017B083 /* SFBAudioEngine.framework */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		12B87E2C2BBECE400064E6B8 /* Ext */ = {
+			isa = PBXGroup;
+			children = (
+				12B87E2D2BBECE7A0064E6B8 /* URL.swift */,
+			);
+			path = Ext;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -245,11 +253,11 @@
 			files = (
 				12B87E2B2BBC02580064E6B8 /* PlayerAlert.swift in Sources */,
 				125432A22BB763B600CB6A64 /* LogFileManager.swift in Sources */,
+				12B87E2E2BBECE7A0064E6B8 /* URL.swift in Sources */,
 				1297A5B92B9619CE0017B083 /* ContentView.swift in Sources */,
 				1297A5B72B9619CE0017B083 /* StuPlayerApp.swift in Sources */,
 				1297A5C82B963B180017B083 /* PlayerDataModel.swift in Sources */,
 				1297A5CA2B9778CA0017B083 /* PlayerSelection.swift in Sources */,
-				125432A72BB8863900CB6A64 /* SPError.swift in Sources */,
 				1214C6332BA3159C00302CA3 /* PlaylistManager.swift in Sources */,
 				1214C6382BA4F7DB00302CA3 /* Playlist.swift in Sources */,
 			);
@@ -389,7 +397,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"StuPlayer/Preview Content\"";
 				DEVELOPMENT_TEAM = YV8CWLF497;
@@ -404,6 +412,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.fig7.stuplayer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -422,7 +431,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"StuPlayer/Preview Content\"";
 				DEVELOPMENT_TEAM = YV8CWLF497;
@@ -437,6 +446,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.fig7.stuplayer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
