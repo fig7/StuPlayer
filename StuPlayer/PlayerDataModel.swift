@@ -519,6 +519,9 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     // Can't play if we haven't got the root folder
     guard bmData != nil else { return }
 
+    // Or if there are no tracks
+    guard !tracksDict.isEmpty else { return }
+
     if(player.isPlaying) {
       stopReason = StoppingReason.PlayAllPressed
       player.stop()
@@ -531,12 +534,12 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
       return
     }
 
-    if(selectedArtist.isEmpty && !tracksDict.isEmpty) {
+    if(selectedArtist.isEmpty) {
       playAllArtists()
       return
     }
 
-    if(selectedAlbum.isEmpty && !tracksDict[selectedArtist]!.isEmpty) {
+    if(selectedAlbum.isEmpty) {
       playAllAlbums()
       return
     }
@@ -880,6 +883,8 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
       typesList.sort()
       if(typesList.count > 0) {
         selectedType = typesList[0]
+      } else {
+        logManager.append(logCat: .LogScanError, logMessage: "Updating types: No type folders found")
       }
 
       try saveTypes()
@@ -973,9 +978,11 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     selectedArtist = ""
     selectedAlbum  = ""
 
-    m3UDict    = allM3UDict[selectedType]!
-    tracksDict = allTracksDict[selectedType]!
-    musicPath  = rootPath + selectedType + "/"
+    if(selectedType != "")  {
+      m3UDict    = allM3UDict[selectedType]!
+      tracksDict = allTracksDict[selectedType]!
+      musicPath  = rootPath + selectedType + "/"
+    }
 
     playerSelection.setAll(newArtist: selectedArtist, newAlbum: selectedAlbum, newList: tracksDict.keys.sorted())
     playerSelection.setTypes(newType: selectedType, newTypeList: typesList)
