@@ -24,7 +24,7 @@ typealias AllTracksDict  = [String : TrackDict]
 
 typealias Playlists = [Playlist]
 
-enum StoppingReason { case PlaybackError, EndOfAudio, PlayAllPressed, StopPressed, TrackPressed, PreviousPressed, NextPressed, RestartPressed }
+enum StoppingReason { case PlaybackError, EndOfAudio, PlayAllPressed, StopPressed, TrackPressed, PreviousPressed, NextPressed, RestartPressed, ReshufflePressed }
 enum StorageError: Error { case BookmarkCreationFailed, TypesCreationFailed, DictionaryCreationFailed, ReadingTypesFailed }
 enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, ReadingAlbumsFailed, MissingM3U }
 
@@ -289,7 +289,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
 
         case .RestartPressed:
           playPosition = 0
-          playlistManager.reset(shuffleTracks: playerSelection.shuffleTracks)
+          playlistManager.reset()
           let firstTrack = playlistManager.peekNextTrack()
 
           let trackURL   = firstTrack!.trackURL
@@ -302,6 +302,23 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
             logManager.append(logCat: .LogPlaybackError, logMessage: "Restart: Playback of " + trackPath + " failed")
             logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
             playerAlert.triggerAlert(alertMessage: "Error restarting tracks. Check log file for details.")
+          }
+
+        case .ReshufflePressed:
+          playPosition = 0
+          playlistManager.reset(shuffleTracks: playerSelection.shuffleTracks)
+          let firstTrack = playlistManager.peekNextTrack()
+
+          let trackURL   = firstTrack!.trackURL
+          let trackPath  = trackURL.filePath()
+
+          do {
+            try player.play(trackURL)
+            logManager.append(logCat: .LogInfo, logMessage: "Reshuffle: Starting playback of " + trackPath)
+          } catch {
+            logManager.append(logCat: .LogPlaybackError, logMessage: "Reshuffle: Playback of " + trackPath + " failed")
+            logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
+            playerAlert.triggerAlert(alertMessage: "Error reshuffling tracks. Check log file for details.")
           }
         }
 
@@ -528,12 +545,14 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
   }
 
   func stopAll() {
+    if(!player.isPlaying && !player.isPaused) { return }
+
     stopReason = StoppingReason.StopPressed
     player.stop()
   }
 
   func playPreviousTrack() {
-    if(!player.isPlaying) { return }
+    if(!player.isPlaying && !player.isPaused) { return }
     if(!playlistManager.hasPrevious(trackNum: playPosition)) { return }
 
     stopReason = StoppingReason.PreviousPressed
@@ -541,7 +560,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
   }
 
   func playNextTrack() {
-    if(!player.isPlaying) { return }
+    if(!player.isPlaying && !player.isPaused) { return }
     if(!playlistManager.hasNext(trackNum: playPosition)) {
       stopReason = StoppingReason.EndOfAudio
       player.stop()
@@ -554,9 +573,16 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
   }
 
   func restartAll() {
-    if(!player.isPlaying) { return }
+    if(!player.isPlaying && !player.isPaused) { return }
 
     stopReason = StoppingReason.RestartPressed
+    player.stop()
+  }
+
+  func reshuffleAll() {
+    if(!player.isPlaying && !player.isPaused) { return }
+
+    stopReason = StoppingReason.ReshufflePressed
     player.stop()
   }
 
@@ -565,15 +591,20 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     let paused  = (playerSelection.playbackState == PlaybackState.Paused)
     if(playing || paused) {
       if(playing) {
+        logManager.append(logCat: .LogInfo, logMessage: "TogglePause: State is playing -> pausing")
         player.pause()
       } else {
+        logManager.append(logCat: .LogInfo, logMessage: "TogglePause: State is paused -> playing")
         player.resume()
       }
     }
   }
 
   func toggleShuffle() {
+    logManager.append(logCat: .LogInfo, logMessage: "ToggleShuffle: Shuffle is \(playerSelection.shuffleTracks) -> \(playerSelection.peekShuffle())")
     playerSelection.toggleShuffle()
+
+    // Nothing more to do if we are not playing
     if(!player.isPlaying) { return }
 
     // Inform the playlist manager
@@ -609,10 +640,12 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     // Toggling from repeat all to none has no effect (the next track remains queued)
     // Toggling from repeat none to track clears the queue and re-queues the current track
     // Toggling from repeat track to all clears the queue and queues the next track
+    logManager.append(logCat: .LogInfo, logMessage: "ToggleRepeat: Repeat is \(playerSelection.repeatTracks) -> \(playerSelection.peekRepeat())")
 
     let repeatAll = (playerSelection.repeatTracks == RepeatState.All)
     playerSelection.toggleRepeatTracks()
 
+    // If we are not playing or repeating all, there is nothing more to do
     if(!player.isPlaying || repeatAll) { return }
 
     player.clearQueue()

@@ -118,8 +118,25 @@ enum RepeatState {
     self.playTotal    = playTotal
   }
 
+  func peekShuffle() -> Bool {
+    return !shuffleTracks
+  }
+
   func toggleShuffle() {
     shuffleTracks = !shuffleTracks
+  }
+
+  func peekRepeat() -> RepeatState {
+    switch(repeatTracks) {
+    case RepeatState.None:
+      return RepeatState.Track
+
+    case RepeatState.Track:
+      return RepeatState.All
+
+    case RepeatState.All:
+      return RepeatState.None
+    }
   }
 
   func toggleRepeatTracks() {

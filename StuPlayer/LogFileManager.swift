@@ -25,7 +25,7 @@ class LogFileManager {
     defer { baseURL.stopAccessingSecurityScopedResource() }
 
     // Create logfile, if it does not exist
-    let logFileURL  = baseURL.appendingFile(file: "SPLogFile0.log")
+    let logFileURL  = baseURL.appendingFile(file: "StuPlayer0.log")
     let logFilePath = logFileURL.filePath()
 
     let logStart = "StuPlayer log for " + baseURL.filePath() + " at " + Date().description + "...\n"
@@ -50,7 +50,7 @@ class LogFileManager {
         guard let fileSize else { print("Error creating log file: " + logFilePath + " has no size attribute"); return }
 
         if(fileSize > 100000) {
-          let logFile2URL  = baseURL.appendingFile(file: "SPLogFile1.log")
+          let logFile2URL  = baseURL.appendingFile(file: "StuPlayer1.log")
           let logFile2Path = logFile2URL.filePath()
 
           if(fm.fileExists(atPath: logFile2Path)) {

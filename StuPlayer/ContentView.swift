@@ -136,36 +136,38 @@ struct ContentView: View {
           case .Paused:
             Text("Resume").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
           }
-        }
+        }.disabled(playerSelection.playbackState == .Stopped)
 
         Spacer().frame(width: 20)
 
         Button(action: model.stopAll) {
           Text(" Stop ").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
-        }
+        }.disabled(playerSelection.playbackState == .Stopped)
 
         Spacer().frame(width: 40)
 
         Button(action: model.playPreviousTrack) {
           Text("Previous").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
-        }
+        }.disabled((playerSelection.playbackState == .Stopped) || (playerSelection.playPosition == 1))
 
         Spacer().frame(width: 20)
 
         Button(action: model.playNextTrack) {
           Text("Next").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
-        }
+        }.disabled(playerSelection.playbackState == .Stopped)
 
         Spacer().frame(width: 20)
 
         Button(action: model.restartAll) {
-          switch(playerSelection.shuffleTracks) {
-          case false:
             Text("Restart").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
-            
-          case true:
+        }.disabled(playerSelection.playbackState == .Stopped)
+
+        if(playerSelection.shuffleTracks) {
+          Spacer().frame(width: 20)
+
+          Button(action: model.reshuffleAll) {
             Text("Reshuffle").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
-          }
+          }.disabled(playerSelection.playbackState == .Stopped)
         }
       }
 

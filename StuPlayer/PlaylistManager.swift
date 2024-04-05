@@ -111,6 +111,11 @@ class PlaylistManager {
     return track
   }
 
+  func reset() {
+    nextTrackIndex   = 0
+    nextShuffleIndex = 0
+  }
+
   func reset(shuffleTracks: Bool) {
     nextTrackIndex = 0
     generateShuffleList(startIndex: (shuffleTracks) ? Int.random(in: 0..<trackCount) : 0)
