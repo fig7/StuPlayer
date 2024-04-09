@@ -351,7 +351,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
 
   // Using audioPlayerEndOfAudio to avoid the player stopping sometimes (when the audio node generates multiple end of audio events)
   // I have raised an issue about this: https://github.com/sbooth/SFBAudioEngine/issues/291
-  nonisolated func audioPlayerEndOfAudio(_ audioPlayer: AudioPlayer) {
+  /* nonisolated func audioPlayerEndOfAudio(_ audioPlayer: AudioPlayer) {
     Task { @MainActor in
       logManager.append(logCat: .LogInfo, logMessage: "Player end of audio")
       if(playlistManager.peekNextTrack() == nil) {
@@ -359,7 +359,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
         player.stop()
       }
     }
-  }
+  } */
 
   nonisolated func audioPlayer(_ audioPlayer: AudioPlayer, encounteredError error: any Error) {
     Task { @MainActor in
@@ -1067,9 +1067,9 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     print("AudioPlayer state: \(audioPlayer.playbackState)")
   }
 
-  nonisolated func audioPlayerEndOfAudio(_ audioPlayer: AudioPlayer) {
+  /* nonisolated func audioPlayerEndOfAudio(_ audioPlayer: AudioPlayer) {
     print("AudioPlayer end of audio")
-  }
+  } */
 
   nonisolated func audioPlayer(_ audioPlayer: AudioPlayer, encounteredError error: any Error) {
     print("AudioPlayer error: \(error.localizedDescription)")
