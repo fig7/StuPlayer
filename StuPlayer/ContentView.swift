@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SFBAudioEngine
 
 struct ContentView: View {
   let model: PlayerDataModel
@@ -24,6 +25,14 @@ struct ContentView: View {
         Button(action: model.scanFolders) {
           Text("Rescan").padding(.horizontal, 10).padding(.vertical, 2)
         }
+
+        #if PLAYBACK_TEST
+        Spacer().frame(width: 20)
+
+        Button(action: model.testPlay) {
+          Text("Test").padding(.horizontal, 10).padding(.vertical, 2)
+        }
+        #endif
       }
 
       Spacer().frame(height: 15)
@@ -127,47 +136,50 @@ struct ContentView: View {
       HStack {
         Button(action: model.togglePause) {
           switch(playerSelection.playbackState) {
-          case .Stopped:
+          case .stopped:
             Text("Pause").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
 
-          case .Playing:
+          case .playing:
             Text("Pause").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
 
-          case .Paused:
+          case .paused:
             Text("Resume").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
+
+          @unknown default:
+            Text("??????").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
           }
-        }.disabled(playerSelection.playbackState == .Stopped)
+        }.disabled(playerSelection.playbackState == AudioPlayer.PlaybackState.stopped)
 
         Spacer().frame(width: 20)
 
         Button(action: model.stopAll) {
           Text(" Stop ").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
-        }.disabled(playerSelection.playbackState == .Stopped)
+        }.disabled(playerSelection.playbackState == .stopped)
 
         Spacer().frame(width: 40)
 
         Button(action: model.playPreviousTrack) {
           Text("Previous").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
-        }.disabled((playerSelection.playbackState == .Stopped) || (playerSelection.playPosition == 1))
+        }.disabled((playerSelection.playbackState == .stopped) || (playerSelection.playPosition == 1))
 
         Spacer().frame(width: 20)
 
         Button(action: model.playNextTrack) {
           Text("Next").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
-        }.disabled(playerSelection.playbackState == .Stopped)
+        }.disabled(playerSelection.playbackState == .stopped)
 
         Spacer().frame(width: 20)
 
         Button(action: model.restartAll) {
             Text("Restart").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
-        }.disabled(playerSelection.playbackState == .Stopped)
+        }.disabled(playerSelection.playbackState == .stopped)
 
         if(playerSelection.shuffleTracks) {
           Spacer().frame(width: 20)
 
           Button(action: model.reshuffleAll) {
             Text("Reshuffle").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
-          }.disabled(playerSelection.playbackState == .Stopped)
+          }.disabled(playerSelection.playbackState == .stopped)
         }
       }
 

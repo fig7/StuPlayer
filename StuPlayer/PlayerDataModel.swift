@@ -147,6 +147,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     }
   }
 
+#if !PLAYBACK_TEST
   // Using audioPlayerNowPlayingChanged to handle track changes
   // NB. nowPlaying -> nil is ignored, audioPlayerPlaybackStateChanged() handles end of audio instead (playbackState -> Stopped)
   nonisolated func audioPlayerNowPlayingChanged(_ audioPlayer: AudioPlayer) {
@@ -191,7 +192,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     let playbackState = audioPlayer.playbackState
 
     switch(playbackState) {
-    case AudioPlayer.PlaybackState.stopped:
+    case .stopped:
       Task { @MainActor in
         logManager.append(logCat: .LogInfo, logMessage: "Player stopped: \(stopReason)\n")
         nowPlaying = false
@@ -201,7 +202,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
           playPosition = 0
           playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
           playerSelection.setTrack(newTrack: nil)
-          playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Stopped)
+          playerSelection.setPlaybackState(newPlaybackState: .stopped)
           bmURL.stopAccessingSecurityScopedResource()
 
           playerAlert.triggerAlert(alertMessage: "A playback error occurred. Check log file for details.")
@@ -228,7 +229,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
 
           playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
           playerSelection.setTrack(newTrack: nil)
-          playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Stopped)
+          playerSelection.setPlaybackState(newPlaybackState: .stopped)
           bmURL.stopAccessingSecurityScopedResource()
 
         case .PlayAllPressed:
@@ -239,7 +240,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
           playPosition = 0
           playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
           playerSelection.setTrack(newTrack: nil)
-          playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Stopped)
+          playerSelection.setPlaybackState(newPlaybackState: .stopped)
           bmURL.stopAccessingSecurityScopedResource()
 
         case .TrackPressed:
@@ -325,21 +326,37 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
         stopReason = StoppingReason.EndOfAudio
       }
 
-    case AudioPlayer.PlaybackState.playing:
+    // NB: Calling setPlaybackState() with player.playbackState because this event can be erroneous
+    // I have raised an issue about this: https://github.com/sbooth/SFBAudioEngine/issues/291
+    case .playing:
       Task { @MainActor in
         logManager.append(logCat: .LogInfo, logMessage: "Player playing")
-        playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Playing)
+        playerSelection.setPlaybackState(newPlaybackState: player.playbackState)
       }
 
-    case AudioPlayer.PlaybackState.paused:
+    // NB: Calling setPlaybackState() with player.playbackState because this event can be erroneous
+    // I have raised an issue about this: https://github.com/sbooth/SFBAudioEngine/issues/291
+    case .paused:
       Task { @MainActor in
         logManager.append(logCat: .LogInfo, logMessage: "Player paused")
-        playerSelection.setPlaybackState(newPlaybackState: PlaybackState.Paused)
+        playerSelection.setPlaybackState(newPlaybackState: player.playbackState)
       }
 
     @unknown default:
       Task { @MainActor in
         logManager.append(logCat: .LogInfo, logMessage: "Unknown player state received: \(playbackState)")
+      }
+    }
+  }
+
+  // Using audioPlayerEndOfAudio to avoid the player stopping sometimes (when the audio node generates multiple end of audio events)
+  // I have raised an issue about this: https://github.com/sbooth/SFBAudioEngine/issues/291
+  nonisolated func audioPlayerEndOfAudio(_ audioPlayer: AudioPlayer) {
+    Task { @MainActor in
+      logManager.append(logCat: .LogInfo, logMessage: "Player end of audio")
+      if(playlistManager.peekNextTrack() == nil) {
+        logManager.append(logCat: .LogInfo, logMessage: "End of playlist, stopping...")
+        player.stop()
       }
     }
   }
@@ -352,6 +369,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
       player.stop()
     }
   }
+  #endif
 
   func clearArtist() {
     if(selectedArtist.isEmpty) { return }
@@ -590,8 +608,8 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
   }
 
   func togglePause() {
-    let playing = (playerSelection.playbackState == PlaybackState.Playing)
-    let paused  = (playerSelection.playbackState == PlaybackState.Paused)
+    let playing = (player.playbackState == .playing)
+    let paused  = (player.playbackState == .paused)
     if(playing || paused) {
       if(playing) {
         logManager.append(logCat: .LogInfo, logMessage: "TogglePause: State is playing -> pausing")
@@ -1012,4 +1030,49 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
     selectedAlbum  = ""
     playerSelection.setAll(newArtist: "", newAlbum: "", newList: tracksDict.keys.sorted())
   }
+
+  #if PLAYBACK_TEST
+  let testURL1 = URL(fileURLWithPath: "/Volumes/Mini external/Music/MP3/Tori Amos/Winter (CD Single)/Winter.ogg")
+  let testURL2 = [URL(fileURLWithPath: "/Volumes/Mini external/Music/MP3/Alan Parsons/Live in Columbia/Damned If I Do.opus"),
+                  URL(fileURLWithPath: "/Volumes/Mini external/Music/MP3/The Icicle Works/Seven Singles Deep (Tape)/Love Is A Wonderful Colour.ogg")]
+
+  func testPlay() {
+    do {
+      if(bmURL.startAccessingSecurityScopedResource()) {
+        try player.play(testURL1)
+      }
+    } catch {
+      print("AudioPlayer catch: \(error.localizedDescription)")
+      bmURL.stopAccessingSecurityScopedResource()
+    }
+  }
+
+  var i = 0
+  nonisolated func audioPlayerNowPlayingChanged(_ audioPlayer: AudioPlayer) {
+    print("AudioPlayer nowPlaying: \(audioPlayer.nowPlaying?.inputSource.url?.filePath() ?? "nil")")
+
+    Task { @MainActor in
+      do {
+        if( i < 2) {
+          try player.enqueue(testURL2[i])
+          i += 1
+        }
+      } catch {
+        print("AudioPlayer nowPlaying catch: \(error.localizedDescription)")
+      }
+    }
+  }
+
+  nonisolated func audioPlayerPlaybackStateChanged(_ audioPlayer: AudioPlayer) {
+    print("AudioPlayer state: \(audioPlayer.playbackState)")
+  }
+
+  nonisolated func audioPlayerEndOfAudio(_ audioPlayer: AudioPlayer) {
+    print("AudioPlayer end of audio")
+  }
+
+  nonisolated func audioPlayer(_ audioPlayer: AudioPlayer, encounteredError error: any Error) {
+    print("AudioPlayer error: \(error.localizedDescription)")
+  }
+  #endif
 }

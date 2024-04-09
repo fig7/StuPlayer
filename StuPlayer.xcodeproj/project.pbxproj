@@ -57,6 +57,7 @@
 		1214C6322BA3159C00302CA3 /* PlaylistManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistManager.swift; sourceTree = "<group>"; };
 		1214C6372BA4F7DB00302CA3 /* Playlist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Playlist.swift; sourceTree = "<group>"; };
 		125432A12BB763B600CB6A64 /* LogFileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogFileManager.swift; sourceTree = "<group>"; };
+		1292443A2BC53A5200E25D01 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		1297A5B32B9619CE0017B083 /* StuPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StuPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1297A5B62B9619CE0017B083 /* StuPlayerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StuPlayerApp.swift; sourceTree = "<group>"; };
 		1297A5B82B9619CE0017B083 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -104,6 +105,7 @@
 		1297A5B52B9619CE0017B083 /* StuPlayer */ = {
 			isa = PBXGroup;
 			children = (
+				1292443A2BC53A5200E25D01 /* Info.plist */,
 				12B87E2C2BBECE400064E6B8 /* Ext */,
 				1297A5B62B9619CE0017B083 /* StuPlayerApp.swift */,
 				1297A5B82B9619CE0017B083 /* ContentView.swift */,
@@ -385,7 +387,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 11;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = YV8CWLF497;
@@ -393,6 +395,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = StuPlayer/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = StuPlayer;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© Stuart Fisher 2024";
@@ -419,7 +422,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 11;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = YV8CWLF497;
@@ -427,6 +430,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = StuPlayer/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = StuPlayer;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© Stuart Fisher 2024";

@@ -6,10 +6,7 @@
 //
 
 import Foundation
-
-enum PlaybackState {
-  case Stopped, Playing, Paused
-}
+import SFBAudioEngine
 
 enum RepeatState {
   case None, Track, All
@@ -43,7 +40,7 @@ enum RepeatState {
   @Published var shuffleTracks  = false
 
   @Published var list: [String] = []
-  @Published var playbackState  = PlaybackState.Stopped
+  @Published var playbackState: AudioPlayer.PlaybackState = .stopped
 
   @Published var playPosition = 0
   @Published var playTotal    = 0
@@ -109,7 +106,7 @@ enum RepeatState {
     self.numTracks = newPlaylist.numTracks
   }
 
-  func setPlaybackState(newPlaybackState: PlaybackState) {
+  func setPlaybackState(newPlaybackState: AudioPlayer.PlaybackState) {
     self.playbackState = newPlaybackState
   }
 

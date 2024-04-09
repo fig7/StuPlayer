@@ -7,8 +7,15 @@
 
 import SwiftUI
 
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return true
+    }
+}
+
 @available(macOS 13.0, *)
 struct StuPlayerApp13 : App {
+  @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
   @State private var playerDataModel: PlayerDataModel
 
   init() {
@@ -25,6 +32,7 @@ struct StuPlayerApp13 : App {
 }
 
 struct StuPlayerApp: App {
+  @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
   @State private var playerDataModel: PlayerDataModel
 
   init() {
