@@ -832,7 +832,7 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
         if(file.hasSuffix(".m3u") || file.hasSuffix(".m3u8")) {
           if(m3UFound) {
             trackErrors = true
-            logManager.append(logCat: .LogScanError,   logMessage: "Skipping " + file + "for: " + albumPath)
+            logManager.append(logCat: .LogScanError,   logMessage: "Skipping " + file + " for: " + albumPath)
             continue
           }
 
