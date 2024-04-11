@@ -148,7 +148,7 @@ struct ContentView: View {
           @unknown default:
             Text("??????").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
           }
-        }.disabled(playerSelection.playbackState == AudioPlayer.PlaybackState.stopped)
+        }.disabled(playerSelection.playbackState == .stopped)
 
         Spacer().frame(width: 20)
 

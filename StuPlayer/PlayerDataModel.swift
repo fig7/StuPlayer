@@ -9,13 +9,7 @@ import Foundation
 import AppKit
 import SFBAudioEngine
 
-// Local storage paths
-let rootBookmark  = "RootBM.dat"
-let rootTypesFile = "RootTypes.dat"
-
-let m3UFile         = "Playlists.dat"
-let trackFile       = "Tracks.dat"
-
+// Type aliases
 typealias M3UDict   = [String : [String : String]]
 typealias TrackDict = [String : [String : [String]]]
 
@@ -24,9 +18,17 @@ typealias AllTracksDict  = [String : TrackDict]
 
 typealias Playlists = [Playlist]
 
+// Enumerations
 enum StoppingReason { case PlaybackError, EndOfAudio, PlayAllPressed, StopPressed, TrackPressed, PreviousPressed, NextPressed, RestartPressed, ReshufflePressed }
 enum StorageError: Error { case BookmarkCreationFailed, TypesCreationFailed, DictionaryCreationFailed, ReadingTypesFailed }
 enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, ReadingAlbumsFailed, MissingM3U }
+
+// Local storage paths
+let rootBookmark  = "RootBM.dat"
+let rootTypesFile = "RootTypes.dat"
+
+let m3UFile         = "Playlists.dat"
+let trackFile       = "Tracks.dat"
 
 @MainActor class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate {
   var playerAlert: PlayerAlert
@@ -62,6 +64,9 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
 
   var pendingTrack: Int?
   var currentTrack: TrackInfo?
+
+  // For playback slider updates (later...)
+  var playbackTimer: Timer?
 
   init(playerAlert: PlayerAlert, playerSelection: PlayerSelection) {
     self.playerAlert     = playerAlert
@@ -153,160 +158,79 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
   nonisolated func audioPlayerNowPlayingChanged(_ audioPlayer: AudioPlayer) {
     if(audioPlayer.nowPlaying == nil) { return }
 
-    // Handle next track
     Task { @MainActor in
-      let repeatingTrack = (playerSelection.repeatTracks == RepeatState.Track)
-      if(!nowPlaying || !repeatingTrack) {
-        if(!nowPlaying) {
-          logManager.append(logCat: .LogInfo, logMessage: "Now playing: true")
-          nowPlaying = true
-        }
+      handleNextTrack()
+    }
+  }
 
-        playPosition += 1
-        currentTrack = playlistManager.nextTrack()
+  nonisolated func audioPlayerPlaybackStateChanged(_ audioPlayer: AudioPlayer) {
+    Task { @MainActor in
+      handlePlaybackStateChange()
+    }
+  }
+
+  nonisolated func audioPlayer(_ audioPlayer: AudioPlayer, encounteredError error: any Error) {
+    Task { @MainActor in
+      handlePlaybackError(error.localizedDescription)
+    }
+  }
+  #endif
+
+  func handleNextTrack() {
+    let repeatingTrack = (playerSelection.repeatTracks == RepeatState.Track)
+    if(!nowPlaying || !repeatingTrack) {
+      if(!nowPlaying) {
+        logManager.append(logCat: .LogInfo, logMessage: "Now playing: true")
+        nowPlaying = true
       }
 
-      playerSelection.setTrack(newTrack: currentTrack!)
-      playerSelection.setPlayingPosition(playPosition: playPosition, playTotal: playlistManager.trackCount)
-      logManager.append(logCat: .LogInfo, logMessage: "Track playing: " + currentTrack!.trackURL.filePath())
+      playPosition += 1
+      currentTrack = playlistManager.nextTrack()
+    }
 
-      let nextTrack = (repeatingTrack) ? currentTrack : playlistManager.peekNextTrack()
-      if(nextTrack != nil) {
-        let trackURL  = nextTrack!.trackURL
-        let trackPath = trackURL.filePath()
+    playerSelection.setTrack(newTrack: currentTrack!)
+    playerSelection.setPlayingPosition(playPosition: playPosition, playTotal: playlistManager.trackCount)
+    logManager.append(logCat: .LogInfo, logMessage: "Track playing: " + currentTrack!.trackURL.filePath())
 
-        do {
-          try player.enqueue(trackURL)
-          logManager.append(logCat: .LogInfo, logMessage: "Track queued:  " + trackPath)
-        } catch {
-          logManager.append(logCat: .LogPlaybackError, logMessage: "Track enqueue failed for " + trackPath)
-          logManager.append(logCat: .LogThrownError,   logMessage: "Enqueue error: " + error.localizedDescription)
-          playerAlert.triggerAlert(alertMessage: "Error queueing next track. Check log file for details.")
-        }
+    let nextTrack = (repeatingTrack) ? currentTrack : playlistManager.peekNextTrack()
+    if(nextTrack != nil) {
+      let trackURL  = nextTrack!.trackURL
+      let trackPath = trackURL.filePath()
+
+      do {
+        try player.enqueue(trackURL)
+        logManager.append(logCat: .LogInfo, logMessage: "Track queued:  " + trackPath)
+      } catch {
+        logManager.append(logCat: .LogPlaybackError, logMessage: "Track enqueue failed for " + trackPath)
+        logManager.append(logCat: .LogThrownError,   logMessage: "Enqueue error: " + error.localizedDescription)
+        playerAlert.triggerAlert(alertMessage: "Error queueing next track. Check log file for details.")
       }
     }
   }
 
-  // Using audioPlayerPlaybackStateChanged to handle state changes and update UI
-  nonisolated func audioPlayerPlaybackStateChanged(_ audioPlayer: AudioPlayer) {
-    let playbackState = audioPlayer.playbackState
-
+  func handlePlaybackStateChange() {
+    let playbackState = player.playbackState
     switch(playbackState) {
     case .stopped:
-      Task { @MainActor in
-        logManager.append(logCat: .LogInfo, logMessage: "Player stopped: \(stopReason)\n")
-        nowPlaying = false
+      logManager.append(logCat: .LogInfo, logMessage: "Player stopped: \(stopReason)\n")
 
-        switch(stopReason) {
-        case .PlaybackError:
-          playPosition = 0
-          playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
-          playerSelection.setTrack(newTrack: nil)
-          playerSelection.setPlaybackState(newPlaybackState: .stopped)
-          bmURL.stopAccessingSecurityScopedResource()
+      playbackTimer?.invalidate()
+      playbackTimer = nil
+      nowPlaying = false
 
-          playerAlert.triggerAlert(alertMessage: "A playback error occurred. Check log file for details.")
+      switch(stopReason) {
+      case .PlaybackError:
+        playPosition = 0
+        playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
+        playerSelection.setTrack(newTrack: nil)
+        playerSelection.setPlaybackState(newPlaybackState: .stopped)
+        bmURL.stopAccessingSecurityScopedResource()
 
-        case .EndOfAudio:
-          playPosition = 0
-          if(playerSelection.repeatTracks == RepeatState.All) {
-            playlistManager.reset(shuffleTracks: playerSelection.shuffleTracks)
-            let firstTrack = playlistManager.peekNextTrack()
+        playerAlert.triggerAlert(alertMessage: "A playback error occurred. Check log file for details.")
 
-            let trackURL   = firstTrack!.trackURL
-            let trackPath  = trackURL.filePath()
-
-            do {
-              try player.play(trackURL)
-              logManager.append(logCat: .LogInfo, logMessage: "Repeat all: Starting playback of " + trackPath)
-              return
-            } catch {
-              logManager.append(logCat: .LogPlaybackError, logMessage: "Repeat all: Playback of " + trackPath + " failed")
-              logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
-              playerAlert.triggerAlert(alertMessage: "Error repeating tracks. Check log file for details.")
-            }
-          }
-
-          playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
-          playerSelection.setTrack(newTrack: nil)
-          playerSelection.setPlaybackState(newPlaybackState: .stopped)
-          bmURL.stopAccessingSecurityScopedResource()
-
-        case .PlayAllPressed:
-          playPosition = 0
-          playAll()
-
-        case .StopPressed:
-          playPosition = 0
-          playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
-          playerSelection.setTrack(newTrack: nil)
-          playerSelection.setPlaybackState(newPlaybackState: .stopped)
-          bmURL.stopAccessingSecurityScopedResource()
-
-        case .TrackPressed:
-          playPosition = 0
-          let playlistFile = m3UDict[selectedArtist]![selectedAlbum]!
-          let albumTracks = tracksDict[selectedArtist]![selectedAlbum]!
-
-          let playlistInfo = PlaylistInfo(playlistFile: playlistFile, playlistPath: selectedArtist + "/" + selectedAlbum + "/", numTracks: albumTracks.count)
-          playTracks(playlist: Playlist(playlistInfo, albumTracks), trackNum: pendingTrack!)
-          pendingTrack = nil
-
-        case .PreviousPressed:
-          playPosition -= 2
-          let previousTrack = playlistManager.moveTo(trackNum: playPosition+1)
-
-          let trackURL   = previousTrack!.trackURL
-          let trackPath  = trackURL.filePath()
-
-          do {
-            try player.play(trackURL)
-            logManager.append(logCat: .LogInfo, logMessage: "Previous track: Starting playback of " + trackPath)
-          } catch {
-            logManager.append(logCat: .LogPlaybackError, logMessage: "Previous track: Playback of " + trackPath + " failed")
-            logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
-            playerAlert.triggerAlert(alertMessage: "Error playing previous track. Check log file for details.")
-          }
-
-        case .NextPressed:
-          var nextTrackNum = playPosition+1
-          if(nextTrackNum > playlistManager.trackCount) {
-            nextTrackNum = 1
-            playPosition = 0
-          }
-          let nextTrack = playlistManager.moveTo(trackNum: nextTrackNum)
-
-          let trackURL   = nextTrack!.trackURL
-          let trackPath  = trackURL.filePath()
-
-          do {
-            try player.play(trackURL)
-            logManager.append(logCat: .LogInfo, logMessage: "Next track: Starting playback of " + trackPath)
-          } catch {
-            logManager.append(logCat: .LogPlaybackError, logMessage: "Next track: Playback of " + trackPath + " failed")
-            logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
-            playerAlert.triggerAlert(alertMessage: "Error playing next track. Check log file for details.")
-          }
-
-        case .RestartPressed:
-          playPosition = 0
-          playlistManager.reset()
-          let firstTrack = playlistManager.peekNextTrack()
-
-          let trackURL   = firstTrack!.trackURL
-          let trackPath  = trackURL.filePath()
-
-          do {
-            try player.play(trackURL)
-            logManager.append(logCat: .LogInfo, logMessage: "Restart: Starting playback of " + trackPath)
-          } catch {
-            logManager.append(logCat: .LogPlaybackError, logMessage: "Restart: Playback of " + trackPath + " failed")
-            logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
-            playerAlert.triggerAlert(alertMessage: "Error restarting tracks. Check log file for details.")
-          }
-
-        case .ReshufflePressed:
-          playPosition = 0
+      case .EndOfAudio:
+        playPosition = 0
+        if(playerSelection.repeatTracks == RepeatState.All) {
           playlistManager.reset(shuffleTracks: playerSelection.shuffleTracks)
           let firstTrack = playlistManager.peekNextTrack()
 
@@ -315,61 +239,137 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
 
           do {
             try player.play(trackURL)
-            logManager.append(logCat: .LogInfo, logMessage: "Reshuffle: Starting playback of " + trackPath)
+            logManager.append(logCat: .LogInfo, logMessage: "Repeat all: Starting playback of " + trackPath)
+            return
           } catch {
-            logManager.append(logCat: .LogPlaybackError, logMessage: "Reshuffle: Playback of " + trackPath + " failed")
+            logManager.append(logCat: .LogPlaybackError, logMessage: "Repeat all: Playback of " + trackPath + " failed")
             logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
-            playerAlert.triggerAlert(alertMessage: "Error reshuffling tracks. Check log file for details.")
+            playerAlert.triggerAlert(alertMessage: "Error repeating tracks. Check log file for details.")
           }
         }
 
-        stopReason = StoppingReason.EndOfAudio
+        playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
+        playerSelection.setTrack(newTrack: nil)
+        playerSelection.setPlaybackState(newPlaybackState: .stopped)
+        bmURL.stopAccessingSecurityScopedResource()
+
+      case .PlayAllPressed:
+        playPosition = 0
+        playAll()
+
+      case .StopPressed:
+        playPosition = 0
+        playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
+        playerSelection.setTrack(newTrack: nil)
+        playerSelection.setPlaybackState(newPlaybackState: .stopped)
+        bmURL.stopAccessingSecurityScopedResource()
+
+      case .TrackPressed:
+        playPosition = 0
+        let playlistFile = m3UDict[selectedArtist]![selectedAlbum]!
+        let albumTracks = tracksDict[selectedArtist]![selectedAlbum]!
+
+        let playlistInfo = PlaylistInfo(playlistFile: playlistFile, playlistPath: selectedArtist + "/" + selectedAlbum + "/", numTracks: albumTracks.count)
+        playTracks(playlist: Playlist(playlistInfo, albumTracks), trackNum: pendingTrack!)
+        pendingTrack = nil
+
+      case .PreviousPressed:
+        playPosition -= 2
+        let previousTrack = playlistManager.moveTo(trackNum: playPosition+1)
+
+        let trackURL   = previousTrack!.trackURL
+        let trackPath  = trackURL.filePath()
+
+        do {
+          try player.play(trackURL)
+          logManager.append(logCat: .LogInfo, logMessage: "Previous track: Starting playback of " + trackPath)
+        } catch {
+          logManager.append(logCat: .LogPlaybackError, logMessage: "Previous track: Playback of " + trackPath + " failed")
+          logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
+          playerAlert.triggerAlert(alertMessage: "Error playing previous track. Check log file for details.")
+        }
+
+      case .NextPressed:
+        var nextTrackNum = playPosition+1
+        if(nextTrackNum > playlistManager.trackCount) {
+          nextTrackNum = 1
+          playPosition = 0
+        }
+        let nextTrack = playlistManager.moveTo(trackNum: nextTrackNum)
+
+        let trackURL   = nextTrack!.trackURL
+        let trackPath  = trackURL.filePath()
+
+        do {
+          try player.play(trackURL)
+          logManager.append(logCat: .LogInfo, logMessage: "Next track: Starting playback of " + trackPath)
+        } catch {
+          logManager.append(logCat: .LogPlaybackError, logMessage: "Next track: Playback of " + trackPath + " failed")
+          logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
+          playerAlert.triggerAlert(alertMessage: "Error playing next track. Check log file for details.")
+        }
+
+      case .RestartPressed:
+        playPosition = 0
+        playlistManager.reset()
+        let firstTrack = playlistManager.peekNextTrack()
+
+        let trackURL   = firstTrack!.trackURL
+        let trackPath  = trackURL.filePath()
+
+        do {
+          try player.play(trackURL)
+          logManager.append(logCat: .LogInfo, logMessage: "Restart: Starting playback of " + trackPath)
+        } catch {
+          logManager.append(logCat: .LogPlaybackError, logMessage: "Restart: Playback of " + trackPath + " failed")
+          logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
+          playerAlert.triggerAlert(alertMessage: "Error restarting tracks. Check log file for details.")
+        }
+
+      case .ReshufflePressed:
+        playPosition = 0
+        playlistManager.reset(shuffleTracks: playerSelection.shuffleTracks)
+        let firstTrack = playlistManager.peekNextTrack()
+
+        let trackURL   = firstTrack!.trackURL
+        let trackPath  = trackURL.filePath()
+
+        do {
+          try player.play(trackURL)
+          logManager.append(logCat: .LogInfo, logMessage: "Reshuffle: Starting playback of " + trackPath)
+        } catch {
+          logManager.append(logCat: .LogPlaybackError, logMessage: "Reshuffle: Playback of " + trackPath + " failed")
+          logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
+          playerAlert.triggerAlert(alertMessage: "Error reshuffling tracks. Check log file for details.")
+        }
       }
 
-    // NB: Calling setPlaybackState() with player.playbackState because this event can be erroneous
-    // I have raised an issue about this: https://github.com/sbooth/SFBAudioEngine/issues/291
-    case .playing:
-      Task { @MainActor in
-        logManager.append(logCat: .LogInfo, logMessage: "Player playing")
-        playerSelection.setPlaybackState(newPlaybackState: player.playbackState)
-      }
+      stopReason = StoppingReason.EndOfAudio
 
-    // NB: Calling setPlaybackState() with player.playbackState because this event can be erroneous
-    // I have raised an issue about this: https://github.com/sbooth/SFBAudioEngine/issues/291
     case .paused:
-      Task { @MainActor in
-        logManager.append(logCat: .LogInfo, logMessage: "Player paused")
-        playerSelection.setPlaybackState(newPlaybackState: player.playbackState)
-      }
+      playbackTimer?.invalidate()
+      playbackTimer = nil
+
+      logManager.append(logCat: .LogInfo, logMessage: "Player paused")
+      playerSelection.setPlaybackState(newPlaybackState: .paused)
+
+    case .playing:
+      updatePlayingPosition()
+
+      logManager.append(logCat: .LogInfo, logMessage: "Player playing")
+      playerSelection.setPlaybackState(newPlaybackState: .playing)
 
     @unknown default:
-      Task { @MainActor in
-        logManager.append(logCat: .LogInfo, logMessage: "Unknown player state received: \(playbackState)")
-      }
+      logManager.append(logCat: .LogInfo, logMessage: "Unknown player state received: \(playbackState)")
     }
   }
 
-  // Using audioPlayerEndOfAudio to avoid the player stopping sometimes (when the audio node generates multiple end of audio events)
-  // I have raised an issue about this: https://github.com/sbooth/SFBAudioEngine/issues/291
-  /* nonisolated func audioPlayerEndOfAudio(_ audioPlayer: AudioPlayer) {
-    Task { @MainActor in
-      logManager.append(logCat: .LogInfo, logMessage: "Player end of audio")
-      if(playlistManager.peekNextTrack() == nil) {
-        logManager.append(logCat: .LogInfo, logMessage: "End of playlist, stopping...")
-        player.stop()
-      }
-    }
-  } */
+  func handlePlaybackError(_ playbackError: String) {
+    stopReason = StoppingReason.PlaybackError
+    player.stop()
 
-  nonisolated func audioPlayer(_ audioPlayer: AudioPlayer, encounteredError error: any Error) {
-    Task { @MainActor in
-      logManager.append(logCat: .LogPlaybackError, logMessage: error.localizedDescription)
-
-      stopReason = StoppingReason.PlaybackError
-      player.stop()
-    }
+    logManager.append(logCat: .LogPlaybackError, logMessage: playbackError)
   }
-  #endif
 
   func clearArtist() {
     if(selectedArtist.isEmpty) { return }
@@ -463,6 +463,15 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
 
       playerAlert.triggerAlert(alertMessage: "Error playing tracks. Check log file for details.")
     }
+  }
+
+  func updatePlayingPosition() {
+    /* playbackTimer?.invalidate()
+    playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true, block: { _ in
+      Task { @MainActor in
+        self.doTrackPositionUpdate()
+      }
+    }) */
   }
 
   func playTracks(playlists: Playlists) {
@@ -608,16 +617,19 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
   }
 
   func togglePause() {
-    let playing = (player.playbackState == .playing)
-    let paused  = (player.playbackState == .paused)
-    if(playing || paused) {
-      if(playing) {
-        logManager.append(logCat: .LogInfo, logMessage: "TogglePause: State is playing -> pausing")
-        player.pause()
-      } else {
-        logManager.append(logCat: .LogInfo, logMessage: "TogglePause: State is paused -> playing")
-        player.resume()
-      }
+    let playbackState = player.playbackState
+    switch(playbackState) {
+    case .playing:
+      logManager.append(logCat: .LogInfo, logMessage: "TogglePause: Playing -> pausing")
+      player.pause()
+
+    case .paused:
+      logManager.append(logCat: .LogInfo, logMessage: "TogglePause: Paused -> resuming")
+      player.resume()
+
+    default:
+      // Nothing to do
+      break
     }
   }
 
@@ -1069,10 +1081,12 @@ enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, Readin
 
   /* nonisolated func audioPlayerEndOfAudio(_ audioPlayer: AudioPlayer) {
     print("AudioPlayer end of audio")
+    audioPlayer.stop()
   } */
 
   nonisolated func audioPlayer(_ audioPlayer: AudioPlayer, encounteredError error: any Error) {
     print("AudioPlayer error: \(error.localizedDescription)")
+    audioPlayer.stop()
   }
   #endif
 }
