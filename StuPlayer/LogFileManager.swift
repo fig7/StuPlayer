@@ -7,69 +7,106 @@
 
 import Foundation
 
-enum LogCategory {
-  case LogInfo, LogInitError, LogScanError, LogThrownError, LogPlaybackError, LogFileError
-}
+enum LogCategory { case LogInfo, LogInitError, LogScanError, LogThrownError, LogPlaybackError, LogFileError }
+enum LogError: Error { case URLNotSet, ExtendLogFailed }
 
 class LogFileManager {
   let fm = FileManager.default
+  var baseURL: URL?
   var logFileURL: URL?
+  var logFile2URL: URL?
+  var logStartDate = ""
 
-  func setURL(baseURL: URL) {
-    if(!baseURL.startAccessingSecurityScopedResource()) {
-      print("Error creating log file: URL access denied")
-      return
+  func extendLogFile(newLogFile: Bool) throws -> Bool {
+    guard let baseURL, let logFileURL, let logFile2URL else { throw LogError.URLNotSet }
+
+    // Check file size. If > 100KB, move existing to .1 and truncate .0
+    let logFilePath = logFileURL.filePath()
+    do {
+      let logFileAtt  = try fm.attributesOfItem(atPath: logFilePath)
+      let fileSize    = logFileAtt[.size] as? UInt64
+      guard let fileSize else {
+        print("Error creating log file: " + logFilePath + " has no size attribute");
+        throw LogError.ExtendLogFailed
+      }
+
+      if(fileSize > 100000) {
+        let logFile2Path = logFile2URL.filePath()
+        if(fm.fileExists(atPath: logFile2Path)) {
+          try fm.removeItem(atPath: logFile2Path)
+        }
+
+        try fm.copyItem(atPath: logFilePath, toPath: logFile2Path)
+
+        if(newLogFile) {
+          let logStart = "StuPlayer log for " + baseURL.filePath() + " at " + logStartDate + "...\n"
+          try (logStart + "\n").write(to: logFileURL, atomically: true, encoding: .utf8)
+        } else {
+          let logContd = "StuPlayer log contd. for " + baseURL.filePath() + " at " + logStartDate + "...\n"
+          try (logContd + "\n").write(to: logFileURL, atomically: true, encoding: .utf8)
+        }
+        
+        return true
+      }
+    } catch {
+      print("Error extending log file: " + logFilePath)
+      print("Error thrown:" + error.localizedDescription)
+      throw LogError.ExtendLogFailed
     }
 
-    self.logFileURL = nil
+    return false
+  }
+
+  private func clearURL() {
+    self.baseURL     = nil
+    self.logFileURL  = nil
+    self.logFile2URL = nil
+  }
+
+  func setURL(baseURL: URL) {
+    self.baseURL = baseURL
+
+    if(!baseURL.startAccessingSecurityScopedResource()) {
+      print("Error creating log file: URL access denied")
+      self.baseURL = nil
+
+      return
+    }
     defer { baseURL.stopAccessingSecurityScopedResource() }
 
     // Create logfile, if it does not exist
-    let logFileURL  = baseURL.appendingFile(file: "StuPlayer0.log")
-    let logFilePath = logFileURL.filePath()
+    logFileURL  = baseURL.appendingFile(file: "StuPlayer0.log")
+    logFile2URL = baseURL.appendingFile(file: "StuPlayer1.log")
+    guard let logFileURL else {
+      print("Error malformed log file URL")
+      clearURL()
 
-    let logStart = "StuPlayer log for " + baseURL.filePath() + " at " + Date().description + "...\n"
+      return
+    }
+
+    logStartDate = Date().description
+    let logStart = "StuPlayer log for " + baseURL.filePath() + " at " + logStartDate + "...\n"
     print(logStart)
 
+    let logFilePath = logFileURL.filePath()
     do {
       var isDir: ObjCBool = false
       if(!fm.fileExists(atPath: logFilePath, isDirectory: &isDir)) {
         try (logStart + "\n").write(toFile: logFilePath, atomically: true, encoding: .utf8)
-
-        self.logFileURL = logFileURL
         return
       } else if(isDir.boolValue) {
         print("Error creating log file: " + logFilePath + " is a directory")
+        clearURL()
+
         return
       }
 
-      // Check file size. If > 100KB, move existing to .1 and truncate .0
-      do {
-        let logFileAtt = try fm.attributesOfItem(atPath: logFilePath)
-        let fileSize = logFileAtt[.size] as? UInt64
-        guard let fileSize else { print("Error creating log file: " + logFilePath + " has no size attribute"); return }
-
-        if(fileSize > 100000) {
-          let logFile2URL  = baseURL.appendingFile(file: "StuPlayer1.log")
-          let logFile2Path = logFile2URL.filePath()
-
-          if(fm.fileExists(atPath: logFile2Path)) {
-            try fm.removeItem(atPath: logFile2Path)
-          }
-
-          try fm.copyItem(atPath: logFilePath, toPath: logFile2Path)
-          try (logStart + "\n").write(toFile: logFilePath, atomically: true, encoding: .utf8)
-
-          self.logFileURL = logFileURL
-          return
-        }
-      } catch {
-        print("Error extending log file: " + logFilePath)
-        print("Error thrown:" + error.localizedDescription)
-      }
+      if(try extendLogFile(newLogFile: true)) { return }
     } catch {
       print("Error creating log file: " + logFilePath)
       print("Error thrown:" + error.localizedDescription)
+      clearURL()
+
       return
     }
 
@@ -82,10 +119,9 @@ class LogFileManager {
       fileHandle.write(textData)
       fileHandle.closeFile()
     } catch {
-      print("Error appending to log file: " + logFilePath)
+      print("Error appending header to log file: " + logFilePath)
+      clearURL()
     }
-
-    self.logFileURL = logFileURL
   }
 
   func append(throwType: String, logMessage: String) {
@@ -113,7 +149,13 @@ class LogFileManager {
     print(logString)
 
     do {
-      guard let logFileURL else { print("Log file not set"); return }
+      _ = try extendLogFile(newLogFile: false)
+
+      guard let logFileURL else {
+        print("Log file not set")
+        return
+      }
+
       let fileHandle = try FileHandle(forWritingTo: logFileURL)
       fileHandle.seekToEndOfFile()
 
