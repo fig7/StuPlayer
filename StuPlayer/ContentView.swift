@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Carbon.HIToolbox
 import SFBAudioEngine
 
 struct ContentView: View {
@@ -97,6 +98,28 @@ struct ContentView: View {
             Text("Repeat: all").frame(width: 90).padding(.horizontal, 10).padding(.vertical, 2)
           }
         }
+
+        Spacer().frame(width: 35)
+
+        Button(action: model.toggleFilter) {
+          switch(playerSelection.filterMode) {
+          case FilterMode.Artist:
+            Text("Artist").frame(width: 40).padding(.horizontal, 10).padding(.vertical, 2)
+
+          case FilterMode.Album:
+            Text("Album").frame(width: 40).padding(.horizontal, 10).padding(.vertical, 2)
+
+          case FilterMode.Track:
+            Text("Track").frame(width: 40).padding(.horizontal, 10).padding(.vertical, 2)
+          }
+        }
+
+        Spacer().frame(width: 10)
+
+        TextField("Filter", text: $playerSelection.filterString).frame(width: 120)
+          .autocorrectionDisabled(/*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
+          .textSelection(.disabled)
+          .textFieldStyle(.roundedBorder)
       }
 
       Spacer().frame(height: 10)
@@ -199,5 +222,35 @@ struct ContentView: View {
     .padding()
     .frame(minWidth:  200, maxWidth: .infinity, minHeight: 200, maxHeight: .infinity, alignment: .topLeading)
     .alert(playerAlert.alertMessage, isPresented: $playerAlert.alertTriggered) { }
+    .onAppear { handleKeyEvents() }
+  }
+
+  func handleKeyEvents() {
+    NSEvent.addLocalMonitorForEvents(matching: .keyDown) { aEvent -> NSEvent? in
+      let keyCode = Int(aEvent.keyCode)
+      switch(keyCode) {
+      case kVK_Escape:
+        playerSelection.clearFilter()
+        return nil
+
+      case kVK_Return:
+        return nil
+
+      default:
+        break
+      }
+
+      guard let specialKey = aEvent.specialKey else { return aEvent }
+      switch(specialKey) {
+      case .tab:
+        model.toggleFilter()
+        return nil
+
+      default:
+        break
+      }
+
+      return aEvent
+    }
   }
 }

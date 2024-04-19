@@ -8,9 +8,8 @@
 import Foundation
 import SFBAudioEngine
 
-enum RepeatState {
-  case None, Track, All
-}
+enum RepeatState { case None, Track, All }
+enum FilterMode  { case Artist, Album, Track }
 
 @MainActor class PlayerSelection: ObservableObject
 {
@@ -48,6 +47,13 @@ enum RepeatState {
   @Published var trackPosition  = 0.0    // 0.0 < 1.0 (used by the slider)
   @Published var trackPosString = "0:00" // Hours, minutes and seconds
   @Published var seekEnabled    = false  // Enable and disable the slider
+
+  @Published var filterMode   = FilterMode.Artist
+  @Published var filterString = "" {
+    didSet {
+      print("\(filterString)")
+    }
+  }
 
   weak var delegate: Delegate?
 
@@ -139,27 +145,45 @@ enum RepeatState {
 
   func peekRepeat() -> RepeatState {
     switch(repeatTracks) {
-    case RepeatState.None:
-      return RepeatState.Track
+    case .None:
+      return .Track
 
-    case RepeatState.Track:
-      return RepeatState.All
+    case .Track:
+      return .All
 
-    case RepeatState.All:
-      return RepeatState.None
+    case .All:
+      return .None
     }
   }
 
   func toggleRepeatTracks() {
     switch(repeatTracks) {
-    case RepeatState.None:
-      repeatTracks = RepeatState.Track
+    case .None:
+      repeatTracks = .Track
 
-    case RepeatState.Track:
-      repeatTracks = RepeatState.All
+    case .Track:
+      repeatTracks = .All
 
-    case RepeatState.All:
-      repeatTracks = RepeatState.None
+    case .All:
+      repeatTracks = .None
     }
+  }
+
+  func toggleFilterMode() {
+    switch(filterMode) {
+    case .Artist:
+      filterMode = .Album
+
+    case .Album:
+      filterMode = .Track
+
+    case .Track:
+      filterMode = .Artist
+    }
+  }
+
+  func clearFilter() {
+    filterMode = .Artist
+    filterString = ""
   }
 }

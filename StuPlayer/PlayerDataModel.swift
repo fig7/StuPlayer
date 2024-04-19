@@ -729,6 +729,10 @@ let trackFile       = "Tracks.dat"
     }
   }
 
+  func toggleFilter() {
+    playerSelection.toggleFilterMode()
+  }
+
   static func getM3UDict(m3UFile: String) throws -> AllM3UDict {
     let m3UData = NSData(contentsOfFile: m3UFile) as Data?
     guard let m3UData else {
