@@ -189,6 +189,7 @@ let trackFile       = "Tracks.dat"
     }
 
     playerSelection.setTrack(newTrack: currentTrack!)
+    playerSelection.setSeekEnabled(seekEnabled: player.supportsSeeking)
     playerSelection.setPlayingPosition(playPosition: playPosition, playTotal: playlistManager.trackCount)
     logManager.append(logCat: .LogInfo, logMessage: "Track playing: " + currentTrack!.trackURL.filePath())
 
@@ -466,12 +467,39 @@ let trackFile       = "Tracks.dat"
   }
 
   func updatePlayingPosition() {
-    /* playbackTimer?.invalidate()
-    playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true, block: { _ in
+    playbackTimer?.invalidate()
+    playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true, block: { _ in
       Task { @MainActor in
-        self.doTrackPositionUpdate()
-      }
-    }) */
+        let playPosition = self.player.time
+        guard let playPosition else { return }
+
+        let current = playPosition.current
+        guard let current else { return }
+
+        let total = playPosition.total ?? 0.0
+        if((total > 0.0)) {
+          self.playerSelection.trackPosition = current / total
+        } else {
+          self.playerSelection.trackPosition = 0.0
+        }
+
+        guard (current > Double(Int.min)), (current < Double(Int.max)) else { return; }
+        let currentSecs = Int(current)
+
+        let hours = currentSecs / 3600
+        let mins  = (currentSecs - 3600*hours) / 60
+        let secs  = currentSecs - 60*hours - 60*mins
+        if(hours > 0) {
+          self.playerSelection.trackPosString = String(format:"%d:%02d:%02d", hours, mins, secs)
+        } else {
+          self.playerSelection.trackPosString = String(format:"%d:%02d", mins, secs)
+        }
+       }
+    })
+  }
+
+  func seekTo(newPosition: Double) {
+    player.seek(position: newPosition)
   }
 
   func playTracks(playlists: Playlists) {

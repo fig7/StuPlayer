@@ -45,6 +45,10 @@ enum RepeatState {
   @Published var playPosition = 0
   @Published var playTotal    = 0
 
+  @Published var trackPosition  = 0.0    // 0.0 < 1.0 (used by the slider)
+  @Published var trackPosString = "0:00" // Hours, minutes and seconds
+  @Published var seekEnabled    = false  // Enable and disable the slider
+
   weak var delegate: Delegate?
 
   func setDelegate(delegate: Delegate) {
@@ -113,6 +117,16 @@ enum RepeatState {
   func setPlayingPosition(playPosition: Int, playTotal: Int) {
     self.playPosition = playPosition
     self.playTotal    = playTotal
+
+    if(playPosition == 0) {
+      self.trackPosition  = 0.0
+      self.trackPosString = "0:00"
+      self.seekEnabled    = false
+    }
+  }
+
+  func setSeekEnabled(seekEnabled: Bool) {
+    self.seekEnabled = seekEnabled
   }
 
   func peekShuffle() -> Bool {

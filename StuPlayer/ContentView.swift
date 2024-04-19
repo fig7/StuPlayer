@@ -113,10 +113,21 @@ struct ContentView: View {
 
       Spacer().frame(height: 30)
 
-      if(playerSelection.playPosition > 0) {
-        Text(String(format: "Playing: %d/%d", playerSelection.playPosition, playerSelection.playTotal))
-      } else {
-        Text("Playing: ")
+      HStack {
+        if(playerSelection.playPosition > 0) {
+          Text(String(format: "Playing: %d/%d", playerSelection.playPosition, playerSelection.playTotal)).frame(width: 120, alignment:.leading)
+          Slider(value: $playerSelection.trackPosition, in: 0...1, onEditingChanged: { startFinish in
+            if(startFinish) { return; }
+            model.seekTo(newPosition: playerSelection.trackPosition)
+          }).frame(width:300, alignment:.leading).disabled(!playerSelection.seekEnabled)
+          Spacer().frame(width: 15)
+          Text(playerSelection.trackPosString).monospacedDigit().frame(width:42, alignment: .trailing)
+        } else {
+          Text("Playing: ").frame(alignment: .leading)
+          Slider(value: $playerSelection.trackPosition, in: 0...1).frame(width:300, alignment:.leading).hidden()
+          Spacer().frame(width: 15).hidden()
+          Text(playerSelection.trackPosString).monospacedDigit().frame(width:42, alignment: .trailing).hidden()
+        }
       }
 
       HStack {
