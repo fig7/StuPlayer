@@ -49,19 +49,39 @@ struct ContentView: View {
 
         Spacer().frame(width: 20)
 
-        Button(action: model.clearArtist) {
-          Text("Artist: ").padding(.horizontal, 10).padding(.vertical, 2)
-        }
+        if(playerSelection.filterString.isEmpty || (playerSelection.filterMode == .Artist)) {
+          Button(action: model.clearArtist) {
+            Text("Artist: ").padding(.horizontal, 10).padding(.vertical, 2)
+          }
 
-        Text(playerSelection.artist).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+          Text(playerSelection.artist).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+        } else if(playerSelection.filterMode != .Artist) {
+          Button(action: model.clearArtist) {
+            Text("Artist: ").padding(.horizontal, 10).padding(.vertical, 2)
+          }.disabled(true)
+
+          if(!playerSelection.artist.isEmpty) {
+            Text("from filter (\(playerSelection.artist))").foregroundStyle(.gray).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+          } else {
+            Text("from filter").foregroundStyle(.gray).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+          }
+        }
 
         Spacer().frame(width: 20)
 
-        Button(action: model.clearAlbum) {
-          Text("Album: ").padding(.horizontal, 10).padding(.vertical, 2)
-        }
+        if(playerSelection.filterString.isEmpty || (playerSelection.filterMode != .Track)) {
+          Button(action: model.clearAlbum) {
+            Text("Album: ").padding(.horizontal, 10).padding(.vertical, 2)
+          }
 
-        Text(playerSelection.album).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+          Text(playerSelection.album).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+        } else {
+          Button(action: model.clearAlbum) {
+            Text("Album: ").padding(.horizontal, 10).padding(.vertical, 2)
+          }.disabled(true)
+
+          Text("from filter").foregroundStyle(.gray).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+        }
 
         Spacer().frame(width: 20)
       }
@@ -234,6 +254,11 @@ struct ContentView: View {
         return nil
 
       case kVK_Return:
+        // Play all (or play if a track is selected)
+        return nil
+
+      case kVK_DownArrow:
+        // Navigate the scroller, somehow
         return nil
 
       default:

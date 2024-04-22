@@ -15,6 +15,7 @@ enum FilterMode  { case Artist, Album, Track }
 {
   @MainActor protocol Delegate: AnyObject {
     func typeChanged(newType: String)
+    func filterChanged(newFilter: String)
   }
 
   @Published var rootPath = ""
@@ -51,7 +52,7 @@ enum FilterMode  { case Artist, Album, Track }
   @Published var filterMode   = FilterMode.Artist
   @Published var filterString = "" {
     didSet {
-      print("\(filterString)")
+      delegate?.filterChanged(newFilter: filterString)
     }
   }
 
@@ -80,10 +81,6 @@ enum FilterMode  { case Artist, Album, Track }
   func setAlbum(newAlbum: String, newList: [String]) {
     self.album = newAlbum
     self.list  = newList
-  }
-
-  func setList(newList: [String]) {
-    self.list = newList
   }
 
   func setAll(newArtist: String, newAlbum: String, newList: [String]) {
@@ -180,6 +177,8 @@ enum FilterMode  { case Artist, Album, Track }
     case .Track:
       filterMode = .Artist
     }
+
+    delegate?.filterChanged(newFilter: filterString)
   }
 
   func clearFilter() {
