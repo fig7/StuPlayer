@@ -60,11 +60,7 @@ struct ContentView: View {
             Text("Artist: ").padding(.horizontal, 10).padding(.vertical, 2)
           }.disabled(true)
 
-          if(!playerSelection.artist.isEmpty) {
-            Text("from filter (\(playerSelection.artist))").foregroundStyle(.gray).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
-          } else {
-            Text("from filter").foregroundStyle(.gray).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
-          }
+          Text(playerSelection.artist).foregroundStyle(.gray).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
         }
 
         Spacer().frame(width: 20)
@@ -80,7 +76,7 @@ struct ContentView: View {
             Text("Album: ").padding(.horizontal, 10).padding(.vertical, 2)
           }.disabled(true)
 
-          Text("from filter").foregroundStyle(.gray).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+          Text(playerSelection.album).foregroundStyle(.gray).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
         }
 
         Spacer().frame(width: 20)
@@ -146,7 +142,7 @@ struct ContentView: View {
 
       ScrollView {
         VStack(alignment: .leading) {
-          ForEach(Array(playerSelection.list.enumerated()), id: \.element) { itemIndex, itemText in
+          ForEach(Array(playerSelection.list.enumerated()), id: \.offset) { itemIndex, itemText in
             Text(itemText).frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
               .onTapGesture { model.itemSelected(itemIndex: itemIndex, itemText: itemText) }
           }
@@ -250,7 +246,7 @@ struct ContentView: View {
       let keyCode = Int(aEvent.keyCode)
       switch(keyCode) {
       case kVK_Escape:
-        playerSelection.clearFilter()
+        playerSelection.clearFilter(resetMode: false)
         return nil
 
       case kVK_Return:
