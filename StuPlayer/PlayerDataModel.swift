@@ -210,7 +210,14 @@ let trackFile       = "Tracks.dat"
       } catch {
         logManager.append(logCat: .LogPlaybackError, logMessage: "Track enqueue failed for " + trackPath)
         logManager.append(logCat: .LogThrownError,   logMessage: "Enqueue error: " + error.localizedDescription)
-        playerAlert.triggerAlert(alertMessage: "Error queueing next track. Check log file for details.")
+
+        // Undefined error: 0 isn't very helpful (it's probably a missing file)
+        // So, check that here and add a log entry if the file is AWOL
+        if(!fm.fileExists(atPath: trackPath)) {
+          logManager.append(logCat: .LogFileError, logMessage: trackPath + " is missing!")
+        }
+
+        playerAlert.triggerAlert(alertMessage: "Error queueing next track. The current track will finish playing. Check log file for details.")
       }
     }
   }
@@ -676,6 +683,9 @@ let trackFile       = "Tracks.dat"
     stopReason   = StoppingReason.EndOfAudio
   }
 
+  // Start playback function (see also configurePlayback)
+  // Call with a list of playlists and a track number
+  // A track number of 0 means start with track 1 (or a random track if shuffle is enabled)
   func playTracks(playlists: Playlists, trackNum: Int = 0) {
     configurePlayback(playlists: playlists, trackNum: trackNum)
     let firstTrack = playlistManager.peekNextTrack()
@@ -693,7 +703,7 @@ let trackFile       = "Tracks.dat"
       // Undefined error: 0 isn't very helpful (it's probably a missing file)
       // So, check that here and add a log entry if the file is AWOL
       if(!fm.fileExists(atPath: trackPath)) {
-        logManager.append(logCat: .LogFileError, logMessage:trackPath + " is missing!")
+        logManager.append(logCat: .LogFileError, logMessage: trackPath + " is missing!")
       }
       bmURL.stopAccessingSecurityScopedResource()
 
