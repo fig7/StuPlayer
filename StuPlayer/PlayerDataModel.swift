@@ -303,7 +303,7 @@ let trackFile       = "Tracks.dat"
         let albumTracks  = tracksDict[artist]![album]!
 
         let playlistInfo = PlaylistInfo(playlistFile: playlistFile, playlistPath: artist + "/" + album + "/", numTracks: albumTracks.count)
-        playTracks(playlist: Playlist(playlistInfo, albumTracks), trackNum: pendingTrack!)
+        playTracks(playlists: [(playlistInfo, albumTracks)], trackNum: pendingTrack!)
         pendingTrack = nil
 
       case .PreviousPressed:
@@ -488,7 +488,7 @@ let trackFile       = "Tracks.dat"
     let playlistFile = m3UDict[filteredArtist]![filteredAlbum]!
     let albumTracks  = tracksDict[filteredArtist]![filteredAlbum]!
     let playlistInfo = PlaylistInfo(playlistFile: playlistFile, playlistPath: filteredArtist + "/" + filteredAlbum + "/", numTracks: albumTracks.count)
-    playTracks(playlist: (playlistInfo, albumTracks), trackNum: itemIndex+1)
+    playTracks(playlists: [(playlistInfo, albumTracks)], trackNum: itemIndex+1)
   }
 
   func albumFilterItemSelected(itemIndex: Int, itemText: String) {
@@ -534,7 +534,7 @@ let trackFile       = "Tracks.dat"
     let playlistFile = m3UDict[artist]![album]!
     let albumTracks  = tracksDict[artist]![album]!
     let playlistInfo = PlaylistInfo(playlistFile: playlistFile, playlistPath: artist + "/" + album + "/", numTracks: albumTracks.count)
-    playTracks(playlist: (playlistInfo, albumTracks), trackNum: itemIndex+1)
+    playTracks(playlists: [(playlistInfo, albumTracks)], trackNum: itemIndex+1)
   }
 
   func trackFilterItemSelected(itemIndex: Int, itemText: String) {
@@ -628,59 +628,7 @@ let trackFile       = "Tracks.dat"
     let playlistFile = m3UDict[selectedArtist]![selectedAlbum]!
     let albumTracks  = tracksDict[selectedArtist]![selectedAlbum]!
     let playlistInfo = PlaylistInfo(playlistFile: playlistFile, playlistPath: selectedArtist + "/" + selectedAlbum + "/", numTracks: albumTracks.count)
-    playTracks(playlist: (playlistInfo, albumTracks), trackNum: itemIndex+1)
-  }
-
-  func configurePlayback(playlist: Playlist, trackNum: Int) {
-    let shuffleTracks = playerSelection.shuffleTracks
-    playlistManager.setMusicPath(musicPath: musicPath)
-    playlistManager.generatePlaylist(playlist: playlist, trackNum: trackNum, shuffleTracks: shuffleTracks)
-
-    playPosition = (shuffleTracks) ? 0 : trackNum-1
-    stopReason   = StoppingReason.EndOfAudio
-  }
-
-  func configurePlayback(playlists: Playlists) {
-    let shuffleTracks = playerSelection.shuffleTracks
-    playlistManager.setMusicPath(musicPath: musicPath)
-    playlistManager.generatePlaylist(playlists: playlists, shuffleTracks: shuffleTracks)
-
-    playPosition = 0
-    stopReason   = StoppingReason.EndOfAudio
-  }
-
-  func configurePlayback(playlists: Playlists, trackNum: Int) {
-    let shuffleTracks = playerSelection.shuffleTracks
-    playlistManager.setMusicPath(musicPath: musicPath)
-    playlistManager.generatePlaylist(playlists: playlists, trackNum: trackNum, shuffleTracks: shuffleTracks)
-
-    playPosition = (shuffleTracks) ? 0 : trackNum-1
-    stopReason   = StoppingReason.EndOfAudio
-  }
-
-  func playTracks(playlist: Playlist, trackNum: Int) {
-    configurePlayback(playlist: playlist, trackNum: trackNum)
-    let firstTrack = playlistManager.peekNextTrack()
-
-    let trackURL   = firstTrack!.trackURL
-    let trackPath  = trackURL.filePath()
-
-    do {
-      try player.play(trackURL)
-      logManager.append(logCat: .LogInfo, logMessage: "Play tracks: Starting playback of " + trackPath)
-    } catch {
-      logManager.append(logCat: .LogPlaybackError, logMessage: "Play tracks: Playback of " + trackPath + " failed")
-      logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
-
-      // Undefined error: 0 isn't very helpful (it's probably a missing file)
-      // So, check that here and add a log entry if the file is AWOL
-      if(!fm.fileExists(atPath: trackPath)) {
-        logManager.append(logCat: .LogFileError, logMessage:trackPath + " is missing!")
-      }
-      bmURL.stopAccessingSecurityScopedResource()
-
-      playerAlert.triggerAlert(alertMessage: "Error playing tracks. Check log file for details.")
-    }
+    playTracks(playlists: [(playlistInfo, albumTracks)], trackNum: itemIndex+1)
   }
 
   func updatePlayingPosition() {
@@ -719,32 +667,16 @@ let trackFile       = "Tracks.dat"
     player.seek(position: newPosition)
   }
 
-  func playTracks(playlists: Playlists) {
-    configurePlayback(playlists: playlists)
-    let firstTrack = playlistManager.peekNextTrack()
+  func configurePlayback(playlists: Playlists, trackNum: Int) {
+    let shuffleTracks = playerSelection.shuffleTracks
+    playlistManager.setMusicPath(musicPath: musicPath)
+    playlistManager.generatePlaylist(playlists: playlists, trackNum: trackNum, shuffleTracks: shuffleTracks)
 
-    let trackURL   = firstTrack!.trackURL
-    let trackPath  = trackURL.filePath()
-
-    do {
-      try player.play(trackURL)
-      logManager.append(logCat: .LogInfo, logMessage: "Play tracks: Starting playback of " + trackPath)
-    } catch {
-      logManager.append(logCat: .LogPlaybackError, logMessage: "Play tracks: Playback of " + trackPath + " failed")
-      logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
-
-      // Undefined error: 0 isn't very helpful (it's probably a missing file)
-      // So, check that here and add a log entry if the file is AWOL
-      if(!fm.fileExists(atPath: trackPath)) {
-        logManager.append(logCat: .LogFileError, logMessage:trackPath + " is missing!")
-      }
-      bmURL.stopAccessingSecurityScopedResource()
-
-      playerAlert.triggerAlert(alertMessage: "Error playing tracks. Check log file for details.")
-    }
+    playPosition = (trackNum == 0) ? 0 : (shuffleTracks) ? 0 : trackNum-1
+    stopReason   = StoppingReason.EndOfAudio
   }
 
-  func playTracks(playlists: Playlists, trackNum: Int) {
+  func playTracks(playlists: Playlists, trackNum: Int = 0) {
     configurePlayback(playlists: playlists, trackNum: trackNum)
     let firstTrack = playlistManager.peekNextTrack()
 

@@ -62,22 +62,6 @@ class PlaylistManager {
     shuffleList.insert((startIndex, trackList[startIndex]), at: 0)
   }
 
-  func generatePlaylist(playlist: Playlist, trackNum: Int, shuffleTracks: Bool) {
-    self.playlists = [playlist]
-    self.shuffleTracks = shuffleTracks
-
-    generateTrackList()
-    reset(trackNum: trackNum, shuffleTracks: shuffleTracks)
-  }
-
-  func generatePlaylist(playlists: Playlists, shuffleTracks: Bool) {
-    self.playlists = playlists
-    self.shuffleTracks = shuffleTracks
-
-    generateTrackList()
-    reset(shuffleTracks: shuffleTracks)
-  }
-
   func generatePlaylist(playlists: Playlists, trackNum: Int, shuffleTracks: Bool) {
     self.playlists = playlists
     self.shuffleTracks = shuffleTracks
@@ -124,14 +108,14 @@ class PlaylistManager {
     nextShuffleIndex = 0
   }
 
-  func reset(shuffleTracks: Bool) {
-    nextTrackIndex = 0
-    generateShuffleList(startIndex: (shuffleTracks) ? Int.random(in: 0..<trackCount) : 0)
-  }
-
-  func reset(trackNum: Int, shuffleTracks: Bool) {
-    nextTrackIndex = trackNum-1
-    generateShuffleList(startIndex: nextTrackIndex)
+  func reset(trackNum: Int = 0, shuffleTracks: Bool) {
+    if(trackNum == 0) {
+      nextTrackIndex = 0
+      generateShuffleList(startIndex: (shuffleTracks) ? Int.random(in: 0..<trackCount) : 0)
+    } else {
+      nextTrackIndex = trackNum-1
+      generateShuffleList(startIndex: nextTrackIndex)
+    }
   }
 
   func hasPrevious(trackNum: Int) -> Bool {
