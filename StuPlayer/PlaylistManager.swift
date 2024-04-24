@@ -78,6 +78,14 @@ class PlaylistManager {
     reset(shuffleTracks: shuffleTracks)
   }
 
+  func generatePlaylist(playlists: Playlists, trackNum: Int, shuffleTracks: Bool) {
+    self.playlists = playlists
+    self.shuffleTracks = shuffleTracks
+
+    generateTrackList()
+    reset(trackNum: trackNum, shuffleTracks: shuffleTracks)
+  }
+
   func peekNextShuffleTrack() -> TrackInfo? {
     return (nextShuffleIndex == trackCount) ? nil : shuffleList[nextShuffleIndex].track
   }

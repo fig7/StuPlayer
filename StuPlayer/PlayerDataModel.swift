@@ -273,6 +273,23 @@ let trackFile       = "Tracks.dat"
 
       case .TrackPressed:
         playPosition = 0
+        let album = playerSelection.album
+        if(album.hasPrefix("from filter")) {
+          // Filtered tracks
+          var playlists = Playlists()
+          for artistAlbumAndTrack in filteredTracks {
+            let artist = artistAlbumAndTrack.artist
+            let album  = artistAlbumAndTrack.album
+
+            let playlistFile = m3UDict[artist]![album]!
+            let playlistInfo = PlaylistInfo(playlistFile: playlistFile, playlistPath: artist + "/" + album + "/", numTracks: 1)
+            playlists.append(Playlist(playlistInfo, [artistAlbumAndTrack.track]))
+          }
+
+          playTracks(playlists: playlists, trackNum: pendingTrack!)
+          break
+        }
+
         var artist = playerSelection.artist
         if(artist.hasPrefix("from filter")) {
           let start = artist.index(artist.startIndex, offsetBy: 13)
@@ -282,7 +299,6 @@ let trackFile       = "Tracks.dat"
           artist.removeSubrange(end..<artist.endIndex)
         }
 
-        let album  = playerSelection.album
         let playlistFile = m3UDict[artist]![album]!
         let albumTracks  = tracksDict[artist]![album]!
 
@@ -540,19 +556,18 @@ let trackFile       = "Tracks.dat"
       return
     }
 
-    // From filtered track tuple
-    /* var artist = filteredArtist
-    let start = artist.index(artist.startIndex, offsetBy: 13)
-    artist.removeSubrange(artist.startIndex..<start)
+    // From filtered tracks
+    var playlists = Playlists()
+    for artistAlbumAndTrack in filteredTracks {
+      let artist = artistAlbumAndTrack.artist
+      let album  = artistAlbumAndTrack.album
 
-    let end = artist.index(artist.endIndex, offsetBy: -1)
-    artist.removeSubrange(end..<artist.endIndex)
+      let playlistFile = m3UDict[artist]![album]!
+      let playlistInfo = PlaylistInfo(playlistFile: playlistFile, playlistPath: artist + "/" + album + "/", numTracks: 1)
+      playlists.append(Playlist(playlistInfo, [artistAlbumAndTrack.track]))
+    }
 
-    let album = filteredAlbum
-    let playlistFile = m3UDict[artist]![album]!
-    let albumTracks  = tracksDict[artist]![album]!
-    let playlistInfo = PlaylistInfo(playlistFile: playlistFile, playlistPath: artist + "/" + album + "/", numTracks: albumTracks.count)
-    playTracks(playlist: (playlistInfo, albumTracks), trackNum: itemIndex+1) */
+    playTracks(playlists: playlists, trackNum: itemIndex+1)
   }
 
   func filteredItemSelected(itemIndex: Int, itemText: String) {
@@ -631,6 +646,15 @@ let trackFile       = "Tracks.dat"
     playlistManager.generatePlaylist(playlists: playlists, shuffleTracks: shuffleTracks)
 
     playPosition = 0
+    stopReason   = StoppingReason.EndOfAudio
+  }
+
+  func configurePlayback(playlists: Playlists, trackNum: Int) {
+    let shuffleTracks = playerSelection.shuffleTracks
+    playlistManager.setMusicPath(musicPath: musicPath)
+    playlistManager.generatePlaylist(playlists: playlists, trackNum: trackNum, shuffleTracks: shuffleTracks)
+
+    playPosition = (shuffleTracks) ? 0 : trackNum-1
     stopReason   = StoppingReason.EndOfAudio
   }
 
@@ -720,6 +744,31 @@ let trackFile       = "Tracks.dat"
     }
   }
 
+  func playTracks(playlists: Playlists, trackNum: Int) {
+    configurePlayback(playlists: playlists, trackNum: trackNum)
+    let firstTrack = playlistManager.peekNextTrack()
+
+    let trackURL   = firstTrack!.trackURL
+    let trackPath  = trackURL.filePath()
+
+    do {
+      try player.play(trackURL)
+      logManager.append(logCat: .LogInfo, logMessage: "Play tracks: Starting playback of " + trackPath)
+    } catch {
+      logManager.append(logCat: .LogPlaybackError, logMessage: "Play tracks: Playback of " + trackPath + " failed")
+      logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
+
+      // Undefined error: 0 isn't very helpful (it's probably a missing file)
+      // So, check that here and add a log entry if the file is AWOL
+      if(!fm.fileExists(atPath: trackPath)) {
+        logManager.append(logCat: .LogFileError, logMessage:trackPath + " is missing!")
+      }
+      bmURL.stopAccessingSecurityScopedResource()
+
+      playerAlert.triggerAlert(alertMessage: "Error playing tracks. Check log file for details.")
+    }
+  }
+
   func playAllArtists() {
     var playlists = Playlists()
     for artist in playerSelection.list {
@@ -774,6 +823,23 @@ let trackFile       = "Tracks.dat"
   }
 
   func playAlbum() {
+    let album = playerSelection.album
+    if(album.hasPrefix("from filter")) {
+      // Filtered tracks
+      var playlists = Playlists()
+      for artistAlbumAndTrack in filteredTracks {
+        let artist = artistAlbumAndTrack.artist
+        let album  = artistAlbumAndTrack.album
+
+        let playlistFile = m3UDict[artist]![album]!
+        let playlistInfo = PlaylistInfo(playlistFile: playlistFile, playlistPath: artist + "/" + album + "/", numTracks: 1)
+        playlists.append(Playlist(playlistInfo, [artistAlbumAndTrack.track]))
+      }
+
+      playTracks(playlists: playlists)
+      return
+    }
+
     var artist = playerSelection.artist
     if(artist.hasPrefix("from filter")) {
       let start = artist.index(artist.startIndex, offsetBy: 13)
@@ -783,7 +849,6 @@ let trackFile       = "Tracks.dat"
       artist.removeSubrange(end..<artist.endIndex)
     }
 
-    let album  = playerSelection.album
     let albumTracks = tracksDict[artist]![album]!
     if(albumTracks.isEmpty) { return }
 
@@ -1329,18 +1394,22 @@ let trackFile       = "Tracks.dat"
     }
   }
 
-  func tracks(filteredBy: String) -> [String] {
+  func tracks(filteredBy: String) -> [(artist: String, album: String, track: String)] {
     let lowerCasedFilter = filteredBy.lowercased()
-    var tracks: [String] = []
+    var tracks: [(artist: String, album: String, track: String)] = []
 
     for artist in tracksDict.keys {
       for album in tracksDict[artist]!.keys {
         let matchingTracks = tracksDict[artist]![album]!.filter({ album in return album.lowercased().starts(with: lowerCasedFilter) })
-        tracks.append(contentsOf: matchingTracks)
+        for track in matchingTracks {
+          tracks.append((artist, album, track))
+        }
       }
     }
 
-    return tracks.sorted()
+    return tracks.sorted {
+      $0.track < $1.track
+    }
   }
 
   func filterChanged(newFilter: String) {
@@ -1381,8 +1450,13 @@ let trackFile       = "Tracks.dat"
     } else {
       filteredArtist = "from filter"
       filteredAlbum  = "from filter"
+      filteredTracks = tracks(filteredBy: playerSelection.filterString)
 
-      let trackList = tracks(filteredBy: playerSelection.filterString)
+      var trackList: [String] = []
+      for artistAlbumAndTrack in filteredTracks {
+        trackList.append(artistAlbumAndTrack.track)
+      }
+
       playerSelection.setAll(newArtist: filteredArtist, newAlbum: filteredAlbum, newList: trackList)
     }
   }
