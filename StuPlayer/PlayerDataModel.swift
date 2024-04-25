@@ -438,9 +438,14 @@ let trackFile       = "Tracks.dat"
     filteredAlbum = ""
 
     var albumList: [String] = []
-    for artistAndAlbum in filteredAlbums {
-      albumList.append(artistAndAlbum.album)
+    if(playerSelection.filterMode == .Artist) {
+      albumList = tracksDict[filteredArtist]!.keys.sorted()
+    } else {
+      for artistAndAlbum in filteredAlbums {
+        albumList.append(artistAndAlbum.album)
+      }
     }
+
     playerSelection.setAlbum(newAlbum: "", newList: albumList);
   }
 

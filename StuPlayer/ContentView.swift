@@ -9,6 +9,15 @@ import SwiftUI
 import Carbon.HIToolbox
 import SFBAudioEngine
 
+struct DummyView : View {
+  init(action: @escaping () -> Void) { self.onPressed = action }
+
+  var onPressed: () -> Void
+  var body: some View {
+    Button("", action: onPressed).allowsHitTesting(/*@START_MENU_TOKEN@*/false/*@END_MENU_TOKEN@*/).opacity(0).frame(maxWidth: 0, maxHeight: 0)
+  }
+}
+
 struct ContentView: View {
   let model: PlayerDataModel
   @ObservedObject var playerAlert: PlayerAlert
@@ -140,15 +149,28 @@ struct ContentView: View {
 
       Spacer().frame(height: 10)
 
-      ScrollView {
-        VStack(alignment: .leading) {
-          ForEach(Array(playerSelection.list.enumerated()), id: \.offset) { itemIndex, itemText in
-            Text(itemText).frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
-              .onTapGesture { model.itemSelected(itemIndex: itemIndex, itemText: itemText) }
-          }
+      ScrollViewReader { scrollViewProxy in
+        ScrollView {
+          VStack(alignment: .leading) {
+            ForEach(Array(playerSelection.list.enumerated()), id: \.offset) { itemIndex, itemText in
+              if(itemIndex == playerSelection.scrollPos) {
+                Text(itemText).fontWeight(.semibold).frame(minWidth: 150, alignment: .leading).padding(.horizontal, 4)
+                  .background(RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3)))
+                  .onTapGesture { model.itemSelected(itemIndex: itemIndex, itemText: itemText) }
+              } else {
+                Text(itemText).frame(minWidth: 150, maxWidth: .infinity, alignment: .leading).padding(.horizontal, 4)
+                  .onTapGesture { model.itemSelected(itemIndex: itemIndex, itemText: itemText) }
+              }
+            }
+          }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
+
+          HStack() {
+            DummyView(action: { scrollDown(proxy: scrollViewProxy) }).keyboardShortcut(.downArrow, modifiers: [])
+            DummyView(action: { scrollUp  (proxy: scrollViewProxy) }).keyboardShortcut(.upArrow,   modifiers: [])
+          }.frame(maxWidth: 0, maxHeight: 0)
         }
+        .frame(minWidth: 150, maxWidth: .infinity)
       }
-      .frame(minWidth: 150, maxWidth: .infinity)
 
       Spacer().frame(height: 30)
 
@@ -246,15 +268,31 @@ struct ContentView: View {
       let keyCode = Int(aEvent.keyCode)
       switch(keyCode) {
       case kVK_Escape:
+        // Clear album first
+        if((playerSelection.filterString.isEmpty || (playerSelection.filterMode != .Track)) && !playerSelection.album.isEmpty) {
+          model.clearAlbum()
+          return nil
+        }
+
+        // Then artist
+        if((playerSelection.filterString.isEmpty || (playerSelection.filterMode == .Artist)) && !playerSelection.artist.isEmpty) {
+          model.clearArtist()
+          return nil
+        }
+
+        // Finally, the selection and filter
+        playerSelection.scrollPos = -1
         playerSelection.clearFilter(resetMode: false)
         return nil
 
       case kVK_Return:
-        // Play all (or play if a track is selected)
+        if(playerSelection.scrollPos < 0) { return nil }
+
+        model.itemSelected(itemIndex: playerSelection.scrollPos, itemText: playerSelection.list[playerSelection.scrollPos])
         return nil
 
-      case kVK_DownArrow:
-        // Navigate the scroller, somehow
+      case kVK_ANSI_KeypadEnter:
+        model.playAll()
         return nil
 
       default:
@@ -273,5 +311,20 @@ struct ContentView: View {
 
       return aEvent
     }
+  }
+
+  func scrollDown(proxy: ScrollViewProxy) {
+    let listLimit = playerSelection.list.count - 1
+    if(playerSelection.scrollPos >= listLimit) { return }
+
+    playerSelection.scrollPos += 1;
+    proxy.scrollTo(playerSelection.scrollPos)
+  }
+
+  func scrollUp(proxy: ScrollViewProxy) {
+    if(playerSelection.scrollPos <= 0) { return }
+
+    playerSelection.scrollPos -= 1;
+    proxy.scrollTo(playerSelection.scrollPos)
   }
 }

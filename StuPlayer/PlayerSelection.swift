@@ -56,6 +56,8 @@ enum FilterMode  { case Artist, Album, Track }
     }
   }
 
+  @Published var scrollPos = -1
+
   weak var delegate: Delegate?
 
   func setDelegate(delegate: Delegate) {
@@ -76,17 +78,20 @@ enum FilterMode  { case Artist, Album, Track }
 
     self.artist = newArtist
     self.list   = newList
+    if((self.scrollPos >= 0) && (self.list.count > 0)) { self.scrollPos = 0 } else { self.scrollPos = -1 }
   }
 
   func setAlbum(newAlbum: String, newList: [String]) {
     self.album = newAlbum
     self.list  = newList
+    if((self.scrollPos >= 0) && (self.list.count > 0)) { self.scrollPos = 0 } else { self.scrollPos = -1 }
   }
 
   func setAll(newArtist: String, newAlbum: String, newList: [String]) {
     self.artist = newArtist
     self.album  = newAlbum
     self.list   = newList
+    if((self.scrollPos >= 0) && (self.list.count > 0)) { self.scrollPos = 0 } else { self.scrollPos = -1 }
   }
 
   func setTrack(newTrack: TrackInfo?) {
