@@ -16,6 +16,7 @@ enum FilterMode  { case Artist, Album, Track }
   @MainActor protocol Delegate: AnyObject {
     func typeChanged(newType: String)
     func filterChanged(newFilter: String)
+    func scrollPosChanged(newScrollPos: Int)
   }
 
   @Published var rootPath = ""
@@ -56,7 +57,11 @@ enum FilterMode  { case Artist, Album, Track }
     }
   }
 
-  @Published var scrollPos = -1
+  @Published var scrollPos = -1 {
+    didSet {
+      delegate?.scrollPosChanged(newScrollPos: scrollPos)
+    }
+  }
 
   weak var delegate: Delegate?
 
@@ -74,24 +79,31 @@ enum FilterMode  { case Artist, Album, Track }
   }
 
   func setArtist(newArtist: String, newList: [String]) {
+    self.artist = newArtist
     self.album  = ""
 
-    self.artist = newArtist
-    self.list   = newList
-    if((self.scrollPos >= 0) && (self.list.count > 0)) { self.scrollPos = 0 } else { self.scrollPos = -1 }
+    if((self.scrollPos >= 0) && (newList.count > 0)) { self.scrollPos = 0 } else { self.scrollPos = -1 }
+    self.list = newList
   }
 
   func setAlbum(newAlbum: String, newList: [String]) {
     self.album = newAlbum
-    self.list  = newList
-    if((self.scrollPos >= 0) && (self.list.count > 0)) { self.scrollPos = 0 } else { self.scrollPos = -1 }
+
+    if((self.scrollPos >= 0) && (newList.count > 0)) { self.scrollPos = 0 } else { self.scrollPos = -1 }
+    self.list = newList
   }
 
   func setAll(newArtist: String, newAlbum: String, newList: [String]) {
     self.artist = newArtist
     self.album  = newAlbum
-    self.list   = newList
-    if((self.scrollPos >= 0) && (self.list.count > 0)) { self.scrollPos = 0 } else { self.scrollPos = -1 }
+
+    if((self.scrollPos >= 0) && (newList.count > 0)) { self.scrollPos = 0 } else { self.scrollPos = -1 }
+    self.list = newList
+  }
+
+  func setArtistAndAlbum(newArtist: String, newAlbum: String) {
+    self.artist = newArtist
+    self.album  = newAlbum
   }
 
   func setTrack(newTrack: TrackInfo?) {

@@ -23,11 +23,14 @@ struct ContentView: View {
   @ObservedObject var playerAlert: PlayerAlert
   @ObservedObject var playerSelection: PlayerSelection
 
+  @State var textHeight       = CGFloat(0.0)
+  @State var scrollViewHeight = CGFloat(0.0)
+
   var body: some View {
     VStack(alignment: .leading) {
       HStack {
         Button(action: model.setRootFolder) {
-          Text("Root folder: ").padding(.horizontal, 10).padding(.vertical, 2)
+          Text("Root folder: ").padding(.horizontal, 10).background() { GeometryReader { proxy in Color.clear.onAppear { textHeight = proxy.size.height } } }.padding(.vertical, 2)
         }
 
         Text(playerSelection.rootPath).padding(.horizontal, 10).padding(.vertical, 2)
@@ -162,14 +165,21 @@ struct ContentView: View {
                   .onTapGesture { model.itemSelected(itemIndex: itemIndex, itemText: itemText) }
               }
             }
-          }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
+          }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading).onChange(of: playerSelection.list) { _ in scrollHome(proxy: scrollViewProxy) }
 
           HStack() {
-            DummyView(action: { scrollDown(proxy: scrollViewProxy) }).keyboardShortcut(.downArrow, modifiers: [])
-            DummyView(action: { scrollUp  (proxy: scrollViewProxy) }).keyboardShortcut(.upArrow,   modifiers: [])
+            DummyView(action: { scrollDown  (proxy: scrollViewProxy) }).keyboardShortcut(.downArrow, modifiers: [])
+            DummyView(action: { scrollPDown (proxy: scrollViewProxy) }).keyboardShortcut(.pageDown,  modifiers: [])
+            DummyView(action: { scrollEnd   (proxy: scrollViewProxy) }).keyboardShortcut(.end,       modifiers: [])
+
+            DummyView(action: { scrollUp   (proxy: scrollViewProxy) }).keyboardShortcut(.upArrow, modifiers: [])
+            DummyView(action: { scrollPUp  (proxy: scrollViewProxy) }).keyboardShortcut(.pageUp,  modifiers: [])
+            DummyView(action: { scrollHome (proxy: scrollViewProxy) }).keyboardShortcut(.home,    modifiers: [])
           }.frame(maxWidth: 0, maxHeight: 0)
         }
-        .frame(minWidth: 150, maxWidth: .infinity)
+        .frame(minWidth: 150, maxWidth: .infinity).background() {
+          GeometryReader { proxy in Color.clear.onAppear { scrollViewHeight = proxy.size.height }.onChange(of: proxy.size.height) { newValue in scrollViewHeight = newValue } }
+        }
       }
 
       Spacer().frame(height: 30)
@@ -243,7 +253,7 @@ struct ContentView: View {
         Spacer().frame(width: 20)
 
         Button(action: model.restartAll) {
-            Text("Restart").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
+          Text("Restart").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
         }.disabled(playerSelection.playbackState == .stopped)
 
         if(playerSelection.shuffleTracks) {
@@ -286,7 +296,10 @@ struct ContentView: View {
         return nil
 
       case kVK_Return:
-        if(playerSelection.scrollPos < 0) { return nil }
+        if((playerSelection.scrollPos < 0) && (playerSelection.list.count > 0)) {
+          playerSelection.scrollPos = 0
+          return nil
+        } else if(playerSelection.scrollPos < 0) { return nil }
 
         model.itemSelected(itemIndex: playerSelection.scrollPos, itemText: playerSelection.list[playerSelection.scrollPos])
         return nil
@@ -321,10 +334,46 @@ struct ContentView: View {
     proxy.scrollTo(playerSelection.scrollPos)
   }
 
+  func scrollPDown(proxy: ScrollViewProxy) {
+    let listLimit = playerSelection.list.count - 1
+    if(playerSelection.scrollPos >= listLimit) { return }
+
+    let linesToScroll = Int(scrollViewHeight / textHeight)
+    var newScrollPos  = ((playerSelection.scrollPos < 0) ? 0 : playerSelection.scrollPos) + linesToScroll
+    if(newScrollPos > listLimit) { newScrollPos = listLimit }
+
+    playerSelection.scrollPos = newScrollPos;
+    proxy.scrollTo(playerSelection.scrollPos)
+  }
+
+  func scrollEnd(proxy: ScrollViewProxy) {
+    let listLimit = playerSelection.list.count - 1
+    if(playerSelection.scrollPos >= listLimit) { return }
+
+    playerSelection.scrollPos = listLimit;
+    proxy.scrollTo(playerSelection.scrollPos)
+  }
+
   func scrollUp(proxy: ScrollViewProxy) {
     if(playerSelection.scrollPos <= 0) { return }
 
     playerSelection.scrollPos -= 1;
     proxy.scrollTo(playerSelection.scrollPos)
+  }
+
+  func scrollPUp(proxy: ScrollViewProxy) {
+    if(playerSelection.scrollPos <= 0) { return }
+
+    let linesToScroll = Int(scrollViewHeight / textHeight)
+    var newScrollPos = playerSelection.scrollPos - linesToScroll
+    if(newScrollPos < 0) { newScrollPos = 0 }
+
+    playerSelection.scrollPos = newScrollPos;
+    proxy.scrollTo(playerSelection.scrollPos)
+  }
+
+  func scrollHome(proxy: ScrollViewProxy) {
+    if(playerSelection.scrollPos > 0) { playerSelection.scrollPos = 0 }
+    proxy.scrollTo(0)
   }
 }

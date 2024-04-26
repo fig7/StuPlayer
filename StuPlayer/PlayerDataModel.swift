@@ -1408,6 +1408,33 @@ let trackFile       = "Tracks.dat"
     }
   }
 
+  func scrollPosChanged(newScrollPos: Int) {
+    if(playerSelection.filterString.isEmpty) { return }
+    if(playerSelection.filterMode == .Artist) { return }
+
+    if((playerSelection.filterMode == .Album) && filteredAlbum.isEmpty) {
+      if(newScrollPos >= 0) {
+        let album = filteredAlbums[playerSelection.scrollPos]
+        filteredArtist = "from filter (\(album.artist))"
+      } else {
+        filteredArtist = "from filter"
+      }
+
+      playerSelection.setArtistAndAlbum(newArtist: filteredArtist, newAlbum: filteredAlbum)
+    } else if(playerSelection.filterMode == .Track) {
+      if(newScrollPos >= 0) {
+        let track = filteredTracks[playerSelection.scrollPos]
+        filteredArtist = "from filter (\(track.artist))"
+        filteredAlbum  = "from filter (\(track.album))"
+      } else {
+        filteredArtist = "from filter"
+        filteredAlbum  = "from filter"
+      }
+
+      playerSelection.setArtistAndAlbum(newArtist: filteredArtist, newAlbum: filteredAlbum)
+    }
+  }
+
   #if PLAYBACK_TEST
   let testURL1 = URL(fileURLWithPath: "/Volumes/Mini external/Music/MP3/Tori Amos/Winter (CD Single)/Winter.ogg")
   let testURL2 = [URL(fileURLWithPath: "/Volumes/Mini external/Music/MP3/Alan Parsons/Live in Columbia/Damned If I Do.opus"),
