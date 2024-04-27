@@ -1311,8 +1311,8 @@ let trackFile       = "Tracks.dat"
       // (it's not critical)
     }
 
-    m3UDict      = allM3UDict[selectedType]!
-    tracksDict   = allTracksDict[selectedType]!
+    m3UDict      = allM3UDict[selectedType]    ?? [:]
+    tracksDict   = allTracksDict[selectedType] ?? [:]
     musicPath    = rootPath + selectedType + "/"
 
     selectedArtist = ""

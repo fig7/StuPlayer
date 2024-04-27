@@ -25,6 +25,7 @@ struct ContentView: View {
 
   @State var textHeight       = CGFloat(0.0)
   @State var scrollViewHeight = CGFloat(0.0)
+  @FocusState var filterFocus: Bool
 
   var body: some View {
     VStack(alignment: .leading) {
@@ -33,7 +34,7 @@ struct ContentView: View {
           Text("Root folder: ").padding(.horizontal, 10).background() { GeometryReader { proxy in Color.clear.onAppear { textHeight = proxy.size.height } } }.padding(.vertical, 2)
         }
 
-        Text(playerSelection.rootPath).padding(.horizontal, 10).padding(.vertical, 2)
+        Text((playerSelection.rootPath == "/") ? "Not set" : playerSelection.rootPath).padding(.horizontal, 10).padding(.vertical, 2)
 
         Button(action: model.scanFolders) {
           Text("Rescan").padding(.horizontal, 10).padding(.vertical, 2)
@@ -148,6 +149,11 @@ struct ContentView: View {
           .autocorrectionDisabled(/*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
           .textSelection(.disabled)
           .textFieldStyle(.roundedBorder)
+          .focused($filterFocus)
+
+        Button(action: { playerSelection.scrollPos = -1; playerSelection.clearFilter(resetMode: false) }) {
+          Text("x")
+        }
       }
 
       Spacer().frame(height: 10)
@@ -270,7 +276,7 @@ struct ContentView: View {
     .padding()
     .frame(minWidth:  200, maxWidth: .infinity, minHeight: 200, maxHeight: .infinity, alignment: .topLeading)
     .alert(playerAlert.alertMessage, isPresented: $playerAlert.alertTriggered) { }
-    .onAppear { handleKeyEvents() }
+    .onAppear { handleKeyEvents(); filterFocus = true }
   }
 
   func handleKeyEvents() {
@@ -338,7 +344,7 @@ struct ContentView: View {
     let listLimit = playerSelection.list.count - 1
     if(playerSelection.scrollPos >= listLimit) { return }
 
-    let linesToScroll = Int(scrollViewHeight / textHeight)
+    let linesToScroll = Int(0.5 + scrollViewHeight / textHeight)
     var newScrollPos  = ((playerSelection.scrollPos < 0) ? 0 : playerSelection.scrollPos) + linesToScroll
     if(newScrollPos > listLimit) { newScrollPos = listLimit }
 
@@ -364,7 +370,7 @@ struct ContentView: View {
   func scrollPUp(proxy: ScrollViewProxy) {
     if(playerSelection.scrollPos <= 0) { return }
 
-    let linesToScroll = Int(scrollViewHeight / textHeight)
+    let linesToScroll = Int(0.5 + scrollViewHeight / textHeight)
     var newScrollPos = playerSelection.scrollPos - linesToScroll
     if(newScrollPos < 0) { newScrollPos = 0 }
 
