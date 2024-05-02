@@ -1,14 +1,15 @@
 {
+  "originHash" : "c65950a74c941072883daff0fb1b909953584e2119b252765dc2eb52c56b8148",
   "pins" : [
     {
       "identity" : "sfbaudioutilities",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/sbooth/SFBAudioUtilities",
       "state" : {
-        "revision" : "43c02fbc8fe7eaf75565dcd60f1d5c9bc04de9fe",
-        "version" : "0.1.0"
+        "revision" : "b62028a660479a9986b60ffbccf0cf3d09559489",
+        "version" : "0.2.0"
       }
     }
   ],
-  "version" : 2
+  "version" : 3
 }
