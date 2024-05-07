@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleName</key>
+	<string>StuPlayer</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en_us</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.fig7.stuplayer.help</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundlePackageType</key>
+	<string>BNDL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>3</string>
+	<key>CFBundleSignature</key>
+	<string>hbwr</string>
+	<key>CFBundleVersion</key>
+	<string>3</string>
+	<key>HPDBookAccessPath</key>
+	<string>index.html</string>
+	<key>HPDBookKBProduct</key>
+	<string>stuplayer1</string>
+	<key>HPDBookTitle</key>
+	<string>StuPlayer Help</string>
+	<key>HPDBookType</key>
+	<string>3</string>
+</dict>
+</plist>

@@ -315,10 +315,10 @@ let trackFile       = "Tracks.dat"
 
       case .PreviousPressed:
         playPosition -= 2
-        let previousTrack = playlistManager.moveTo(trackNum: playPosition+1)
 
-        let trackURL   = previousTrack!.trackURL
-        let trackPath  = trackURL.filePath()
+        let previousTrack = playlistManager.moveTo(trackNum: playPosition+1)
+        let trackURL      = previousTrack!.trackURL
+        let trackPath     = trackURL.filePath()
 
         do {
           try player.play(trackURL)
@@ -335,8 +335,8 @@ let trackFile       = "Tracks.dat"
           nextTrackNum = 1
           playPosition = 0
         }
-        let nextTrack = playlistManager.moveTo(trackNum: nextTrackNum)
 
+        let nextTrack  = playlistManager.moveTo(trackNum: nextTrackNum)
         let trackURL   = nextTrack!.trackURL
         let trackPath  = trackURL.filePath()
 
@@ -419,6 +419,11 @@ let trackFile       = "Tracks.dat"
     playerSelection.setArtist(newArtist: "", newList: artistList);
   }
 
+  func artistClicked() {
+    playerSelection.scrollPos = -1
+    clearArtist()
+  }
+
   func clearArtist() {
     if(!playerSelection.filterString.isEmpty) {
       clearFilteredArtist()
@@ -447,6 +452,11 @@ let trackFile       = "Tracks.dat"
     }
 
     playerSelection.setAlbum(newAlbum: "", newList: albumList);
+  }
+
+  func albumClicked() {
+    playerSelection.scrollPos = -1
+    clearAlbum()
   }
 
   func clearAlbum() {
@@ -595,6 +605,11 @@ let trackFile       = "Tracks.dat"
       trackFilterItemSelected(itemIndex: itemIndex, itemText: itemText)
       break
     }
+  }
+
+  func itemClicked(itemIndex: Int, itemText: String) {
+    playerSelection.scrollPos = -1
+    itemSelected(itemIndex: itemIndex, itemText: itemText)
   }
 
   func itemSelected(itemIndex: Int, itemText: String) {
@@ -969,6 +984,11 @@ let trackFile       = "Tracks.dat"
     playerSelection.toggleFilterMode()
   }
 
+  func clearFilter() {
+    playerSelection.scrollPos = -1
+    playerSelection.clearFilter(resetMode: false)
+  }
+
   static func getM3UDict(m3UFile: String) throws -> AllM3UDict {
     let m3UData = NSData(contentsOfFile: m3UFile) as Data?
     guard let m3UData else {
@@ -1317,6 +1337,8 @@ let trackFile       = "Tracks.dat"
 
     selectedArtist = ""
     selectedAlbum  = ""
+
+    playerSelection.scrollPos = -1
     playerSelection.clearFilter(resetMode: true)
   }
 

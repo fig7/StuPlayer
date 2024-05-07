@@ -1,0 +1,105 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN" "http://www.w3.org/TR/html4/frameset.dtd">
+<html>
+  <head>
+    <title>StuPlayer Help</title>
+    <meta name="AppleTitle" content="StuPlayer Help">
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <center>StuPlayer: A simple m3u music player</center>
+    <br>
+
+    <h2> Background</h2>
+    StuPlayer is an m3u player I wrote to help me organise and listen to my music collection. I have thousands of audio files that I have ripped from records, CDs, or downloaded over the years.
+    <br><br>
+
+    In order to play tracks from an album in the correct order, you create an m3u file. This is a simple text file containing the tracks in the order you want them to play. Consequently, an m3u file is also known as a playlist. In the "good old days", text files could only handle Engish ASCII characters and Microsoft added "code pages" to help with characters from other languages. I don't know how MacOS handled different languages back then, but it is so much easier now. Unicode is the modern standard for text and it works much better. You can now put almost any character in file names and text files. Even tracks with question marks in the title work just fine with Unicode (UTF-8).
+    <br><br>
+
+    So, please either use m3u8 playlists (which should always be saved in UTF-8 format) or ensure that all of your m3u files are saved in UTF-8. The Wikipedia page for the M3U format says that "The file is saved with the "m3u" filename extension if the text is encoded in the local system's default non-Unicode encoding (e.g., a Windows codepage)", but we are in the 21st century now and it doesn't really make sense to use anything other than UTF-8. I have converted all of my m3u files to UTF-8 and everything is so much better. My Scandinavian, Spanish, and German music, for example, all have the correct titles now.
+    <br><br>
+
+    More details about the M3U file format can be found here: <a href="https://en.wikipedia.org/wiki/M3U">https://en.wikipedia.org/wiki/M3U</a><br>
+    And playlists here: <a href="https://en.wikipedia.org/wiki/Playlist">https://en.wikipedia.org/wiki/Playlist</a>
+    <br><br>
+
+    NB. StuPlayer currently does not process extended M3U comments and directives or meta data in audio files.<br><br>
+
+    <h2> Root folder structure</h2>
+    StuPlayer needs to be given access to the folder that contains your music, "the Root folder". Click on the Root folder button, navigate to your music folder, and grant access. Right now, StuPlayer expects the music to be organised into sub-folders based on type, artist, and albums. This is not very flexible, I know, and future versions of StuPlayer may be more flexible about how the music can be organised. Each album folder should also contain an m3u playlist. For example, let's say that you listen to Jazz music and you have three albums from two different artists. In that case, your files should be organised like this (click the arrows to expand the structure):<br><br>
+
+    <details>
+      <summary>Jazz</summary>
+      <details style = "margin-left:20px">
+        <summary>Artist 1</summary>
+        <details style = "margin-left:20px">
+          <summary>Album 1</summary>
+          <p style = "margin: 0px; margin-left:20px">Audio tracks</p>
+          <p style = "margin: 0px; margin-left:20px">M3U file</p>
+        </details>
+      </details>
+      <details style = "margin-left:20px">
+        <summary>Artist 2</summary>
+        <details style = "margin-left:20px">
+          <summary>Album 1</summary>
+          <p style = "margin: 0px; margin-left:20px">Audio tracks</p>
+          <p style = "margin: 0px; margin-left:20px">M3U file</p>
+        </details>
+        <details style = "margin-left:20px">
+          <summary>Album 2</summary>
+          <p style = "margin: 0px; margin-left:20px">Audio tracks</p>
+          <p style = "margin: 0px; margin-left:20px">M3U file</p>
+        </details>
+      </details>
+    </details>
+
+    <br><br>
+
+    If, for example, an album contains tracks A.mp3, B.mp3, and C.mp3, but you want them to play in the order B, C, A, then your m3u file should look like this:
+    <br><br>
+
+    B.mp3<br>
+    C.mp3<br>
+    A.mp3
+
+    <br><br>
+
+    It is not too difficult to setup your music collection, but it does require some effort. Most CD rippers will obtain the artist, album, and track names from gnudb.org and will produce m3u playlists for you. However, there might be some tweaks needed, especially if your music tracks have (or should have) non-ASCII characters in them.
+    <br><br>
+
+    If you make changes to your music files, you can click the Rescan button and StuPlayer will pick up the changes. If there are any errors found in the root folder structure, a dialog will be displayed. You can find the details in the log files, which are called StuPlayer0.log and StuPlayer1.log (StuPlayer0.log contains the most recent log entries). The log files can be found in the root of the Root folder.
+    <br><br>
+
+    <h2> Using StuPlayer</h2>
+    Most of the functions of StuPlayer are self-explanatory. You can click on an artist to show their albums, and you can click on an album to show the tracks (from the contents of the m3u). Clicking on a track will start playback, beginning with the track you have clicked. At any point, you can click "Play all" to generate a playlist that will play all of the music in the list. Tracks can be played in order or in a random order (shuffled) by clicking the Order button. The whole playlist or individual tracks can also be repeated by toggling through the available repeat modes (click on the Repeat button). The selected artist and album can be cleared by clicking on the Artist button, and the selected album can be cleared by clicking on the Album button.
+    <br><br>
+
+    While playing, StuPlayer maintains both an in-order playlist and a random playlist. This allows you to easily play the previous track again or skip tracks, if you wish. You can also restart playback from the beginning or re-shuffle the tracks (random playback order only).
+    <br><br>
+
+    <h2> Filtering artists, albums, and tracks</h2>
+    If you want to find a particular artist, album, or track, you can. Just type in the first letter or two of the name and the list will be filtered based on what you have typed. Pressing the tab key will toggle through the available filter modes: from Artist to Album and finally to Track. You can then use the down arrow or return key to quickly select from the filtered list (see Navigation by keyboard, below).
+    <br><br>
+
+    <h2>Navigation by keyboard</h2>
+    StuPlayer includes support for navigating your music using the keyboard. If you press either the down arrow key or the return key, a highlight will appear in the list and you will be able to navigate using the up and down arrows and the return and escape keys. Escape acts like a back button: first the album is cleared, then the artist, and then the filter. The function keys F1-F3 can be used to quickly play all the tracks, toggle the playlist order, and toggle repeat. Pressing the space bar will toggle playback.
+    <br><br>
+
+    Full list of keyboard functions:<br>
+    F1: Play all<br>
+    F2: Toggle playlist order<br>
+    F3: Toggle repeat<br>
+    <br>
+
+    Up/Down, Page Up/Down, Home/End: Navigate through items in the list<br>
+    Escape: Navigate up (clear album selection, clear artist selection, clear filter)<br>
+    Return: Navigate down (select artist, select album, play tracks)<br>
+    Space: Toggle playback (pause or resume)<br>
+    Tab: Toggle filter mode
+    <br><br>
+  </body>
+</html>

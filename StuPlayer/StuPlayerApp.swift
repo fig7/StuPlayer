@@ -8,9 +8,8 @@
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        return true
-    }
+  func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { return true }
+  func applicationWillFinishLaunching(_ notification: Notification) { NSWindow.allowsAutomaticWindowTabbing = false; }
 }
 
 @available(macOS 13.0, *)
@@ -27,7 +26,10 @@ struct StuPlayerApp13 : App {
   var body: some Scene {
     WindowGroup() {
       ContentView(model: playerDataModel, playerAlert: playerDataModel.playerAlert, playerSelection: playerDataModel.playerSelection)
-    }.defaultSize(width: 928, height: 498)
+    }.defaultSize(width: 928, height: 498).commands {
+      // CommandGroup(replacing: .newItem) { }
+      CommandGroup(after: .appInfo, addition: { Link("Make a donation...", destination: URL(string: "https://patreon.com/StuartFisher")!) })
+    }
   }
 }
 
@@ -44,6 +46,9 @@ struct StuPlayerApp: App {
   var body: some Scene {
     WindowGroup() {
       ContentView(model: playerDataModel, playerAlert: playerDataModel.playerAlert, playerSelection: playerDataModel.playerSelection)
+    }.commands {
+      CommandGroup(replacing: .newItem) { }
+      CommandGroup(after: .appInfo, addition: { Link("Make a donation...", destination: URL(string: "https://patreon.com/StuartFisher")!) })
     }
   }
 }

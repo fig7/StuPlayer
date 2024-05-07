@@ -195,7 +195,9 @@ enum FilterMode  { case Artist, Album, Track }
       filterMode = .Artist
     }
 
-    delegate?.filterChanged(newFilter: filterString)
+    if(!filterString.isEmpty) {
+      delegate?.filterChanged(newFilter: filterString)
+    }
   }
 
   func clearFilter(resetMode: Bool) {

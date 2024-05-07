@@ -17,6 +17,7 @@
 		1297A5CA2B9778CA0017B083 /* PlayerSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1297A5C92B9778CA0017B083 /* PlayerSelection.swift */; };
 		1297A6022B9791AA0017B083 /* SFBAudioEngine.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1297A5FF2B9790290017B083 /* SFBAudioEngine.framework */; };
 		1297A6032B9791AA0017B083 /* SFBAudioEngine.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 1297A5FF2B9790290017B083 /* SFBAudioEngine.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		12AA0E792BE97BA400E0A549 /* stuplayer.help in Resources */ = {isa = PBXBuildFile; fileRef = 12AA0E752BE97BA400E0A549 /* stuplayer.help */; };
 		12B87E2B2BBC02580064E6B8 /* PlayerAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */; };
 		12B87E2E2BBECE7A0064E6B8 /* URL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B87E2D2BBECE7A0064E6B8 /* URL.swift */; };
 		12C617DD2BB4BCB700B1EE65 /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = 12C617DC2BB4BCB700B1EE65 /* Credits.html */; };
@@ -67,6 +68,7 @@
 		1297A5C92B9778CA0017B083 /* PlayerSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSelection.swift; sourceTree = "<group>"; };
 		1297A5F22B978DB30017B083 /* SFBAudioEngine.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = SFBAudioEngine.xcframework; path = ../build/SFBAudioEngine.xcframework; sourceTree = "<group>"; };
 		1297A5F82B9790290017B083 /* SFBAudioEngine.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = SFBAudioEngine.xcodeproj; path = ../SFBAudioEngine.xcodeproj; sourceTree = "<group>"; };
+		12AA0E752BE97BA400E0A549 /* stuplayer.help */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = stuplayer.help; sourceTree = "<group>"; };
 		12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerAlert.swift; sourceTree = "<group>"; };
 		12B87E2D2BBECE7A0064E6B8 /* URL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URL.swift; sourceTree = "<group>"; };
 		12C617DC2BB4BCB700B1EE65 /* Credits.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Credits.html; sourceTree = "<group>"; };
@@ -105,6 +107,7 @@
 		1297A5B52B9619CE0017B083 /* StuPlayer */ = {
 			isa = PBXGroup;
 			children = (
+				12AA0E752BE97BA400E0A549 /* stuplayer.help */,
 				1292443A2BC53A5200E25D01 /* Info.plist */,
 				12B87E2C2BBECE400064E6B8 /* Ext */,
 				1297A5B62B9619CE0017B083 /* StuPlayerApp.swift */,
@@ -230,6 +233,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				12C617DD2BB4BCB700B1EE65 /* Credits.html in Resources */,
+				12AA0E792BE97BA400E0A549 /* stuplayer.help in Resources */,
 				1297A5BB2B9619D00017B083 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -388,7 +392,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 18;
+				CURRENT_PROJECT_VERSION = 20;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = YV8CWLF497;
@@ -424,7 +428,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 18;
+				CURRENT_PROJECT_VERSION = 20;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = YV8CWLF497;

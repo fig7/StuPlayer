@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleIdentifier</key>
+	<string>com.fig7.stuplayer</string>
+	<key>CFBundleHelpBookFolder</key>
+	<string>stuplayer.help</string>
+	<key>CFBundleHelpBookName</key>
+	<string>com.fig7.stuplayer.help</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UIApplicationSceneManifest</key>

@@ -63,13 +63,13 @@ struct ContentView: View {
         Spacer().frame(width: 20)
 
         if(playerSelection.filterString.isEmpty || (playerSelection.filterMode == .Artist)) {
-          Button(action: model.clearArtist) {
+          Button(action: model.artistClicked) {
             Text("Artist: ").padding(.horizontal, 10).padding(.vertical, 2)
           }
 
           Text(playerSelection.artist).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
         } else if(playerSelection.filterMode != .Artist) {
-          Button(action: model.clearArtist) {
+          Button(action: { }) {
             Text("Artist: ").padding(.horizontal, 10).padding(.vertical, 2)
           }.disabled(true)
 
@@ -79,13 +79,13 @@ struct ContentView: View {
         Spacer().frame(width: 20)
 
         if(playerSelection.filterString.isEmpty || (playerSelection.filterMode != .Track)) {
-          Button(action: model.clearAlbum) {
+          Button(action: model.albumClicked) {
             Text("Album: ").padding(.horizontal, 10).padding(.vertical, 2)
           }
 
           Text(playerSelection.album).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
         } else {
-          Button(action: model.clearAlbum) {
+          Button(action: { }) {
             Text("Album: ").padding(.horizontal, 10).padding(.vertical, 2)
           }.disabled(true)
 
@@ -151,7 +151,7 @@ struct ContentView: View {
           .textFieldStyle(.roundedBorder)
           .focused($filterFocus)
 
-        Button(action: { playerSelection.scrollPos = -1; playerSelection.clearFilter(resetMode: false) }) {
+        Button(action: model.clearFilter) {
           Text("x")
         }
       }
@@ -165,10 +165,10 @@ struct ContentView: View {
               if(itemIndex == playerSelection.scrollPos) {
                 Text(itemText).fontWeight(.semibold).frame(minWidth: 150, alignment: .leading).padding(.horizontal, 4)
                   .background(RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3)))
-                  .onTapGesture { model.itemSelected(itemIndex: itemIndex, itemText: itemText) }
+                  .onTapGesture { model.itemClicked(itemIndex: itemIndex, itemText: itemText) }
               } else {
                 Text(itemText).frame(minWidth: 150, maxWidth: .infinity, alignment: .leading).padding(.horizontal, 4)
-                  .onTapGesture { model.itemSelected(itemIndex: itemIndex, itemText: itemText) }
+                  .onTapGesture { model.itemClicked(itemIndex: itemIndex, itemText: itemText) }
               }
             }
           }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading).onChange(of: playerSelection.list) { _ in scrollHome(proxy: scrollViewProxy) }
@@ -297,11 +297,10 @@ struct ContentView: View {
         }
 
         // Finally, the selection and filter
-        playerSelection.scrollPos = -1
-        playerSelection.clearFilter(resetMode: false)
+        model.clearFilter()
         return nil
 
-      case kVK_Return:
+      case kVK_Return, kVK_ANSI_KeypadEnter:
         if((playerSelection.scrollPos < 0) && (playerSelection.list.count > 0)) {
           playerSelection.scrollPos = 0
           return nil
@@ -310,8 +309,20 @@ struct ContentView: View {
         model.itemSelected(itemIndex: playerSelection.scrollPos, itemText: playerSelection.list[playerSelection.scrollPos])
         return nil
 
-      case kVK_ANSI_KeypadEnter:
+      case kVK_F1:
         model.playAll()
+        return nil
+
+      case kVK_F2:
+        model.toggleShuffle()
+        return nil
+
+      case kVK_F3:
+        model.toggleRepeat()
+        return nil
+
+      case kVK_Space:
+        model.togglePause()
         return nil
 
       default:
