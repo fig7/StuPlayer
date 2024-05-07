@@ -300,7 +300,7 @@ struct ContentView: View {
         model.clearFilter()
         return nil
 
-      case kVK_Return, kVK_ANSI_KeypadEnter:
+      case kVK_Return:
         if((playerSelection.scrollPos < 0) && (playerSelection.list.count > 0)) {
           playerSelection.scrollPos = 0
           return nil
@@ -321,7 +321,7 @@ struct ContentView: View {
         model.toggleRepeat()
         return nil
 
-      case kVK_Space:
+      case kVK_ANSI_KeypadEnter:
         model.togglePause()
         return nil
 
