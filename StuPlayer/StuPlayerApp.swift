@@ -27,7 +27,7 @@ struct StuPlayerApp13 : App {
     WindowGroup() {
       ContentView(model: playerDataModel, playerAlert: playerDataModel.playerAlert, playerSelection: playerDataModel.playerSelection)
     }.defaultSize(width: 928, height: 498).commands {
-      // CommandGroup(replacing: .newItem) { }
+      CommandGroup(replacing: .newItem) { }
       CommandGroup(after: .appInfo, addition: { Link("Make a donation...", destination: URL(string: "https://patreon.com/StuartFisher")!) })
     }
   }
