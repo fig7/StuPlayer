@@ -141,20 +141,23 @@ class PlaylistManager {
   func shuffleChanged(shuffleTracks: Bool) -> Int {
     self.shuffleTracks = shuffleTracks
 
-    if(!shuffleTracks) {
+    if(shuffleTracks) {
+      // Reset nextShuffleIndex and return the new track num
+      let currentTrackIndex = nextTrackIndex-1
+      for (index, shuffledTrack) in shuffleList.enumerated() {
+        if(shuffledTrack.trackIndex == currentTrackIndex) {
+          nextShuffleIndex = index+1
+          break
+        }
+      }
+
+      return nextShuffleIndex
+    } else {
       // Reset nextTrackIndex and return the new track num
       let currentTrack = shuffleList[nextShuffleIndex-1]
       nextTrackIndex = currentTrack.trackIndex + 1
 
       return nextTrackIndex
-    } else {
-      // Advance the nextShuffle index, if it hasn't been already
-      if(nextShuffleIndex == 0) {
-        nextShuffleIndex += 1
-      }
-
-      // Return the new shuffled track num
-      return nextShuffleIndex
     }
   }
 }

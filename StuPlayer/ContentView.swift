@@ -192,7 +192,7 @@ struct ContentView: View {
 
       HStack {
         if(playerSelection.playPosition > 0) {
-          Text(String(format: "Playing: %d/%d", playerSelection.playPosition, playerSelection.playTotal)).frame(width: 120, alignment:.leading)
+          Text(String(format: "Playing: %d/%d", playerSelection.playPosition, playerSelection.playTotal)).frame(width: 142, alignment:.leading)
           Slider(value: $playerSelection.trackPosition, in: 0...1, onEditingChanged: { startFinish in
             if(startFinish) { return; }
             model.seekTo(newPosition: playerSelection.trackPosition)
