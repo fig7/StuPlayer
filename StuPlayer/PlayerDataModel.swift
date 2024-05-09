@@ -1343,16 +1343,13 @@ let trackFile       = "Tracks.dat"
   }
 
   func artists(filteredBy: String) -> [String] {
-    let lowerCasedFilter = filteredBy.lowercased()
-    return tracksDict.keys.filter({ artist in return artist.lowercased().starts(with: lowerCasedFilter) }).sorted()
+    return tracksDict.keys.filter({ artist in return artist.localizedStandardContains(filteredBy) }).sorted()
   }
 
   func albums(filteredBy: String) -> [(artist: String, album: String)] {
-    let lowerCasedFilter = filteredBy.lowercased()
     var albums: [(artist: String, album: String)] = []
-
     for artist in tracksDict.keys {
-      let matchingAlbums = tracksDict[artist]!.keys.filter({ album in return album.lowercased().starts(with: lowerCasedFilter) })
+      let matchingAlbums = tracksDict[artist]!.keys.filter({ album in return album.localizedStandardContains(filteredBy) })
       for album in matchingAlbums {
         albums.append((artist, album))
       }
@@ -1366,10 +1363,9 @@ let trackFile       = "Tracks.dat"
   func tracks(filteredBy: String) -> [(artist: String, album: String, track: String)] {
     let lowerCasedFilter = filteredBy.lowercased()
     var tracks: [(artist: String, album: String, track: String)] = []
-
     for artist in tracksDict.keys {
       for album in tracksDict[artist]!.keys {
-        let matchingTracks = tracksDict[artist]![album]!.filter({ album in return album.lowercased().starts(with: lowerCasedFilter) })
+        let matchingTracks = tracksDict[artist]![album]!.filter({ album in return album.lowercased().hasPrefix(lowerCasedFilter) })
         for track in matchingTracks {
           tracks.append((artist, album, track))
         }
