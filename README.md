@@ -7,6 +7,6 @@ If you can do that, it works really well!
 
 StuPlayer is available in the Apple store, so that is the best place to get it and try it.
 Alternatively, you can build it yourself, but you will have to get the SFBAudioEngine first.
-Copy the StuPlayer folder into SFBAudioEngine, and then open and build the app.
+Make a StuPlayer folder inside SFBAudioEngine, copy everything into that folder, open and build the StuPlayer project.
 
 See also https://github.com/sbooth/SFBAudioEngine
