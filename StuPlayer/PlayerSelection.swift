@@ -65,6 +65,8 @@ enum FilterMode  { case Artist, Album, Track }
     }
   }
 
+  @Published var scrollPos2 = -1
+
   weak var delegate: Delegate?
 
   func setDelegate(delegate: Delegate) {
