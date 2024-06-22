@@ -50,6 +50,8 @@ enum FilterMode  { case Artist, Album, Track }
   @Published var trackPosString = "0:00" // Hours, minutes and seconds
   @Published var seekEnabled    = false  // Enable and disable the slider
 
+  @Published var playList: [String] = []
+
   @Published var filterMode   = FilterMode.Artist
   @Published var filterString = "" {
     didSet {

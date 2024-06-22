@@ -19,7 +19,7 @@ typealias AllTracksDict  = [String : TrackDict]
 typealias Playlists = [Playlist]
 
 // Enumerations
-enum StoppingReason { case PlaybackError, EndOfAudio, PlayAllPressed, StopPressed, TrackPressed, PreviousPressed, NextPressed, RestartPressed, ReshufflePressed }
+enum StoppingReason { case PlaybackError, EndOfAudio, PlayAllPressed, StopPressed, TrackPressed, PlayingTrackPressed, PreviousPressed, NextPressed, RestartPressed, ReshufflePressed }
 enum StorageError: Error { case BookmarkCreationFailed, TypesCreationFailed, DictionaryCreationFailed, ReadingTypesFailed }
 enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, ReadingAlbumsFailed, MissingM3U }
 
@@ -313,6 +313,21 @@ let trackFile       = "Tracks.dat"
         playTracks(playlists: [(playlistInfo, albumTracks)], trackNum: pendingTrack!)
         pendingTrack = nil
 
+      case .PlayingTrackPressed:
+        playPosition = pendingTrack!
+        let newTrack = playlistManager.moveTo(trackNum: playPosition+1)
+        let trackURL      = newTrack!.trackURL
+        let trackPath     = trackURL.filePath()
+
+        do {
+          try player.play(trackURL)
+          logManager.append(logCat: .LogInfo, logMessage: "Playing track: Starting playback of " + trackPath)
+        } catch {
+          logManager.append(logCat: .LogPlaybackError, logMessage: "Playing track: Playback of " + trackPath + " failed")
+          logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
+          playerAlert.triggerAlert(alertMessage: "Error playing track. Check log file for details.")
+        }
+
       case .PreviousPressed:
         playPosition -= 2
 
@@ -330,13 +345,12 @@ let trackFile       = "Tracks.dat"
         }
 
       case .NextPressed:
-        var nextTrackNum = playPosition+1
+        let nextTrackNum = playPosition+1
         if(nextTrackNum > playlistManager.trackCount) {
-          nextTrackNum = 1
           playPosition = 0
         }
 
-        let nextTrack  = playlistManager.moveTo(trackNum: nextTrackNum)
+        let nextTrack  = playlistManager.moveTo(trackNum: playPosition+1)
         let trackURL   = nextTrack!.trackURL
         let trackPath  = trackURL.filePath()
 
@@ -369,8 +383,11 @@ let trackFile       = "Tracks.dat"
       case .ReshufflePressed:
         playPosition = 0
         playlistManager.reset(shuffleTracks: playerSelection.shuffleTracks)
-        let firstTrack = playlistManager.peekNextTrack()
 
+        let trackList = (playerSelection.shuffleTracks) ? playlistManager.shuffleList.map { $0.track } : playlistManager.trackList
+        playerSelection.playList = trackList.map { $0.trackURL.lastPathComponent }
+
+        let firstTrack = playlistManager.peekNextTrack()
         let trackURL   = firstTrack!.trackURL
         let trackPath  = trackURL.filePath()
 
@@ -658,6 +675,31 @@ let trackFile       = "Tracks.dat"
     playTracks(playlists: [(playlistInfo, albumTracks)], trackNum: itemIndex+1)
   }
 
+  func playItemClicked(itemIndex: Int, itemText: String) {
+    // Track selected, play it
+    if(player.isPlaying) {
+      pendingTrack = itemIndex
+      stopReason   = StoppingReason.PlayingTrackPressed
+
+      player.stop()
+      return
+    }
+
+    playPosition = itemIndex
+    let newTrack = playlistManager.moveTo(trackNum: itemIndex)
+    let trackURL      = newTrack!.trackURL
+    let trackPath     = trackURL.filePath()
+
+    do {
+      try player.play(trackURL)
+      logManager.append(logCat: .LogInfo, logMessage: "Playing track: Starting playback of " + trackPath)
+    } catch {
+      logManager.append(logCat: .LogPlaybackError, logMessage: "Playing track: Playback of " + trackPath + " failed")
+      logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
+      playerAlert.triggerAlert(alertMessage: "Error playing track. Check log file for details.")
+    }
+  }
+
   func updatePlayingPosition() {
     playbackTimer?.invalidate()
     playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true, block: { _ in
@@ -729,6 +771,9 @@ let trackFile       = "Tracks.dat"
 
       playerAlert.triggerAlert(alertMessage: "Error playing tracks. Check log file for details.")
     }
+
+    let trackList = (playerSelection.shuffleTracks) ? playlistManager.shuffleList.map { $0.track } : playlistManager.trackList
+    playerSelection.playList = trackList.map { $0.trackURL.lastPathComponent }
   }
 
   func playAllArtists() {
@@ -918,6 +963,9 @@ let trackFile       = "Tracks.dat"
 
     // Nothing more to do if we are not playing
     if(!player.isPlaying) { return }
+
+    let trackList = (playerSelection.shuffleTracks) ? playlistManager.shuffleList.map { $0.track } : playlistManager.trackList
+    playerSelection.playList = trackList.map { $0.trackURL.lastPathComponent }
 
     // Inform the playlist manager
     playPosition = playlistManager.shuffleChanged(shuffleTracks: playerSelection.shuffleTracks)

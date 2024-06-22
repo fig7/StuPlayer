@@ -19,6 +19,8 @@ struct DummyView : View {
 }
 
 struct ContentView: View {
+  @Environment(\.controlActiveState) var controlActiveState
+
   let model: PlayerDataModel
   @ObservedObject var playerAlert: PlayerAlert
   @ObservedObject var playerSelection: PlayerSelection
@@ -26,6 +28,7 @@ struct ContentView: View {
   @State var textHeight       = CGFloat(0.0)
   @State var scrollViewHeight = CGFloat(0.0)
   @FocusState var filterFocus: Bool
+  @FocusState var filterFocus2: Bool
 
   var body: some View {
     VStack(alignment: .leading) {
@@ -49,7 +52,7 @@ struct ContentView: View {
         #endif
       }
 
-      Spacer().frame(height: 15)
+      Spacer().frame(height: 30)
 
       HStack {
         Picker("Type:", selection: $playerSelection.type) {
@@ -67,13 +70,13 @@ struct ContentView: View {
             Text("Artist: ").padding(.horizontal, 10).padding(.vertical, 2)
           }
 
-          Text(playerSelection.artist).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+          Text(playerSelection.artist).frame(minWidth: 50)
         } else if(playerSelection.filterMode != .Artist) {
           Button(action: { }) {
             Text("Artist: ").padding(.horizontal, 10).padding(.vertical, 2)
           }.disabled(true)
 
-          Text(playerSelection.artist).foregroundStyle(.gray).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+          Text(playerSelection.artist).foregroundStyle(.gray).frame(minWidth: 50)
         }
 
         Spacer().frame(width: 20)
@@ -95,7 +98,54 @@ struct ContentView: View {
         Spacer().frame(width: 20)
       }
 
-      Spacer().frame(height: 30)
+      Spacer().frame(height: 20)
+
+      HStack {
+        HStack {
+          Button(action: model.toggleFilter) {
+            switch(playerSelection.filterMode) {
+            case FilterMode.Artist:
+              Text("Artist").frame(width: 40).padding(.horizontal, 10).padding(.vertical, 2)
+
+            case FilterMode.Album:
+              Text("Album").frame(width: 40).padding(.horizontal, 10).padding(.vertical, 2)
+
+            case FilterMode.Track:
+              Text("Track").frame(width: 40).padding(.horizontal, 10).padding(.vertical, 2)
+            }
+          }
+
+          Spacer().frame(width: 10)
+
+          TextField("Filter", text: $playerSelection.filterString).frame(width: 120)
+            .autocorrectionDisabled(/*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
+            .textSelection(.disabled)
+            .textFieldStyle(.roundedBorder)
+            .focused($filterFocus)
+
+          Button(action: model.clearFilter) {
+            Text("✖")
+          }
+        }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
+
+        HStack {
+          Text("Track:").padding(.horizontal, 10).padding(.vertical, 2).foregroundStyle((playerSelection.playPosition > 0) ? .black : .gray)
+
+          Spacer().frame(width: 10)
+
+          TextField("Filter", text: $playerSelection.filterString).frame(width: 120)
+            .autocorrectionDisabled(/*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
+            .textSelection(.disabled)
+            .textFieldStyle(.roundedBorder)
+            .focused($filterFocus2)
+
+          Button(action: model.clearFilter) {
+            Text("✖")
+          }
+        }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading).disabled(playerSelection.playPosition == 0)
+      }
+
+      Spacer().frame(height: 20)
 
       HStack {
         Button(action: model.playAll) {
@@ -127,64 +177,67 @@ struct ContentView: View {
             Text("Repeat: all").frame(width: 90).padding(.horizontal, 10).padding(.vertical, 2)
           }
         }
-
-        Spacer().frame(width: 35)
-
-        Button(action: model.toggleFilter) {
-          switch(playerSelection.filterMode) {
-          case FilterMode.Artist:
-            Text("Artist").frame(width: 40).padding(.horizontal, 10).padding(.vertical, 2)
-
-          case FilterMode.Album:
-            Text("Album").frame(width: 40).padding(.horizontal, 10).padding(.vertical, 2)
-
-          case FilterMode.Track:
-            Text("Track").frame(width: 40).padding(.horizontal, 10).padding(.vertical, 2)
-          }
-        }
-
-        Spacer().frame(width: 10)
-
-        TextField("Filter", text: $playerSelection.filterString).frame(width: 120)
-          .autocorrectionDisabled(/*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
-          .textSelection(.disabled)
-          .textFieldStyle(.roundedBorder)
-          .focused($filterFocus)
-
-        Button(action: model.clearFilter) {
-          Text("x")
-        }
       }
 
-      Spacer().frame(height: 10)
+      Spacer().frame(height: 20)
 
-      ScrollViewReader { scrollViewProxy in
-        ScrollView {
-          VStack(alignment: .leading) {
-            ForEach(Array(playerSelection.list.enumerated()), id: \.offset) { itemIndex, itemText in
-              if(itemIndex == playerSelection.scrollPos) {
-                Text(itemText).fontWeight(.semibold).frame(minWidth: 150, alignment: .leading).padding(.horizontal, 4)
-                  .background(RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3)))
-                  .onTapGesture { model.itemClicked(itemIndex: itemIndex, itemText: itemText) }
-              } else {
-                Text(itemText).frame(minWidth: 150, maxWidth: .infinity, alignment: .leading).padding(.horizontal, 4)
-                  .onTapGesture { model.itemClicked(itemIndex: itemIndex, itemText: itemText) }
+      HStack {
+        ScrollViewReader { scrollViewProxy in
+          ScrollView {
+            VStack(alignment: .leading) {
+              ForEach(Array(playerSelection.list.enumerated()), id: \.offset) { itemIndex, itemText in
+                if(itemIndex == playerSelection.scrollPos) {
+                  Text(itemText).fontWeight(.semibold).frame(minWidth: 150, alignment: .leading).padding(.horizontal, 4)
+                    .background(RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3)))
+                    .onTapGesture { model.itemClicked(itemIndex: itemIndex, itemText: itemText) }
+                } else {
+                  Text(itemText).frame(minWidth: 150, maxWidth: .infinity, alignment: .leading).padding(.horizontal, 4)
+                    .onTapGesture { model.itemClicked(itemIndex: itemIndex, itemText: itemText) }
+                }
               }
-            }
-          }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading).onChange(of: playerSelection.list) { _ in scrollHome(proxy: scrollViewProxy) }
+            }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading).onChange(of: playerSelection.list) { _ in scrollHome(proxy: scrollViewProxy) }
 
-          HStack() {
-            DummyView(action: { scrollDown  (proxy: scrollViewProxy) }).keyboardShortcut(.downArrow, modifiers: [])
-            DummyView(action: { scrollPDown (proxy: scrollViewProxy) }).keyboardShortcut(.pageDown,  modifiers: [])
-            DummyView(action: { scrollEnd   (proxy: scrollViewProxy) }).keyboardShortcut(.end,       modifiers: [])
+            HStack() {
+              DummyView(action: { scrollDown  (proxy: scrollViewProxy) }).keyboardShortcut(.downArrow, modifiers: [])
+              DummyView(action: { scrollPDown (proxy: scrollViewProxy) }).keyboardShortcut(.pageDown,  modifiers: [])
+              DummyView(action: { scrollEnd   (proxy: scrollViewProxy) }).keyboardShortcut(.end,       modifiers: [])
 
-            DummyView(action: { scrollUp   (proxy: scrollViewProxy) }).keyboardShortcut(.upArrow, modifiers: [])
-            DummyView(action: { scrollPUp  (proxy: scrollViewProxy) }).keyboardShortcut(.pageUp,  modifiers: [])
-            DummyView(action: { scrollHome (proxy: scrollViewProxy) }).keyboardShortcut(.home,    modifiers: [])
-          }.frame(maxWidth: 0, maxHeight: 0)
+              DummyView(action: { scrollUp   (proxy: scrollViewProxy) }).keyboardShortcut(.upArrow, modifiers: [])
+              DummyView(action: { scrollPUp  (proxy: scrollViewProxy) }).keyboardShortcut(.pageUp,  modifiers: [])
+              DummyView(action: { scrollHome (proxy: scrollViewProxy) }).keyboardShortcut(.home,    modifiers: [])
+            }.frame(maxWidth: 0, maxHeight: 0)
+          }
+          .frame(minWidth: 150, maxWidth: .infinity).padding(7).background() {
+            GeometryReader { proxy in Color.clear.onAppear { scrollViewHeight = proxy.size.height }.onChange(of: proxy.size.height) { newValue in scrollViewHeight = newValue } }
+          }.overlay(
+            RoundedRectangle(cornerRadius: 8).stroke((filterFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
         }
-        .frame(minWidth: 150, maxWidth: .infinity).background() {
-          GeometryReader { proxy in Color.clear.onAppear { scrollViewHeight = proxy.size.height }.onChange(of: proxy.size.height) { newValue in scrollViewHeight = newValue } }
+
+        if(playerSelection.playPosition > 0) {
+          ScrollViewReader { scrollViewProxy in
+            ScrollView {
+              VStack(alignment: .leading) {
+                ForEach(Array(playerSelection.playList.enumerated()), id: \.offset) { itemIndex, itemText in
+                  if(itemIndex == (playerSelection.playPosition-1)) {
+                    HStack(spacing: 0) {
+                      Text("         ")
+                      Text(itemText).fontWeight(.semibold)
+                    }
+                    .background(Image((playerSelection.playbackState == .playing) ? "Playing" : "Paused").resizable().aspectRatio(contentMode: .fit), alignment: .leading)
+                    .frame(minWidth: 150, alignment: .leading).padding(.horizontal, 4)
+                    .onTapGesture { model.playItemClicked(itemIndex: itemIndex, itemText: itemText) }
+                  } else {
+                    Text("         " + itemText).frame(minWidth: 150, maxWidth: .infinity, alignment: .leading).padding(.horizontal, 4)
+                      .onTapGesture { model.playItemClicked(itemIndex: itemIndex, itemText: itemText) }
+                  }
+                }
+              }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading).onChange(of: playerSelection.playList) { _ in scrollHome(proxy: scrollViewProxy) }
+            }.frame(minWidth: 150, maxWidth: .infinity).padding(7).overlay(
+              RoundedRectangle(cornerRadius: 8).stroke((filterFocus2 && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+            .onChange(of: playerSelection.playPosition) { _ in scrollViewProxy.scrollTo(playerSelection.playPosition, anchor: .center) }
+          }
+        } else {
+          Spacer().frame(minWidth: 150, maxWidth: .infinity).padding(7)
         }
       }
 
@@ -321,6 +374,10 @@ struct ContentView: View {
         model.toggleRepeat()
         return nil
 
+      case kVK_F4:
+        model.toggleFilter()
+        return nil
+
       case kVK_ANSI_KeypadEnter:
         model.togglePause()
         return nil
@@ -332,7 +389,8 @@ struct ContentView: View {
       guard let specialKey = aEvent.specialKey else { return aEvent }
       switch(specialKey) {
       case .tab:
-        model.toggleFilter()
+        if(filterFocus && (playerSelection.playPosition > 0)) { filterFocus2 = true }
+        else if(!filterFocus) { filterFocus = true }
         return nil
 
       default:
