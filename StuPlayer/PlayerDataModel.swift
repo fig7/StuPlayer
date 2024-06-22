@@ -675,8 +675,8 @@ let trackFile       = "Tracks.dat"
     playTracks(playlists: [(playlistInfo, albumTracks)], trackNum: itemIndex+1)
   }
 
-  func playItemClicked(itemIndex: Int, itemText: String) {
-    // Track selected, play it
+  func playingItemClicked(_ itemIndex: Int) {
+    // New track selected, play it
     if(player.isPlaying) {
       pendingTrack = itemIndex
       stopReason   = StoppingReason.PlayingTrackPressed

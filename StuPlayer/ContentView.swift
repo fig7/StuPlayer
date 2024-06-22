@@ -225,10 +225,10 @@ struct ContentView: View {
                     }
                     .background(Image((playerSelection.playbackState == .playing) ? "Playing" : "Paused").resizable().aspectRatio(contentMode: .fit), alignment: .leading)
                     .frame(minWidth: 150, alignment: .leading).padding(.horizontal, 4)
-                    .onTapGesture { model.playItemClicked(itemIndex: itemIndex, itemText: itemText) }
+                    .onTapGesture { model.togglePause() }
                   } else {
                     Text("         " + itemText).frame(minWidth: 150, maxWidth: .infinity, alignment: .leading).padding(.horizontal, 4)
-                      .onTapGesture { model.playItemClicked(itemIndex: itemIndex, itemText: itemText) }
+                      .onTapGesture { model.playingItemClicked(itemIndex) }
                   }
                 }
               }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading).onChange(of: playerSelection.playList) { _ in scrollHome(proxy: scrollViewProxy) }
