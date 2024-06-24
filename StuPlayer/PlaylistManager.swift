@@ -103,6 +103,16 @@ class PlaylistManager {
     return track
   }
 
+  func trackAt(position: Int) -> TrackInfo {
+    if(shuffleTracks) { return shuffleList[position].track }
+    return trackList[position]
+  }
+
+  func indexFor(track: TrackInfo) -> Int {
+    if(shuffleTracks) { return shuffleList.firstIndex(where: { ($0.track.trackURL == track.trackURL) }) ?? -1 }
+    return trackList.firstIndex(where: { ($0.trackURL == track.trackURL) }) ?? -1
+  }
+
   func reset() {
     nextTrackIndex   = 0
     nextShuffleIndex = 0

@@ -248,13 +248,16 @@ struct ContentView: View {
                     let itemText     = item.name
                     let itemSearched = item.searched
 
-                    let playerItem  = (itemIndex == (playerSelection.playPosition-1))
-                    let highlighted = (itemIndex == playerSelection.scrollPos2)
+                    let playerItem    = (itemIndex == (playerSelection.playPosition-1))
+                    let highlighted   = (itemIndex == playerSelection.scrollPos2)
+                    let currentSearch = (itemIndex == playerSelection.searchIndex)
+
                     HStack(spacing: 0) {
                       Text("         ")
                       Text(itemText).fontWeight((highlighted || playerItem) ? .semibold : nil).padding(.horizontal, 4)
-                        .background(highlighted  ? RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3)) :
-                                    itemSearched ? RoundedRectangle(cornerRadius: 5).foregroundColor(.orange.opacity(0.3)) : nil)
+                        .background(highlighted   ? RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3)) :
+                                    currentSearch ? RoundedRectangle(cornerRadius: 5).foregroundColor(.orange.opacity(1.0)) :
+                                    itemSearched  ? RoundedRectangle(cornerRadius: 5).foregroundColor(.yellow.opacity(0.5)) : nil)
                     }
                     .background(playerItem ? Image(itemPlaying ? "Playing" : "Paused").resizable().aspectRatio(contentMode: .fit) : nil, alignment: .leading)
                     .frame(minWidth: 150, alignment: .leading).padding(.horizontal, 4)
@@ -518,7 +521,7 @@ struct ContentView: View {
     if(playerSelection.scrollPos2 >= listLimit) { return }
 
     playerSelection.scrollPos2 += 1
-    playerSelection.searchIndex = playerSelection.scrollPos
+    playerSelection.searchIndex = playerSelection.scrollPos2
 
     proxy.scrollTo(playerSelection.scrollPos2)
   }
@@ -537,7 +540,7 @@ struct ContentView: View {
     if(newScrollPos > listLimit) { newScrollPos = listLimit }
 
     playerSelection.scrollPos2 = newScrollPos;
-    playerSelection.searchIndex = playerSelection.scrollPos
+    playerSelection.searchIndex = playerSelection.scrollPos2
 
     proxy.scrollTo(playerSelection.scrollPos2)
   }
@@ -552,7 +555,7 @@ struct ContentView: View {
     if(playerSelection.scrollPos2 >= listLimit) { return }
 
     playerSelection.scrollPos2 = listLimit;
-    playerSelection.searchIndex = playerSelection.scrollPos
+    playerSelection.searchIndex = playerSelection.scrollPos2
 
     proxy.scrollTo(playerSelection.scrollPos2)
   }
@@ -561,7 +564,7 @@ struct ContentView: View {
     if(playerSelection.scrollPos2 <= 0) { return }
 
     playerSelection.scrollPos2 -= 1;
-    playerSelection.searchIndex = playerSelection.scrollPos
+    playerSelection.searchIndex = playerSelection.scrollPos2
 
     proxy.scrollTo(playerSelection.scrollPos2)
   }
@@ -579,7 +582,7 @@ struct ContentView: View {
     if(newScrollPos < 0) { newScrollPos = 0 }
 
     playerSelection.scrollPos2 = newScrollPos;
-    playerSelection.searchIndex = playerSelection.scrollPos
+    playerSelection.searchIndex = playerSelection.scrollPos2
 
     proxy.scrollTo(playerSelection.scrollPos2)
   }

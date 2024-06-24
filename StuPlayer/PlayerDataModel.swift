@@ -381,10 +381,22 @@ let trackFile       = "Tracks.dat"
         }
 
       case .ReshufflePressed:
+        // Get info for the selected track
+        var selectedTrack: TrackInfo? = nil
+        if(playerSelection.scrollPos2 >= 0) { selectedTrack = playlistManager.trackAt(position: playerSelection.scrollPos2) }
+
+        // Reshuffle the tracks
         playPosition = 0
-        playlistManager.reset(shuffleTracks: playerSelection.shuffleTracks)
+        playlistManager.reset(shuffleTracks: true)
         refreshPlayingTracks()
 
+        // Stay on the same track
+        if(selectedTrack != nil) {
+          playerSelection.scrollPos2  = playlistManager.indexFor(track: selectedTrack!)
+          playerSelection.searchIndex = playerSelection.scrollPos2
+        }
+
+        // Restart playback
         let firstTrack = playlistManager.peekNextTrack()
         let trackURL   = firstTrack!.trackURL
         let trackPath  = trackURL.filePath()
@@ -972,12 +984,22 @@ let trackFile       = "Tracks.dat"
     // Nothing more to do if we are not playing
     if(!player.isPlaying) { return }
 
+    // Get info for the selected track
+    var selectedTrack: TrackInfo? = nil
+    if(playerSelection.scrollPos2 >= 0) { selectedTrack = playlistManager.trackAt(position: playerSelection.scrollPos2) }
+
     // Refresh the view
     refreshPlayingTracks()
 
     // Inform the playlist manager
     playPosition = playlistManager.shuffleChanged(shuffleTracks: playerSelection.shuffleTracks)
     playerSelection.setPlayingPosition(playPosition: playPosition, playTotal: playlistManager.trackCount)
+
+    // Stay on the same track
+    if(selectedTrack != nil) {
+      playerSelection.scrollPos2  = playlistManager.indexFor(track: selectedTrack!)
+      playerSelection.searchIndex = playerSelection.scrollPos2
+    }
 
     // Toggling shuffle when repeating the current track has no further effects
     if(playerSelection.repeatTracks == RepeatState.Track) {
