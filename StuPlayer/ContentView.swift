@@ -123,7 +123,7 @@ struct ContentView: View {
             .textFieldStyle(.roundedBorder)
             .focused($filterFocus)
 
-          Button(action: model.clearFilter) {
+          Button(action: { playerSelection.clearFilter(resetMode: false) }) {
             Text("✖")
           }
         }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
@@ -133,13 +133,21 @@ struct ContentView: View {
 
           Spacer().frame(width: 10)
 
-          TextField("Filter", text: $playerSelection.filterString).frame(width: 120)
+          TextField("Search", text: $playerSelection.searchString).frame(width: 120)
             .autocorrectionDisabled(/*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
             .textSelection(.disabled)
             .textFieldStyle(.roundedBorder)
             .focused($filterFocus2)
 
-          Button(action: model.clearFilter) {
+          Button(action: { _ = playerSelection.searchPrev }) {
+            Text("▲")
+          }.disabled(!playerSelection.searchUpAllowed)
+
+          Button(action: { _ = playerSelection.searchNext }) {
+            Text("▼")
+          }.disabled(!playerSelection.searchDownAllowed)
+
+          Button(action: playerSelection.clearSearch) {
             Text("✖")
           }
         }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading).disabled(playerSelection.playPosition == 0)
@@ -208,7 +216,7 @@ struct ContentView: View {
                       .onTapGesture { model.itemClicked(itemIndex: itemIndex, itemText: itemText) }
                   }
                 }
-              }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading).onChange(of: playerSelection.list) { _ in scrollHome(proxy: scrollViewProxy) }
+              }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
             }
           }
           .frame(minWidth: 150, maxWidth: .infinity).padding(7).background() {
@@ -236,23 +244,28 @@ struct ContentView: View {
                 LazyVStack(alignment: .leading, spacing: 0) {
                   let itemPlaying = (playerSelection.playbackState == .playing)
 
-                  ForEach(Array(playerSelection.playList.enumerated()), id: \.offset) { itemIndex, itemText in
+                  ForEach(Array(playerSelection.playingTracks.enumerated()), id: \.offset) { itemIndex, item in
+                    let itemText     = item.name
+                    let itemSearched = item.searched
+
                     let playerItem  = (itemIndex == (playerSelection.playPosition-1))
                     let highlighted = (itemIndex == playerSelection.scrollPos2)
                     HStack(spacing: 0) {
                       Text("         ")
                       Text(itemText).fontWeight((highlighted || playerItem) ? .semibold : nil).padding(.horizontal, 4)
-                        .background(highlighted ? RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3)) : nil)
+                        .background(highlighted  ? RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3)) :
+                                    itemSearched ? RoundedRectangle(cornerRadius: 5).foregroundColor(.orange.opacity(0.3)) : nil)
                     }
                     .background(playerItem ? Image(itemPlaying ? "Playing" : "Paused").resizable().aspectRatio(contentMode: .fit) : nil, alignment: .leading)
                     .frame(minWidth: 150, alignment: .leading).padding(.horizontal, 4)
                     .onTapGesture { playerItem ? model.togglePause() : model.playingItemClicked(itemIndex) }
                   }
-                }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading).onChange(of: playerSelection.playList) { _ in scrollHome2(proxy: scrollViewProxy) }
+                }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
               }
             }.frame(minWidth: 150, maxWidth: .infinity).padding(7).overlay(
               RoundedRectangle(cornerRadius: 8).stroke((filterFocus2 && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
             .onChange(of: playerSelection.playPosition) { _ in scrollViewProxy.scrollTo(playerSelection.playPosition, anchor: .center) }
+            .onChange(of: playerSelection.scrollTo)     { _ in scrollViewProxy.scrollTo(playerSelection.scrollPos2, anchor: .center); playerSelection.scrollTo = false }
           }
         } else {
           Spacer().frame(minWidth: 150, maxWidth: .infinity).padding(7)
@@ -355,23 +368,39 @@ struct ContentView: View {
       let keyCode = Int(aEvent.keyCode)
       switch(keyCode) {
       case kVK_Escape:
-        Fix for filter 2
+        if(filterFocus) {
+          // Clear album first
+          if((playerSelection.filterString.isEmpty || (playerSelection.filterMode != .Track)) && !playerSelection.album.isEmpty) {
+            model.clearAlbum()
+            return nil
+          }
 
-        // Clear album first
-        if((playerSelection.filterString.isEmpty || (playerSelection.filterMode != .Track)) && !playerSelection.album.isEmpty) {
-          model.clearAlbum()
+          // Then artist
+          if((playerSelection.filterString.isEmpty || (playerSelection.filterMode == .Artist)) && !playerSelection.artist.isEmpty) {
+            model.clearArtist()
+            return nil
+          }
+
+          // Then filter
+          if(!playerSelection.filterString.isEmpty) {
+            playerSelection.clearFilter(resetMode: false)
+            return nil
+          }
+
+          // Finally, clear the selection
+          playerSelection.scrollPos = -1
+          return nil
+        } else { // filterFocus2
+          // Clear search first
+          if(!playerSelection.searchString.isEmpty) {
+            playerSelection.clearSearch()
+            return nil
+          }
+
+          // Finally, clear the selection
+          playerSelection.scrollPos2 = -1
           return nil
         }
-
-        // Then artist
-        if((playerSelection.filterString.isEmpty || (playerSelection.filterMode == .Artist)) && !playerSelection.artist.isEmpty) {
-          model.clearArtist()
-          return nil
-        }
-
-        // Finally, the selection and filter
-        model.clearFilter()
-        return nil
 
       case kVK_Return:
         if(filterFocus) {
@@ -485,7 +514,7 @@ struct ContentView: View {
   }
 
   func scrollDown2(proxy: ScrollViewProxy) {
-    let listLimit = playerSelection.playList.count - 1
+    let listLimit = playerSelection.playingTracks.count - 1
     if(playerSelection.scrollPos2 >= listLimit) { return }
 
     playerSelection.scrollPos2 += 1;
@@ -493,7 +522,12 @@ struct ContentView: View {
   }
 
   func scrollPDown2(proxy: ScrollViewProxy) {
-    let listLimit = playerSelection.playList.count - 1
+    if(playerSelection.searchDownAllowed) {
+      _ = playerSelection.searchNext()
+      return
+    }
+
+    let listLimit = playerSelection.playingTracks.count - 1
     if(playerSelection.scrollPos2 >= listLimit) { return }
 
     let linesToScroll = Int(0.5 + scrollViewHeight / textHeight)
@@ -505,7 +539,12 @@ struct ContentView: View {
   }
 
   func scrollEnd2(proxy: ScrollViewProxy) {
-    let listLimit = playerSelection.playList.count - 1
+    if(playerSelection.searchDownAllowed) {
+      _ = playerSelection.searchEnd()
+      return
+    }
+
+    let listLimit = playerSelection.playingTracks.count - 1
     if(playerSelection.scrollPos2 >= listLimit) { return }
 
     playerSelection.scrollPos2 = listLimit;
@@ -520,6 +559,11 @@ struct ContentView: View {
   }
 
   func scrollPUp2(proxy: ScrollViewProxy) {
+    if(playerSelection.searchUpAllowed) {
+      _ = playerSelection.searchPrev()
+      return
+    }
+
     if(playerSelection.scrollPos2 <= 0) { return }
 
     let linesToScroll = Int(0.5 + scrollViewHeight / textHeight)
@@ -531,6 +575,11 @@ struct ContentView: View {
   }
 
   func scrollHome2(proxy: ScrollViewProxy) {
+    if(playerSelection.searchUpAllowed) {
+      _ = playerSelection.searchHome()
+      return
+    }
+
     if(playerSelection.scrollPos2 > 0) { playerSelection.scrollPos2 = 0 }
     proxy.scrollTo(0)
   }

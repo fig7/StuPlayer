@@ -383,9 +383,7 @@ let trackFile       = "Tracks.dat"
       case .ReshufflePressed:
         playPosition = 0
         playlistManager.reset(shuffleTracks: playerSelection.shuffleTracks)
-
-        let trackList = (playerSelection.shuffleTracks) ? playlistManager.shuffleList.map { $0.track } : playlistManager.trackList
-        playerSelection.playList = trackList.map { $0.trackURL.lastPathComponent }
+        refreshPlayingTracks()
 
         let firstTrack = playlistManager.peekNextTrack()
         let trackURL   = firstTrack!.trackURL
@@ -772,8 +770,12 @@ let trackFile       = "Tracks.dat"
       playerAlert.triggerAlert(alertMessage: "Error playing tracks. Check log file for details.")
     }
 
+    // Update playing tracks and clear search
     let trackList = (playerSelection.shuffleTracks) ? playlistManager.shuffleList.map { $0.track } : playlistManager.trackList
-    playerSelection.playList = trackList.map { $0.trackURL.lastPathComponent }
+    playerSelection.playingTracks = trackList.map { PlayingItem(name: $0.trackURL.lastPathComponent, searched: false) }
+
+    playerSelection.clearSearch()
+    if(playerSelection.scrollPos2 >= 0) { playerSelection.scrollPos2 = 0; playerSelection.scrollTo = true }
   }
 
   func playAllArtists() {
@@ -964,8 +966,8 @@ let trackFile       = "Tracks.dat"
     // Nothing more to do if we are not playing
     if(!player.isPlaying) { return }
 
-    let trackList = (playerSelection.shuffleTracks) ? playlistManager.shuffleList.map { $0.track } : playlistManager.trackList
-    playerSelection.playList = trackList.map { $0.trackURL.lastPathComponent }
+    // Refresh the view
+    refreshPlayingTracks()
 
     // Inform the playlist manager
     playPosition = playlistManager.shuffleChanged(shuffleTracks: playerSelection.shuffleTracks)
@@ -1030,11 +1032,6 @@ let trackFile       = "Tracks.dat"
 
   func toggleFilter() {
     playerSelection.toggleFilterMode()
-  }
-
-  func clearFilter() {
-    playerSelection.scrollPos = -1
-    playerSelection.clearFilter(resetMode: false)
   }
 
   static func getM3UDict(m3UFile: String) throws -> AllM3UDict {
@@ -1413,7 +1410,7 @@ let trackFile       = "Tracks.dat"
     var tracks: [(artist: String, album: String, track: String)] = []
     for artist in tracksDict.keys {
       for album in tracksDict[artist]!.keys {
-        let matchingTracks = tracksDict[artist]![album]!.filter({ album in return album.lowercased().hasPrefix(lowerCasedFilter) })
+        let matchingTracks = tracksDict[artist]![album]!.filter({ track in return track.lowercased().hasPrefix(lowerCasedFilter) })
         for track in matchingTracks {
           tracks.append((artist, album, track))
         }
@@ -1498,6 +1495,16 @@ let trackFile       = "Tracks.dat"
       }
 
       playerSelection.setArtistAndAlbum(newArtist: filteredArtist, newAlbum: filteredAlbum)
+    }
+  }
+
+  func refreshPlayingTracks() {
+    let newTrackList   = (playerSelection.shuffleTracks) ? playlistManager.shuffleList.map { $0.track } : playlistManager.trackList
+    let searchedTracks = playerSelection.playingTracks.filter({ $0.searched })
+    playerSelection.playingTracks = newTrackList.map {
+      let trackName     = $0.trackURL.lastPathComponent
+      let trackSearched = searchedTracks.contains(where: { return ($0.name == trackName) })
+      return PlayingItem(name: trackName, searched: trackSearched)
     }
   }
 

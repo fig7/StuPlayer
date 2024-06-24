@@ -11,6 +11,11 @@ import SFBAudioEngine
 enum RepeatState { case None, Track, All }
 enum FilterMode  { case Artist, Album, Track }
 
+struct PlayingItem {
+  let name: String
+  var searched: Bool
+}
+
 @MainActor class PlayerSelection: ObservableObject
 {
   @MainActor protocol Delegate: AnyObject {
@@ -50,7 +55,7 @@ enum FilterMode  { case Artist, Album, Track }
   @Published var trackPosString = "0:00" // Hours, minutes and seconds
   @Published var seekEnabled    = false  // Enable and disable the slider
 
-  @Published var playList: [String] = []
+  @Published var playingTracks: [PlayingItem] = []
 
   @Published var filterMode   = FilterMode.Artist
   @Published var filterString = "" {
@@ -65,7 +70,61 @@ enum FilterMode  { case Artist, Album, Track }
     }
   }
 
-  @Published var scrollPos2 = -1
+  @Published var scrollTo = false
+  @Published var scrollPos2 = -1 {
+    didSet {
+      var upAllowed   = false
+      var downAllowed = false
+
+      for i in playingTracks.indices {
+        let searched = playingTracks[i].searched
+        if(searched && (i < scrollPos2)) {
+          upAllowed = true
+        } else if(searched && (i > scrollPos2)) {
+          downAllowed = true
+          break
+        }
+      }
+
+      searchUpAllowed   = upAllowed
+      searchDownAllowed = downAllowed
+    }
+  }
+
+  @Published var searchUpAllowed   = false
+  @Published var searchDownAllowed = false
+  @Published var searchString = "" {
+    didSet {
+      if(searchString.isEmpty) {
+        for i in playingTracks.indices { playingTracks[i].searched = false }
+
+        searchUpAllowed   = false
+        searchDownAllowed = false
+        return
+      }
+
+      let lcSearchString = searchString.lowercased()
+      var firstIndex = -1
+      for i in playingTracks.indices {
+        if(playingTracks[i].name.lowercased().hasPrefix(lcSearchString)) {
+          playingTracks[i].searched = true
+          if(firstIndex == -1) { firstIndex = i }
+        } else { playingTracks[i].searched = false }
+      }
+
+      if(firstIndex != -1) {
+        if(scrollPos2 != firstIndex) {
+          if(!searchNext()) {
+            _ = searchHome()
+          }
+        }
+      }
+      else {
+        searchUpAllowed   = false
+        searchDownAllowed = false
+      }
+    }
+  }
 
   weak var delegate: Delegate?
 
@@ -206,6 +265,84 @@ enum FilterMode  { case Artist, Album, Track }
 
   func clearFilter(resetMode: Bool) {
     if(resetMode) { filterMode = .Artist }
-    filterString = ""
+    if(!filterString.isEmpty) {
+      filterString = ""
+    }
+  }
+
+  func clearSearch() {
+    if(!searchString.isEmpty) {
+      searchString = ""
+    }
+  }
+
+  func searchPrev() -> Bool {
+    var prevIndex = scrollPos2 - 1
+    if(prevIndex < 0) { return false }
+
+    repeat {
+      if(playingTracks[prevIndex].searched) {
+        scrollPos2 = prevIndex;
+        scrollTo   = true
+        return true
+      }
+
+      prevIndex -= 1
+    } while(prevIndex >= 0)
+
+    return false
+  }
+
+  func searchNext() -> Bool {
+    let indexLimit = playingTracks.count - 1
+
+    var nextIndex = scrollPos2 + 1
+    if(nextIndex > indexLimit) { return false }
+
+    repeat {
+      if(playingTracks[nextIndex].searched) {
+        scrollPos2 = nextIndex;
+        scrollTo   = true
+        return true
+      }
+
+      nextIndex += 1
+    } while(nextIndex <= indexLimit)
+
+    return false
+  }
+
+  func searchHome() -> Bool {
+    let indexLimit = playingTracks.count - 1
+    var index      = 0
+
+    repeat {
+      if(playingTracks[index].searched) {
+        scrollPos2 = index;
+        scrollTo   = true
+        return true
+      }
+
+      index += 1
+    } while(index <= indexLimit)
+
+    return false
+  }
+
+  func searchEnd() -> Bool {
+    let indexLimit = playingTracks.count - 1
+    var index      = indexLimit
+
+    repeat {
+      if(playingTracks[index].searched) {
+        scrollPos2 = index;
+        scrollTo   = true
+        return true
+      }
+
+      index -= 1
+    } while(index >= 0)
+
+    return false
   }
 }
