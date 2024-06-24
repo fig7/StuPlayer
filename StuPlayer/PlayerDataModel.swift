@@ -674,6 +674,8 @@ let trackFile       = "Tracks.dat"
   }
 
   func playingItemClicked(_ itemIndex: Int) {
+    playerSelection.scrollPos2 = -1
+
     // New track selected, play it
     if(player.isPlaying) {
       pendingTrack = itemIndex
