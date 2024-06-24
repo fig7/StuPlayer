@@ -70,9 +70,10 @@ struct PlayingItem {
     }
   }
 
-  @Published var scrollTo = false
-  @Published var scrollPos2 = -1 { didSet { updateSearchUpDown() } }
+  @Published var scrollTo   = -1
+  @Published var scrollPos2 = -1
 
+  @Published var searchIndex = -1 { didSet { updateSearchUpDown() } }
   @Published var searchUpAllowed   = false
   @Published var searchDownAllowed = false
   @Published var searchString = "" {
@@ -80,6 +81,7 @@ struct PlayingItem {
       if(searchString.isEmpty) {
         for i in playingTracks.indices { playingTracks[i].searched = false }
 
+        searchIndex       = -1
         searchUpAllowed   = false
         searchDownAllowed = false
         return
@@ -95,11 +97,13 @@ struct PlayingItem {
       }
 
       if(firstIndex == -1) {
+        searchIndex       = -1
         searchUpAllowed   = false
         searchDownAllowed = false
+        return
       }
 
-      if((scrollPos2 != -1) && (playingTracks[scrollPos2].searched)) {
+      if((searchIndex != -1) && (playingTracks[searchIndex].searched)) {
         updateSearchUpDown()
         return
       }
@@ -261,13 +265,14 @@ struct PlayingItem {
   }
 
   func searchPrev() -> Bool {
-    var prevIndex = scrollPos2 - 1
+    var prevIndex = searchIndex - 1
     if(prevIndex < 0) { return false }
 
     repeat {
       if(playingTracks[prevIndex].searched) {
-        scrollPos2 = prevIndex;
-        scrollTo   = true
+        if(scrollPos2 >= 0) { scrollPos2 = prevIndex }
+        searchIndex = prevIndex
+        scrollTo    = prevIndex
         return true
       }
 
@@ -280,13 +285,14 @@ struct PlayingItem {
   func searchNext() -> Bool {
     let indexLimit = playingTracks.count - 1
 
-    var nextIndex = scrollPos2 + 1
+    var nextIndex = searchIndex + 1
     if(nextIndex > indexLimit) { return false }
 
     repeat {
       if(playingTracks[nextIndex].searched) {
-        scrollPos2 = nextIndex;
-        scrollTo   = true
+        if(scrollPos2 >= 0) { scrollPos2 = nextIndex }
+        searchIndex = nextIndex
+        scrollTo    = nextIndex
         return true
       }
 
@@ -302,8 +308,9 @@ struct PlayingItem {
 
     repeat {
       if(playingTracks[index].searched) {
-        scrollPos2 = index;
-        scrollTo   = true
+        if(scrollPos2 >= 0) { scrollPos2 = index }
+        searchIndex = index
+        scrollTo    = index
         return true
       }
 
@@ -319,8 +326,9 @@ struct PlayingItem {
 
     repeat {
       if(playingTracks[index].searched) {
-        scrollPos2 = index;
-        scrollTo   = true
+        if(scrollPos2 >= 0) { scrollPos2 = index }
+        searchIndex = index
+        scrollTo    = index
         return true
       }
 
@@ -331,14 +339,16 @@ struct PlayingItem {
   }
 
   func updateSearchUpDown() {
+    if(searchString.isEmpty) { return }
+
     var upAllowed   = false
     var downAllowed = false
 
     for i in playingTracks.indices {
       let searched = playingTracks[i].searched
-      if(searched && (i < scrollPos2)) {
+      if(searched && (i < searchIndex)) {
         upAllowed = true
-      } else if(searched && (i > scrollPos2)) {
+      } else if(searched && (i > searchIndex)) {
         downAllowed = true
         break
       }

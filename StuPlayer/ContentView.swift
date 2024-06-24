@@ -265,7 +265,7 @@ struct ContentView: View {
             }.frame(minWidth: 150, maxWidth: .infinity).padding(7).overlay(
               RoundedRectangle(cornerRadius: 8).stroke((filterFocus2 && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
             .onChange(of: playerSelection.playPosition) { _ in scrollViewProxy.scrollTo(playerSelection.playPosition, anchor: .center) }
-            .onChange(of: playerSelection.scrollTo)     { _ in scrollViewProxy.scrollTo(playerSelection.scrollPos2, anchor: .center); playerSelection.scrollTo = false }
+            .onChange(of: playerSelection.scrollTo)     { _ in scrollViewProxy.scrollTo(playerSelection.scrollTo, anchor: .center); playerSelection.scrollTo = -1 }
           }
         } else {
           Spacer().frame(minWidth: 150, maxWidth: .infinity).padding(7)
@@ -419,7 +419,7 @@ struct ContentView: View {
           }
 
           let playerItem = (itemIndex == (playerSelection.playPosition-1))
-          playerItem ? model.togglePause() : model.playingItemClicked(itemIndex)
+          playerItem ? model.togglePause() : model.playingItemSelected(itemIndex)
         }
         return nil
 
@@ -517,7 +517,9 @@ struct ContentView: View {
     let listLimit = playerSelection.playingTracks.count - 1
     if(playerSelection.scrollPos2 >= listLimit) { return }
 
-    playerSelection.scrollPos2 += 1;
+    playerSelection.scrollPos2 += 1
+    playerSelection.searchIndex = playerSelection.scrollPos
+
     proxy.scrollTo(playerSelection.scrollPos2)
   }
 
@@ -535,6 +537,8 @@ struct ContentView: View {
     if(newScrollPos > listLimit) { newScrollPos = listLimit }
 
     playerSelection.scrollPos2 = newScrollPos;
+    playerSelection.searchIndex = playerSelection.scrollPos
+
     proxy.scrollTo(playerSelection.scrollPos2)
   }
 
@@ -548,6 +552,8 @@ struct ContentView: View {
     if(playerSelection.scrollPos2 >= listLimit) { return }
 
     playerSelection.scrollPos2 = listLimit;
+    playerSelection.searchIndex = playerSelection.scrollPos
+
     proxy.scrollTo(playerSelection.scrollPos2)
   }
 
@@ -555,6 +561,8 @@ struct ContentView: View {
     if(playerSelection.scrollPos2 <= 0) { return }
 
     playerSelection.scrollPos2 -= 1;
+    playerSelection.searchIndex = playerSelection.scrollPos
+
     proxy.scrollTo(playerSelection.scrollPos2)
   }
 
@@ -571,6 +579,8 @@ struct ContentView: View {
     if(newScrollPos < 0) { newScrollPos = 0 }
 
     playerSelection.scrollPos2 = newScrollPos;
+    playerSelection.searchIndex = playerSelection.scrollPos
+
     proxy.scrollTo(playerSelection.scrollPos2)
   }
 
@@ -580,7 +590,7 @@ struct ContentView: View {
       return
     }
 
-    if(playerSelection.scrollPos2 > 0) { playerSelection.scrollPos2 = 0 }
+    if(playerSelection.scrollPos2 > 0) { playerSelection.scrollPos2 = 0; playerSelection.searchIndex = 0 }
     proxy.scrollTo(0)
   }
 }

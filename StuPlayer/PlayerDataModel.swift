@@ -675,7 +675,11 @@ let trackFile       = "Tracks.dat"
 
   func playingItemClicked(_ itemIndex: Int) {
     playerSelection.scrollPos2 = -1
+    playingItemSelected(itemIndex)
 
+  }
+
+  func playingItemSelected(_ itemIndex: Int) {
     // New track selected, play it
     if(player.isPlaying) {
       pendingTrack = itemIndex
@@ -777,7 +781,7 @@ let trackFile       = "Tracks.dat"
     playerSelection.playingTracks = trackList.map { PlayingItem(name: $0.trackURL.lastPathComponent, searched: false) }
 
     playerSelection.clearSearch()
-    if(playerSelection.scrollPos2 >= 0) { playerSelection.scrollPos2 = 0; playerSelection.scrollTo = true }
+    if(playerSelection.scrollPos2 >= 0) { playerSelection.scrollPos2 = 0; playerSelection.scrollTo = 0 }
   }
 
   func playAllArtists() {
