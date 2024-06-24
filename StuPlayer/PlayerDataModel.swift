@@ -690,7 +690,7 @@ let trackFile       = "Tracks.dat"
     }
 
     playPosition = itemIndex
-    let newTrack = playlistManager.moveTo(trackNum: itemIndex)
+    let newTrack = playlistManager.moveTo(trackNum: playPosition+1)
     let trackURL      = newTrack!.trackURL
     let trackPath     = trackURL.filePath()
 
