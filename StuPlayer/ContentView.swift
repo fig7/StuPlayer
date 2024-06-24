@@ -139,11 +139,11 @@ struct ContentView: View {
             .textFieldStyle(.roundedBorder)
             .focused($filterFocus2)
 
-          Button(action: { _ = playerSelection.searchPrev }) {
+          Button(action: { _ = playerSelection.searchPrev() }) {
             Text("▲")
           }.disabled(!playerSelection.searchUpAllowed)
 
-          Button(action: { _ = playerSelection.searchNext }) {
+          Button(action: { _ = playerSelection.searchNext() }) {
             Text("▼")
           }.disabled(!playerSelection.searchDownAllowed)
 
