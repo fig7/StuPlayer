@@ -1378,6 +1378,9 @@ let trackFile       = "Tracks.dat"
       // (it's not critical)
     }
 
+    playerSelection.scrollPos = -1
+    playerSelection.clearFilter(resetMode: true)
+
     m3UDict      = allM3UDict[selectedType]    ?? [:]
     tracksDict   = allTracksDict[selectedType] ?? [:]
     musicPath    = rootPath + selectedType + "/"
@@ -1385,8 +1388,8 @@ let trackFile       = "Tracks.dat"
     selectedArtist = ""
     selectedAlbum  = ""
 
-    playerSelection.scrollPos = -1
-    playerSelection.clearFilter(resetMode: true)
+    let artistList = tracksDict.keys.sorted()
+    playerSelection.setAll(newArtist: "", newAlbum: "", newList: artistList)
   }
 
   func artists(filteredBy: String) -> [String] {

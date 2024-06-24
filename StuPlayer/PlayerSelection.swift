@@ -71,25 +71,7 @@ struct PlayingItem {
   }
 
   @Published var scrollTo = false
-  @Published var scrollPos2 = -1 {
-    didSet {
-      var upAllowed   = false
-      var downAllowed = false
-
-      for i in playingTracks.indices {
-        let searched = playingTracks[i].searched
-        if(searched && (i < scrollPos2)) {
-          upAllowed = true
-        } else if(searched && (i > scrollPos2)) {
-          downAllowed = true
-          break
-        }
-      }
-
-      searchUpAllowed   = upAllowed
-      searchDownAllowed = downAllowed
-    }
-  }
+  @Published var scrollPos2 = -1 { didSet { updateSearchUpDown() } }
 
   @Published var searchUpAllowed   = false
   @Published var searchDownAllowed = false
@@ -112,16 +94,18 @@ struct PlayingItem {
         } else { playingTracks[i].searched = false }
       }
 
-      if(firstIndex != -1) {
-        if(scrollPos2 != firstIndex) {
-          if(!searchNext()) {
-            _ = searchHome()
-          }
-        }
-      }
-      else {
+      if(firstIndex == -1) {
         searchUpAllowed   = false
         searchDownAllowed = false
+      }
+
+      if((scrollPos2 != -1) && (playingTracks[scrollPos2].searched)) {
+        updateSearchUpDown()
+        return
+      }
+
+      if(!searchNext()) {
+        _ = searchHome()
       }
     }
   }
@@ -344,5 +328,23 @@ struct PlayingItem {
     } while(index >= 0)
 
     return false
+  }
+
+  func updateSearchUpDown() {
+    var upAllowed   = false
+    var downAllowed = false
+
+    for i in playingTracks.indices {
+      let searched = playingTracks[i].searched
+      if(searched && (i < scrollPos2)) {
+        upAllowed = true
+      } else if(searched && (i > scrollPos2)) {
+        downAllowed = true
+        break
+      }
+    }
+
+    searchUpAllowed   = upAllowed
+    searchDownAllowed = downAllowed
   }
 }
