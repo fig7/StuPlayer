@@ -9,6 +9,8 @@ import SwiftUI
 import Carbon.HIToolbox
 import SFBAudioEngine
 
+enum ScrollViewFocus { case BrowserScrollView, PlayingScrollView }
+
 struct DummyView : View {
   init(action: @escaping () -> Void) { self.onPressed = action }
 
@@ -25,10 +27,9 @@ struct ContentView: View {
   @ObservedObject var playerAlert: PlayerAlert
   @ObservedObject var playerSelection: PlayerSelection
 
-  @State var textHeight       = CGFloat(0.0)
-  @State var scrollViewHeight = CGFloat(0.0)
-  @FocusState var filterFocus: Bool
-  @FocusState var filterFocus2: Bool
+  @State private var textHeight       = CGFloat(0.0)
+  @State private var scrollViewHeight = CGFloat(0.0)
+  @FocusState private var scrollViewFocus: ScrollViewFocus?
 
   var body: some View {
     VStack(alignment: .leading) {
@@ -43,13 +44,13 @@ struct ContentView: View {
           Text("Rescan").padding(.horizontal, 10).padding(.vertical, 2)
         }
 
-        #if PLAYBACK_TEST
+#if PLAYBACK_TEST
         Spacer().frame(width: 20)
 
         Button(action: model.testPlay) {
           Text("Test").padding(.horizontal, 10).padding(.vertical, 2)
         }
-        #endif
+#endif
       }
 
       Spacer().frame(height: 30)
@@ -121,7 +122,7 @@ struct ContentView: View {
             .autocorrectionDisabled(/*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
             .textSelection(.disabled)
             .textFieldStyle(.roundedBorder)
-            .focused($filterFocus)
+            .focused($scrollViewFocus, equals: .BrowserScrollView)
 
           Button(action: { playerSelection.clearFilter(resetMode: false) }) {
             Text("✖")
@@ -137,7 +138,7 @@ struct ContentView: View {
             .autocorrectionDisabled(/*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
             .textSelection(.disabled)
             .textFieldStyle(.roundedBorder)
-            .focused($filterFocus2)
+            .focused($scrollViewFocus, equals: .PlayingScrollView)
 
           Button(action: { _ = playerSelection.searchPrev() }) {
             Text("▲")
@@ -191,23 +192,25 @@ struct ContentView: View {
 
       HStack {
         ScrollViewReader { scrollViewProxy in
+          let hasFocus = (scrollViewFocus == .BrowserScrollView)
+
           ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-              if(filterFocus) {
+              if(hasFocus) {
                 HStack() {
-                  DummyView(action: { scrollDown  (proxy: scrollViewProxy) }).keyboardShortcut(.downArrow, modifiers: [])
-                  DummyView(action: { scrollPDown (proxy: scrollViewProxy) }).keyboardShortcut(.pageDown,  modifiers: [])
-                  DummyView(action: { scrollEnd   (proxy: scrollViewProxy) }).keyboardShortcut(.end,       modifiers: [])
+                  DummyView(action: { browserDown     (proxy: scrollViewProxy) }).keyboardShortcut(.downArrow, modifiers: [])
+                  DummyView(action: { browserPageDown (proxy: scrollViewProxy) }).keyboardShortcut(.pageDown,  modifiers: [])
+                  DummyView(action: { browserEnd      (proxy: scrollViewProxy) }).keyboardShortcut(.end,       modifiers: [])
 
-                  DummyView(action: { scrollUp   (proxy: scrollViewProxy) }).keyboardShortcut(.upArrow, modifiers: [])
-                  DummyView(action: { scrollPUp  (proxy: scrollViewProxy) }).keyboardShortcut(.pageUp,  modifiers: [])
-                  DummyView(action: { scrollHome (proxy: scrollViewProxy) }).keyboardShortcut(.home,    modifiers: [])
+                  DummyView(action: { browserUp      (proxy: scrollViewProxy) }).keyboardShortcut(.upArrow, modifiers: [])
+                  DummyView(action: { browserPageUp  (proxy: scrollViewProxy) }).keyboardShortcut(.pageUp,  modifiers: [])
+                  DummyView(action: { browserHome    (proxy: scrollViewProxy) }).keyboardShortcut(.home,    modifiers: [])
                 }.frame(maxWidth: 0, maxHeight: 0)
               }
 
               LazyVStack(alignment: .leading) {
                 ForEach(Array(playerSelection.list.enumerated()), id: \.offset) { itemIndex, itemText in
-                  if(itemIndex == playerSelection.scrollPos) {
+                  if(itemIndex == playerSelection.browserScrollPos) {
                     Text(itemText).fontWeight(.semibold).frame(minWidth: 150, alignment: .leading).padding(.horizontal, 4)
                       .background(RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3)))
                       .onTapGesture { model.itemClicked(itemIndex: itemIndex, itemText: itemText) }
@@ -222,22 +225,26 @@ struct ContentView: View {
           .frame(minWidth: 150, maxWidth: .infinity).padding(7).background() {
             GeometryReader { proxy in Color.clear.onAppear { scrollViewHeight = proxy.size.height }.onChange(of: proxy.size.height) { newValue in scrollViewHeight = newValue } }
           }.overlay(
-            RoundedRectangle(cornerRadius: 8).stroke((filterFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+            RoundedRectangle(cornerRadius: 8).stroke((hasFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
         }
 
         if(playerSelection.playPosition > 0) {
           ScrollViewReader { scrollViewProxy in
+            let hasFocus = (scrollViewFocus == .PlayingScrollView)
+
             ScrollView {
               VStack(alignment: .leading, spacing: 0) {
-                if(filterFocus2) {
+                if(hasFocus) {
                   HStack() {
-                    DummyView(action: { scrollDown2  (proxy: scrollViewProxy) }).keyboardShortcut(.downArrow, modifiers: [])
-                    DummyView(action: { scrollPDown2 (proxy: scrollViewProxy) }).keyboardShortcut(.pageDown,  modifiers: [])
-                    DummyView(action: { scrollEnd2  (proxy: scrollViewProxy) }).keyboardShortcut(.end,       modifiers: [])
+                    DummyView(action: { playingDown     (proxy: scrollViewProxy) }).keyboardShortcut(.downArrow, modifiers: [])
+                    DummyView(action: { playingPageDown (proxy: scrollViewProxy) }).keyboardShortcut(.pageDown,  modifiers: [])
+                    DummyView(action: { playingEnd      (proxy: scrollViewProxy) }).keyboardShortcut(.end,       modifiers: [])
 
-                    DummyView(action: { scrollUp2   (proxy: scrollViewProxy) }).keyboardShortcut(.upArrow, modifiers: [])
-                    DummyView(action: { scrollPUp2  (proxy: scrollViewProxy) }).keyboardShortcut(.pageUp,  modifiers: [])
-                    DummyView(action: { scrollHome2 (proxy: scrollViewProxy) }).keyboardShortcut(.home,    modifiers: [])
+                    DummyView(action: { playingUp      (proxy: scrollViewProxy) }).keyboardShortcut(.upArrow, modifiers: [])
+                    DummyView(action: { playingPageUp  (proxy: scrollViewProxy) }).keyboardShortcut(.pageUp,  modifiers: [])
+                    DummyView(action: { playingHome    (proxy: scrollViewProxy) }).keyboardShortcut(.home,    modifiers: [])
+
+                    DummyView(action: { playingSelected(proxy: scrollViewProxy) }).keyboardShortcut(.clear, modifiers: [])
                   }.frame(maxWidth: 0, maxHeight: 0)
                 }
 
@@ -249,8 +256,8 @@ struct ContentView: View {
                     let itemSearched = item.searched
 
                     let playerItem    = (itemIndex == (playerSelection.playPosition-1))
-                    let highlighted   = (itemIndex == playerSelection.scrollPos2)
-                    let currentSearch = (itemIndex == playerSelection.searchIndex)
+                    let highlighted   = (itemIndex == playerSelection.playingScrollPos)
+                    let currentSearch = (itemIndex == playerSelection.searchIndex) && itemSearched
 
                     HStack(spacing: 0) {
                       Text("         ")
@@ -266,9 +273,22 @@ struct ContentView: View {
                 }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
               }
             }.frame(minWidth: 150, maxWidth: .infinity).padding(7).overlay(
-              RoundedRectangle(cornerRadius: 8).stroke((filterFocus2 && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
-            .onChange(of: playerSelection.playPosition) { _ in scrollViewProxy.scrollTo(playerSelection.playPosition, anchor: .center) }
-            .onChange(of: playerSelection.scrollTo)     { _ in scrollViewProxy.scrollTo(playerSelection.scrollTo, anchor: .center); playerSelection.scrollTo = -1 }
+              RoundedRectangle(cornerRadius: 8).stroke((hasFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+            .onChange(of: playerSelection.playPosition) { newPos in
+              if(newPos == 0) { scrollViewFocus = .BrowserScrollView; return }
+
+              playerSelection.prevSel = -1
+              playerSelection.currSel = -1
+              scrollViewProxy.scrollTo(playerSelection.playPosition, anchor: .center)
+            }
+            .onChange(of: playerSelection.playingScrollTo) { _ in
+              if(playerSelection.playingScrollTo == -1) { return }
+
+              scrollViewProxy.scrollTo(playerSelection.playingScrollTo, anchor: .center)
+              playerSelection.prevSel = playerSelection.playingScrollTo
+              playerSelection.currSel = playerSelection.playingScrollTo
+              playerSelection.playingScrollTo = -1
+            }
           }
         } else {
           Spacer().frame(minWidth: 150, maxWidth: .infinity).padding(7)
@@ -363,7 +383,7 @@ struct ContentView: View {
     .padding()
     .frame(minWidth:  200, maxWidth: .infinity, minHeight: 200, maxHeight: .infinity, alignment: .topLeading)
     .alert(playerAlert.alertMessage, isPresented: $playerAlert.alertTriggered) { }
-    .onAppear { handleKeyEvents(); filterFocus = true }
+    .onAppear { handleKeyEvents() }
   }
 
   func handleKeyEvents() {
@@ -371,7 +391,7 @@ struct ContentView: View {
       let keyCode = Int(aEvent.keyCode)
       switch(keyCode) {
       case kVK_Escape:
-        if(filterFocus) {
+        if(scrollViewFocus == .BrowserScrollView) {
           // Clear album first
           if((playerSelection.filterString.isEmpty || (playerSelection.filterMode != .Track)) && !playerSelection.album.isEmpty) {
             model.clearAlbum()
@@ -391,9 +411,9 @@ struct ContentView: View {
           }
 
           // Finally, clear the selection
-          playerSelection.scrollPos = -1
+          playerSelection.browserScrollPos = -1
           return nil
-        } else { // filterFocus2
+        } else { // (scrollViewFocus == .PlayingScrollView)
           // Clear search first
           if(!playerSelection.searchString.isEmpty) {
             playerSelection.clearSearch()
@@ -401,23 +421,24 @@ struct ContentView: View {
           }
 
           // Finally, clear the selection
-          playerSelection.scrollPos2 = -1
+          playerSelection.playingScrollPos = -1
           return nil
         }
 
       case kVK_Return:
-        if(filterFocus) {
-          let itemIndex = playerSelection.scrollPos
+        if((scrollViewFocus == .BrowserScrollView)) {
+          let itemIndex = playerSelection.browserScrollPos
           if((itemIndex < 0) && (playerSelection.list.count > 0)) {
-            playerSelection.scrollPos = 0
+            playerSelection.browserScrollPos = 0
             return nil
-          } else if(playerSelection.scrollPos < 0) { return nil }
+          } else if(playerSelection.browserScrollPos < 0) { return nil }
 
           model.itemSelected(itemIndex: itemIndex, itemText: playerSelection.list[itemIndex])
-        } else {
-          let itemIndex = playerSelection.scrollPos2
+        } else { // (scrollViewFocus == .PlayingScrollView)
+          let itemIndex = playerSelection.playingScrollPos
           if(itemIndex < 0) {
-            playerSelection.scrollPos2 = 0
+            playerSelection.playingScrollPos = 0
+            playerSelection.searchIndex      = 0
             return nil
           }
 
@@ -453,8 +474,9 @@ struct ContentView: View {
       guard let specialKey = aEvent.specialKey else { return aEvent }
       switch(specialKey) {
       case .tab:
-        if(filterFocus && (playerSelection.playPosition > 0)) { filterFocus2 = true }
-        else if(!filterFocus) { filterFocus = true }
+        let browserFocus = (scrollViewFocus == .BrowserScrollView)
+        if(browserFocus && (playerSelection.playPosition > 0)) { scrollViewFocus = .PlayingScrollView  }
+        else if(!browserFocus) { scrollViewFocus = .BrowserScrollView }
         return nil
 
       default:
@@ -465,135 +487,197 @@ struct ContentView: View {
     }
   }
 
-  func scrollDown(proxy: ScrollViewProxy) {
+  func browserDown(proxy: ScrollViewProxy) {
     let listLimit = playerSelection.list.count - 1
-    if(playerSelection.scrollPos >= listLimit) { return }
+    if(playerSelection.browserScrollPos >= listLimit) { return }
 
-    playerSelection.scrollPos += 1;
-    proxy.scrollTo(playerSelection.scrollPos)
+    playerSelection.browserScrollPos += 1;
+    proxy.scrollTo(playerSelection.browserScrollPos)
   }
 
-  func scrollPDown(proxy: ScrollViewProxy) {
+  func browserPageDown(proxy: ScrollViewProxy) {
     let listLimit = playerSelection.list.count - 1
-    if(playerSelection.scrollPos >= listLimit) { return }
+    if(playerSelection.browserScrollPos >= listLimit) { return }
 
     let linesToScroll = Int(0.5 + scrollViewHeight / textHeight)
-    var newScrollPos  = ((playerSelection.scrollPos < 0) ? 0 : playerSelection.scrollPos) + linesToScroll
+    var newScrollPos  = ((playerSelection.browserScrollPos < 0) ? 0 : playerSelection.browserScrollPos) + linesToScroll
     if(newScrollPos > listLimit) { newScrollPos = listLimit }
 
-    playerSelection.scrollPos = newScrollPos;
-    proxy.scrollTo(playerSelection.scrollPos)
+    playerSelection.browserScrollPos = newScrollPos;
+    proxy.scrollTo(playerSelection.browserScrollPos)
   }
 
-  func scrollEnd(proxy: ScrollViewProxy) {
+  func browserEnd(proxy: ScrollViewProxy) {
     let listLimit = playerSelection.list.count - 1
-    if(playerSelection.scrollPos >= listLimit) { return }
+    if(playerSelection.browserScrollPos >= listLimit) { return }
 
-    playerSelection.scrollPos = listLimit;
-    proxy.scrollTo(playerSelection.scrollPos)
+    playerSelection.browserScrollPos = listLimit;
+    proxy.scrollTo(playerSelection.browserScrollPos)
   }
 
-  func scrollUp(proxy: ScrollViewProxy) {
-    if(playerSelection.scrollPos <= 0) { return }
+  func browserUp(proxy: ScrollViewProxy) {
+    if(playerSelection.browserScrollPos <= 0) { return }
 
-    playerSelection.scrollPos -= 1;
-    proxy.scrollTo(playerSelection.scrollPos)
+    playerSelection.browserScrollPos -= 1;
+    proxy.scrollTo(playerSelection.browserScrollPos)
   }
 
-  func scrollPUp(proxy: ScrollViewProxy) {
-    if(playerSelection.scrollPos <= 0) { return }
+  func browserPageUp(proxy: ScrollViewProxy) {
+    if(playerSelection.browserScrollPos <= 0) { return }
 
     let linesToScroll = Int(0.5 + scrollViewHeight / textHeight)
-    var newScrollPos = playerSelection.scrollPos - linesToScroll
+    var newScrollPos = playerSelection.browserScrollPos - linesToScroll
     if(newScrollPos < 0) { newScrollPos = 0 }
 
-    playerSelection.scrollPos = newScrollPos;
-    proxy.scrollTo(playerSelection.scrollPos)
+    playerSelection.browserScrollPos = newScrollPos;
+    proxy.scrollTo(playerSelection.browserScrollPos)
   }
 
-  func scrollHome(proxy: ScrollViewProxy) {
-    if(playerSelection.scrollPos > 0) { playerSelection.scrollPos = 0 }
+  func browserHome(proxy: ScrollViewProxy) {
+    if(playerSelection.browserScrollPos > 0) { playerSelection.browserScrollPos = 0 }
     proxy.scrollTo(0)
   }
 
-  func scrollDown2(proxy: ScrollViewProxy) {
+  func playingDown(proxy: ScrollViewProxy) {
     let listLimit = playerSelection.playingTracks.count - 1
-    if(playerSelection.scrollPos2 >= listLimit) { return }
+    if(playerSelection.playingScrollPos >= listLimit) { return }
 
-    playerSelection.scrollPos2 += 1
-    playerSelection.searchIndex = playerSelection.scrollPos2
+    playerSelection.playingScrollPos += 1
+    playerSelection.searchIndex       = playerSelection.playingScrollPos
 
-    proxy.scrollTo(playerSelection.scrollPos2)
+    playerSelection.prevSel = playerSelection.playingScrollPos
+    playerSelection.currSel = playerSelection.playingScrollPos
+
+    proxy.scrollTo(playerSelection.playingScrollPos)
   }
 
-  func scrollPDown2(proxy: ScrollViewProxy) {
+  func playingPageDown(proxy: ScrollViewProxy) {
     if(playerSelection.searchDownAllowed) {
       _ = playerSelection.searchNext()
       return
     }
 
     let listLimit = playerSelection.playingTracks.count - 1
-    if(playerSelection.scrollPos2 >= listLimit) { return }
+    if(playerSelection.playingScrollPos >= listLimit) { return }
 
     let linesToScroll = Int(0.5 + scrollViewHeight / textHeight)
-    var newScrollPos  = ((playerSelection.scrollPos2 < 0) ? 0 : playerSelection.scrollPos2) + linesToScroll
+    var newScrollPos  = ((playerSelection.playingScrollPos < 0) ? 0 : playerSelection.playingScrollPos) + linesToScroll
     if(newScrollPos > listLimit) { newScrollPos = listLimit }
 
-    playerSelection.scrollPos2 = newScrollPos;
-    playerSelection.searchIndex = playerSelection.scrollPos2
+    playerSelection.playingScrollPos = newScrollPos;
+    playerSelection.searchIndex      = playerSelection.playingScrollPos
 
-    proxy.scrollTo(playerSelection.scrollPos2)
+    playerSelection.prevSel = playerSelection.playingScrollPos
+    playerSelection.currSel = playerSelection.playingScrollPos
+
+    proxy.scrollTo(playerSelection.playingScrollPos)
   }
 
-  func scrollEnd2(proxy: ScrollViewProxy) {
+  func playingEnd(proxy: ScrollViewProxy) {
     if(playerSelection.searchDownAllowed) {
       _ = playerSelection.searchEnd()
       return
     }
 
     let listLimit = playerSelection.playingTracks.count - 1
-    if(playerSelection.scrollPos2 >= listLimit) { return }
+    if(playerSelection.playingScrollPos >= listLimit) { return }
 
-    playerSelection.scrollPos2 = listLimit;
-    playerSelection.searchIndex = playerSelection.scrollPos2
+    playerSelection.playingScrollPos = listLimit;
+    playerSelection.searchIndex      = playerSelection.playingScrollPos
 
-    proxy.scrollTo(playerSelection.scrollPos2)
+    playerSelection.prevSel = playerSelection.playingScrollPos
+    playerSelection.currSel = playerSelection.playingScrollPos
+
+    proxy.scrollTo(playerSelection.playingScrollPos)
   }
 
-  func scrollUp2(proxy: ScrollViewProxy) {
-    if(playerSelection.scrollPos2 <= 0) { return }
+  func playingUp(proxy: ScrollViewProxy) {
+    if(playerSelection.playingScrollPos <= 0) { return }
 
-    playerSelection.scrollPos2 -= 1;
-    playerSelection.searchIndex = playerSelection.scrollPos2
+    playerSelection.playingScrollPos -= 1;
+    playerSelection.searchIndex = playerSelection.playingScrollPos
 
-    proxy.scrollTo(playerSelection.scrollPos2)
+    playerSelection.prevSel = playerSelection.playingScrollPos
+    playerSelection.currSel = playerSelection.playingScrollPos
+
+    proxy.scrollTo(playerSelection.playingScrollPos)
   }
 
-  func scrollPUp2(proxy: ScrollViewProxy) {
+  func playingPageUp(proxy: ScrollViewProxy) {
     if(playerSelection.searchUpAllowed) {
       _ = playerSelection.searchPrev()
       return
     }
 
-    if(playerSelection.scrollPos2 <= 0) { return }
-
+    if(playerSelection.playingScrollPos <= 0) { return }
+    
     let linesToScroll = Int(0.5 + scrollViewHeight / textHeight)
-    var newScrollPos = playerSelection.scrollPos2 - linesToScroll
+    var newScrollPos = playerSelection.playingScrollPos - linesToScroll
     if(newScrollPos < 0) { newScrollPos = 0 }
 
-    playerSelection.scrollPos2 = newScrollPos;
-    playerSelection.searchIndex = playerSelection.scrollPos2
+    playerSelection.playingScrollPos = newScrollPos;
+    playerSelection.searchIndex      = playerSelection.playingScrollPos
 
-    proxy.scrollTo(playerSelection.scrollPos2)
+    playerSelection.prevSel = playerSelection.playingScrollPos
+    playerSelection.currSel = playerSelection.playingScrollPos
+
+    proxy.scrollTo(playerSelection.playingScrollPos)
   }
 
-  func scrollHome2(proxy: ScrollViewProxy) {
+  func playingHome(proxy: ScrollViewProxy) {
     if(playerSelection.searchUpAllowed) {
       _ = playerSelection.searchHome()
       return
     }
 
-    if(playerSelection.scrollPos2 > 0) { playerSelection.scrollPos2 = 0; playerSelection.searchIndex = 0 }
+    if(playerSelection.playingScrollPos > 0) {
+      playerSelection.playingScrollPos = 0
+      playerSelection.searchIndex      = 0
+
+      playerSelection.prevSel = playerSelection.playingScrollPos
+      playerSelection.currSel = playerSelection.playingScrollPos
+    }
+
     proxy.scrollTo(0)
+  }
+
+  func playingSelected(proxy: ScrollViewProxy) {
+    print("Selected to:")
+    print(playerSelection.prevSel)
+    print(playerSelection.currSel)
+    print("")
+
+    if(playerSelection.playingScrollPos < 0) {
+      playerSelection.playingScrollPos = playerSelection.playPosition - 1
+      playerSelection.searchIndex      = playerSelection.playingScrollPos
+
+      playerSelection.prevSel = playerSelection.playingScrollPos
+      playerSelection.currSel = playerSelection.playingScrollPos
+      proxy.scrollTo(playerSelection.playingScrollPos, anchor: .center)
+      return
+    }
+
+    if(playerSelection.currSel < 0) {
+      playerSelection.prevSel = playerSelection.playingScrollPos
+      playerSelection.currSel = playerSelection.playingScrollPos
+      proxy.scrollTo(playerSelection.playingScrollPos, anchor: .center)
+      return
+    }
+
+    let playingSel = playerSelection.playPosition - 1
+    if(playerSelection.currSel != playingSel) {
+      playerSelection.playingScrollPos = playingSel
+      playerSelection.searchIndex      = playerSelection.playingScrollPos
+
+      playerSelection.currSel = playerSelection.playingScrollPos
+      proxy.scrollTo(playerSelection.playingScrollPos, anchor: .center)
+      return
+    }
+
+    playerSelection.playingScrollPos = playerSelection.prevSel
+    playerSelection.searchIndex      = playerSelection.playingScrollPos
+
+    playerSelection.currSel = playerSelection.prevSel
+    proxy.scrollTo(playerSelection.playingScrollPos, anchor: .center)
   }
 }

@@ -383,7 +383,7 @@ let trackFile       = "Tracks.dat"
       case .ReshufflePressed:
         // Get info for the selected track
         var selectedTrack: TrackInfo? = nil
-        if(playerSelection.scrollPos2 >= 0) { selectedTrack = playlistManager.trackAt(position: playerSelection.scrollPos2) }
+        if(playerSelection.playingScrollPos >= 0) { selectedTrack = playlistManager.trackAt(position: playerSelection.playingScrollPos) }
 
         // Reshuffle the tracks
         playPosition = 0
@@ -392,8 +392,8 @@ let trackFile       = "Tracks.dat"
 
         // Stay on the same track
         if(selectedTrack != nil) {
-          playerSelection.scrollPos2  = playlistManager.indexFor(track: selectedTrack!)
-          playerSelection.searchIndex = playerSelection.scrollPos2
+          playerSelection.playingScrollPos = playlistManager.indexFor(track: selectedTrack!)
+          playerSelection.searchIndex      = playerSelection.playingScrollPos
         }
 
         // Restart playback
@@ -447,7 +447,7 @@ let trackFile       = "Tracks.dat"
   }
 
   func artistClicked() {
-    playerSelection.scrollPos = -1
+    playerSelection.browserScrollPos = -1
     clearArtist()
   }
 
@@ -482,7 +482,7 @@ let trackFile       = "Tracks.dat"
   }
 
   func albumClicked() {
-    playerSelection.scrollPos = -1
+    playerSelection.browserScrollPos = -1
     clearAlbum()
   }
 
@@ -635,7 +635,7 @@ let trackFile       = "Tracks.dat"
   }
 
   func itemClicked(itemIndex: Int, itemText: String) {
-    playerSelection.scrollPos = -1
+    playerSelection.browserScrollPos = -1
     itemSelected(itemIndex: itemIndex, itemText: itemText)
   }
 
@@ -686,9 +686,8 @@ let trackFile       = "Tracks.dat"
   }
 
   func playingItemClicked(_ itemIndex: Int) {
-    playerSelection.scrollPos2 = -1
+    playerSelection.playingScrollPos = -1
     playingItemSelected(itemIndex)
-
   }
 
   func playingItemSelected(_ itemIndex: Int) {
@@ -793,7 +792,10 @@ let trackFile       = "Tracks.dat"
     playerSelection.playingTracks = trackList.map { PlayingItem(name: $0.trackURL.lastPathComponent, searched: false) }
 
     playerSelection.clearSearch()
-    if(playerSelection.scrollPos2 >= 0) { playerSelection.scrollPos2 = 0; playerSelection.scrollTo = 0 }
+    if(playerSelection.playingScrollPos >= 0) {
+      playerSelection.playingScrollPos = 0
+      playerSelection.playingScrollTo = 0
+    }
   }
 
   func playAllArtists() {
@@ -986,7 +988,7 @@ let trackFile       = "Tracks.dat"
 
     // Get info for the selected track
     var selectedTrack: TrackInfo? = nil
-    if(playerSelection.scrollPos2 >= 0) { selectedTrack = playlistManager.trackAt(position: playerSelection.scrollPos2) }
+    if(playerSelection.playingScrollPos >= 0) { selectedTrack = playlistManager.trackAt(position: playerSelection.playingScrollPos) }
 
     // Refresh the view
     refreshPlayingTracks()
@@ -997,8 +999,8 @@ let trackFile       = "Tracks.dat"
 
     // Stay on the same track
     if(selectedTrack != nil) {
-      playerSelection.scrollPos2  = playlistManager.indexFor(track: selectedTrack!)
-      playerSelection.searchIndex = playerSelection.scrollPos2
+      playerSelection.playingScrollPos  = playlistManager.indexFor(track: selectedTrack!)
+      playerSelection.searchIndex = playerSelection.playingScrollPos
     }
 
     // Toggling shuffle when repeating the current track has no further effects
@@ -1404,7 +1406,7 @@ let trackFile       = "Tracks.dat"
       // (it's not critical)
     }
 
-    playerSelection.scrollPos = -1
+    playerSelection.browserScrollPos = -1
     playerSelection.clearFilter(resetMode: true)
 
     m3UDict      = allM3UDict[selectedType]    ?? [:]
@@ -1502,13 +1504,13 @@ let trackFile       = "Tracks.dat"
     }
   }
 
-  func scrollPosChanged(newScrollPos: Int) {
+  func browserScrollPosChanged(newScrollPos: Int) {
     if(playerSelection.filterString.isEmpty) { return }
     if(playerSelection.filterMode == .Artist) { return }
 
     if((playerSelection.filterMode == .Album) && filteredAlbum.isEmpty) {
       if(newScrollPos >= 0) {
-        let album = filteredAlbums[playerSelection.scrollPos]
+        let album = filteredAlbums[playerSelection.browserScrollPos]
         filteredArtist = "from filter (\(album.artist))"
       } else {
         filteredArtist = "from filter"
@@ -1517,7 +1519,7 @@ let trackFile       = "Tracks.dat"
       playerSelection.setArtistAndAlbum(newArtist: filteredArtist, newAlbum: filteredAlbum)
     } else if(playerSelection.filterMode == .Track) {
       if(newScrollPos >= 0) {
-        let track = filteredTracks[playerSelection.scrollPos]
+        let track = filteredTracks[playerSelection.browserScrollPos]
         filteredArtist = "from filter (\(track.artist))"
         filteredAlbum  = "from filter (\(track.album))"
       } else {

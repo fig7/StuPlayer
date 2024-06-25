@@ -21,7 +21,7 @@ struct PlayingItem {
   @MainActor protocol Delegate: AnyObject {
     func typeChanged(newType: String)
     func filterChanged(newFilter: String)
-    func scrollPosChanged(newScrollPos: Int)
+    func browserScrollPosChanged(newScrollPos: Int)
   }
 
   @Published var rootPath = ""
@@ -64,14 +64,17 @@ struct PlayingItem {
     }
   }
 
-  @Published var scrollPos = -1 {
+  @Published var browserScrollPos = -1 {
     didSet {
-      delegate?.scrollPosChanged(newScrollPos: scrollPos)
+      delegate?.browserScrollPosChanged(newScrollPos: browserScrollPos)
     }
   }
 
-  @Published var scrollTo   = -1
-  @Published var scrollPos2 = -1
+  @Published var playingScrollTo   = -1
+  @Published var playingScrollPos  = -1
+
+  var prevSel = -1
+  var currSel = -1
 
   @Published var searchIndex = -1 { didSet { updateSearchUpDown() } }
   @Published var searchUpAllowed   = false
@@ -81,7 +84,7 @@ struct PlayingItem {
       if(searchString.isEmpty) {
         for i in playingTracks.indices { playingTracks[i].searched = false }
 
-        searchIndex       = -1
+        searchIndex       = playingScrollPos
         searchUpAllowed   = false
         searchDownAllowed = false
         return
@@ -97,7 +100,7 @@ struct PlayingItem {
       }
 
       if(firstIndex == -1) {
-        searchIndex       = -1
+        searchIndex       = playingScrollPos
         searchUpAllowed   = false
         searchDownAllowed = false
         return
@@ -133,14 +136,14 @@ struct PlayingItem {
     self.artist = newArtist
     self.album  = ""
 
-    if((self.scrollPos >= 0) && (newList.count > 0)) { self.scrollPos = 0 } else { self.scrollPos = -1 }
+    if((self.browserScrollPos >= 0) && (newList.count > 0)) { self.browserScrollPos = 0 } else { self.browserScrollPos = -1 }
     self.list = newList
   }
 
   func setAlbum(newAlbum: String, newList: [String]) {
     self.album = newAlbum
 
-    if((self.scrollPos >= 0) && (newList.count > 0)) { self.scrollPos = 0 } else { self.scrollPos = -1 }
+    if((self.browserScrollPos >= 0) && (newList.count > 0)) { self.browserScrollPos = 0 } else { self.browserScrollPos = -1 }
     self.list = newList
   }
 
@@ -148,7 +151,7 @@ struct PlayingItem {
     self.artist = newArtist
     self.album  = newAlbum
 
-    if((self.scrollPos >= 0) && (newList.count > 0)) { self.scrollPos = 0 } else { self.scrollPos = -1 }
+    if((self.browserScrollPos >= 0) && (newList.count > 0)) { self.browserScrollPos = 0 } else { self.browserScrollPos = -1 }
     self.list = newList
   }
 
@@ -270,9 +273,9 @@ struct PlayingItem {
 
     repeat {
       if(playingTracks[prevIndex].searched) {
-        if(scrollPos2 >= 0) { scrollPos2 = prevIndex }
-        searchIndex = prevIndex
-        scrollTo    = prevIndex
+        if(playingScrollPos >= 0) { playingScrollPos = prevIndex }
+        searchIndex      = prevIndex
+        playingScrollTo  = prevIndex
         return true
       }
 
@@ -290,9 +293,9 @@ struct PlayingItem {
 
     repeat {
       if(playingTracks[nextIndex].searched) {
-        if(scrollPos2 >= 0) { scrollPos2 = nextIndex }
-        searchIndex = nextIndex
-        scrollTo    = nextIndex
+        if(playingScrollPos >= 0) { playingScrollPos = nextIndex }
+        searchIndex     = nextIndex
+        playingScrollTo = nextIndex
         return true
       }
 
@@ -308,9 +311,9 @@ struct PlayingItem {
 
     repeat {
       if(playingTracks[index].searched) {
-        if(scrollPos2 >= 0) { scrollPos2 = index }
-        searchIndex = index
-        scrollTo    = index
+        if(playingScrollPos >= 0) { playingScrollPos = index }
+        searchIndex     = index
+        playingScrollTo = index
         return true
       }
 
@@ -326,9 +329,9 @@ struct PlayingItem {
 
     repeat {
       if(playingTracks[index].searched) {
-        if(scrollPos2 >= 0) { scrollPos2 = index }
-        searchIndex = index
-        scrollTo    = index
+        if(playingScrollPos >= 0) { playingScrollPos = index }
+        searchIndex     = index
+        playingScrollTo = index
         return true
       }
 
