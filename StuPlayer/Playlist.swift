@@ -14,7 +14,7 @@ struct PlaylistInfo {
 }
 
 struct TrackInfo {
-  let playlistInfo: PlaylistInfo
+  let playlist: Playlist
   let trackNum: Int
   let trackURL: URL
 }

@@ -51,8 +51,11 @@ struct PlayingItem {
   @Published var playPosition = 0
   @Published var playTotal    = 0
 
-  @Published var trackPosition  = 0.0    // 0.0 < 1.0 (used by the slider)
-  @Published var trackPosString = "0:00" // Hours, minutes and seconds
+  @Published var trackPos     = 0.0    // 0.0 < 1.0 (used by the slider)
+  @Published var trackPosStr  = "0:00" // Hours, minutes and seconds
+  @Published var trackLeftStr = "0:00" // Hours, minutes and seconds
+
+  @Published var trackCountdown = false  // Time ticks up or down
   @Published var seekEnabled    = false  // Enable and disable the slider
 
   @Published var playingTracks: [PlayingItem] = []
@@ -117,6 +120,10 @@ struct PlayingItem {
     }
   }
 
+  @Published var playlistInfo  = ""
+  @Published var trackInfo     = ""
+  @Published var countdownInfo = ""
+
   weak var delegate: Delegate?
 
   func setDelegate(delegate: Delegate) {
@@ -161,27 +168,48 @@ struct PlayingItem {
   }
 
   func setTrack(newTrack: TrackInfo?) {
-    setPlaylist(newPlaylist: newTrack?.playlistInfo)
+    setPlaylist(newPlaylist: newTrack?.playlist)
 
     guard let newTrack else {
       self.track    = ""
       self.trackNum = 0
+
+      self.trackInfo = ""
       return
     }
 
     self.track    = newTrack.trackURL.lastPathComponent
     self.trackNum = newTrack.trackNum
+
+    let playlist = newTrack.playlist
+    let playlistInfo = playlist.playlistInfo
+
+    let playlistSplit = playlistInfo.playlistPath.split(separator: "/")
+    let artist = playlistSplit[0]
+    let album  = playlistSplit[1]
+    self.trackInfo = "File:\t\t\(track)\nArtist:\t\(artist)\nAlbum:\t\(album)\nTrack:\t\(trackNum) of \(numTracks)"
   }
 
-  func setPlaylist(newPlaylist: PlaylistInfo?) {
+  func setPlaylist(newPlaylist: Playlist?) {
     guard let newPlaylist else {
       self.playlist  = ""
       self.numTracks = 0
+
+      self.playlistInfo = ""
       return
     }
 
-    self.playlist  = newPlaylist.playlistFile
-    self.numTracks = newPlaylist.numTracks
+    let playlistInfo = newPlaylist.playlistInfo
+    self.playlist  = playlistInfo.playlistFile
+    self.numTracks = playlistInfo.numTracks
+
+    let playlistSplit = playlistInfo.playlistPath.split(separator: "/")
+    let artist = playlistSplit[0]
+    let album  = playlistSplit[1]
+
+    let baseStr  = "Playlist:\t\(playlist)\nArtist:\t\(artist)\nAlbum:\t\(album)\nTracks:\t"
+    let trackStr = newPlaylist.tracks.joined(separator: "\n\t\t")
+    self.playlistInfo = baseStr + trackStr
   }
 
   func setPlaybackState(newPlaybackState: AudioPlayer.PlaybackState) {
@@ -193,9 +221,10 @@ struct PlayingItem {
     self.playTotal    = playTotal
 
     if(playPosition == 0) {
-      self.trackPosition  = 0.0
-      self.trackPosString = "0:00"
-      self.seekEnabled    = false
+      self.trackPos    = 0.0
+      self.trackPosStr  = "0:00"
+      self.trackLeftStr = "0:00"
+      self.seekEnabled = false
     }
   }
 

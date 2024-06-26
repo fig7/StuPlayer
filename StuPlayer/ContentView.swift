@@ -20,6 +20,81 @@ struct DummyView : View {
   }
 }
 
+struct BrowserItemView : View {
+  let model: PlayerDataModel
+  @ObservedObject var playerSelection: PlayerSelection
+
+  let itemText: String
+  let itemIndex: Int
+
+  let highlighted: Bool
+
+  init(model: PlayerDataModel, playerSelection: PlayerSelection, itemText: String, itemIndex: Int) {
+    self.model = model
+    self.playerSelection = playerSelection
+
+    self.itemText     = itemText
+    self.itemIndex    = itemIndex
+
+    highlighted = (itemIndex == playerSelection.browserScrollPos)
+
+  }
+
+  var body: some View {
+    Text(itemText).fontWeight(highlighted ? .semibold : nil).frame(minWidth: 150, alignment: .leading).padding(.horizontal, 4)
+      .background(highlighted ? RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3)) : nil)
+      .onTapGesture { model.itemClicked(itemIndex: itemIndex, itemText: itemText) }
+  }
+}
+
+struct PlayingItemView : View {
+  @State private var playingPopover = false
+
+  let model: PlayerDataModel
+  @ObservedObject var playerSelection: PlayerSelection
+
+  let itemText: String
+  let itemSearched: Bool
+  let itemIndex: Int
+
+  let itemPlaying: Bool
+  let playerItem: Bool
+  let highlighted: Bool
+  let currentSearch: Bool
+
+  init(model: PlayerDataModel, playerSelection: PlayerSelection, itemText: String, itemSearched: Bool, itemIndex: Int) {
+    self.model = model
+    self.playerSelection = playerSelection
+
+    self.itemText     = itemText
+    self.itemSearched = itemSearched
+    self.itemIndex    = itemIndex
+
+    itemPlaying   = (playerSelection.playbackState == .playing)
+    playerItem    = (itemIndex == (playerSelection.playPosition-1))
+    highlighted   = (itemIndex == playerSelection.playingScrollPos)
+    currentSearch = (itemIndex == playerSelection.searchIndex) && itemSearched
+  }
+
+  var body: some View {
+    HStack(spacing: 0) {
+      Text("         ")
+      Text(itemText).fontWeight((highlighted || playerItem) ? .semibold : nil).padding(.horizontal, 4)
+        .background(highlighted   ? RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3)) :
+                    currentSearch ? RoundedRectangle(cornerRadius: 5).foregroundColor(.orange.opacity(1.0)) :
+                    itemSearched  ? RoundedRectangle(cornerRadius: 5).foregroundColor(.yellow.opacity(0.5)) : nil)
+    }
+    .background(playerItem ? Image(itemPlaying ? "Playing" : "Paused").resizable().aspectRatio(contentMode: .fit) : nil, alignment: .leading)
+    .frame(minWidth: 150, alignment: .leading).padding(.horizontal, 4)
+    .onTapGesture { playerItem ? model.togglePause() : model.playingItemClicked(itemIndex) }
+    .onHover(perform: { hovering in
+      if(hovering) {
+        model.delayAction(itemIndex) { playingPopover = true }
+      } else { model.delayCancel(); playingPopover = false } })
+    .popover(isPresented: $playingPopover) { Text("Hi!") }
+  }
+}
+
 struct ContentView: View {
   @Environment(\.controlActiveState) var controlActiveState
 
@@ -30,6 +105,10 @@ struct ContentView: View {
   @State private var textHeight       = CGFloat(0.0)
   @State private var scrollViewHeight = CGFloat(0.0)
   @FocusState private var scrollViewFocus: ScrollViewFocus?
+
+  @State private var playlistPopover  = false
+  @State private var trackPopover     = false
+  @State private var countdownPopover = false
 
   var body: some View {
     VStack(alignment: .leading) {
@@ -210,14 +289,7 @@ struct ContentView: View {
 
               LazyVStack(alignment: .leading) {
                 ForEach(Array(playerSelection.list.enumerated()), id: \.offset) { itemIndex, itemText in
-                  if(itemIndex == playerSelection.browserScrollPos) {
-                    Text(itemText).fontWeight(.semibold).frame(minWidth: 150, alignment: .leading).padding(.horizontal, 4)
-                      .background(RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3)))
-                      .onTapGesture { model.itemClicked(itemIndex: itemIndex, itemText: itemText) }
-                  } else {
-                    Text(itemText).frame(minWidth: 150, maxWidth: .infinity, alignment: .leading).padding(.horizontal, 4)
-                      .onTapGesture { model.itemClicked(itemIndex: itemIndex, itemText: itemText) }
-                  }
+                  BrowserItemView(model: model, playerSelection: playerSelection, itemText: itemText, itemIndex: itemIndex)
                 }
               }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
             }
@@ -249,26 +321,8 @@ struct ContentView: View {
                 }
 
                 LazyVStack(alignment: .leading, spacing: 0) {
-                  let itemPlaying = (playerSelection.playbackState == .playing)
-
                   ForEach(Array(playerSelection.playingTracks.enumerated()), id: \.offset) { itemIndex, item in
-                    let itemText     = item.name
-                    let itemSearched = item.searched
-
-                    let playerItem    = (itemIndex == (playerSelection.playPosition-1))
-                    let highlighted   = (itemIndex == playerSelection.playingScrollPos)
-                    let currentSearch = (itemIndex == playerSelection.searchIndex) && itemSearched
-
-                    HStack(spacing: 0) {
-                      Text("         ")
-                      Text(itemText).fontWeight((highlighted || playerItem) ? .semibold : nil).padding(.horizontal, 4)
-                        .background(highlighted   ? RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3)) :
-                                    currentSearch ? RoundedRectangle(cornerRadius: 5).foregroundColor(.orange.opacity(1.0)) :
-                                    itemSearched  ? RoundedRectangle(cornerRadius: 5).foregroundColor(.yellow.opacity(0.5)) : nil)
-                    }
-                    .background(playerItem ? Image(itemPlaying ? "Playing" : "Paused").resizable().aspectRatio(contentMode: .fit) : nil, alignment: .leading)
-                    .frame(minWidth: 150, alignment: .leading).padding(.horizontal, 4)
-                    .onTapGesture { playerItem ? model.togglePause() : model.playingItemClicked(itemIndex) }
+                    PlayingItemView(model: model, playerSelection: playerSelection, itemText: item.name, itemSearched: item.searched, itemIndex: itemIndex)
                   }
                 }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
               }
@@ -300,30 +354,48 @@ struct ContentView: View {
       HStack {
         if(playerSelection.playPosition > 0) {
           Text(String(format: "Playing: %d/%d", playerSelection.playPosition, playerSelection.playTotal)).frame(width: 142, alignment:.leading)
-          Slider(value: $playerSelection.trackPosition, in: 0...1, onEditingChanged: { startFinish in
+          Slider(value: $playerSelection.trackPos, in: 0...1, onEditingChanged: { startFinish in
             if(startFinish) { return; }
-            model.seekTo(newPosition: playerSelection.trackPosition)
+            model.seekTo(newPosition: playerSelection.trackPos)
           }).frame(width:300, alignment:.leading).disabled(!playerSelection.seekEnabled)
           Spacer().frame(width: 15)
-          Text(playerSelection.trackPosString).monospacedDigit().frame(width:42, alignment: .trailing)
+          Text(playerSelection.trackCountdown ? playerSelection.trackLeftStr : playerSelection.trackPosStr).monospacedDigit().frame(width: 42, alignment: .trailing).padding(.horizontal, 6)
+            .onTapGesture { playerSelection.trackCountdown.toggle() }
+            .onHover(perform: { hovering in
+              if(hovering) {
+                model.delayAction() { countdownPopover = true }
+              } else { model.delayCancel(); countdownPopover = false } })
+            .popover(isPresented: $countdownPopover) { Text("\(playerSelection.countdownInfo)").font(.headline).monospacedDigit().padding() }
         } else {
           Text("Playing: ").frame(alignment: .leading)
-          Slider(value: $playerSelection.trackPosition, in: 0...1).frame(width:300, alignment:.leading).hidden()
+          Slider(value: $playerSelection.trackPos, in: 0...1).frame(width: 300, alignment: .leading).hidden()
           Spacer().frame(width: 15).hidden()
-          Text(playerSelection.trackPosString).monospacedDigit().frame(width:42, alignment: .trailing).hidden()
+          Text(playerSelection.trackPosStr).monospacedDigit().frame(width: 42, alignment: .trailing).hidden()
         }
       }
 
       HStack {
         Text(String(format: "Playlist: %@", playerSelection.playlist)).frame(minWidth: 120, alignment: .leading).padding(.vertical, 2)
+          .onHover(perform: { hovering in
+            if(hovering && !playerSelection.playlist.isEmpty) {
+              model.delayAction() { playlistPopover = true }
+            } else { model.delayCancel(); playlistPopover = false } })
+          .popover(isPresented: $playlistPopover) { Text("\(playerSelection.playlistInfo)").font(.headline).padding() }
 
         Spacer().frame(width: 20)
 
         if playerSelection.trackNum > 0 {
-          Text(String(format: "Track %d/%d: %@", playerSelection.trackNum, playerSelection.numTracks, playerSelection.track)).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+          Text(String(format: "Track %d/%d: %@", playerSelection.trackNum, playerSelection.numTracks, playerSelection.track)).frame(minWidth: 120, alignment: .leading)
+            .onHover(perform: { hovering in
+              if(hovering) {
+                model.delayAction() { trackPopover = true }
+              } else { model.delayCancel(); trackPopover = false } })
+            .popover(isPresented: $trackPopover) { Text("\(playerSelection.trackInfo)").font(.headline).padding() }
         } else {
-          Text("Track: ").frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+          Text("Track: ").frame(minWidth: 120, alignment: .leading)
         }
+
+        Spacer()
       }
 
       Spacer().frame(height: 15)

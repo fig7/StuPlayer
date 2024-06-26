@@ -33,7 +33,7 @@ class PlaylistManager {
       for (trackIndex, track) in playlist.tracks.enumerated() {
         let baseURL   = URL(fileURLWithPath: musicPath + playlistInfo.playlistPath)
         let trackURL  = baseURL.appendingFile(file: track)
-        let trackInfo = TrackInfo(playlistInfo: playlistInfo, trackNum: trackIndex+1, trackURL: trackURL)
+        let trackInfo = TrackInfo(playlist: playlist, trackNum: trackIndex+1, trackURL: trackURL)
         trackList.append(trackInfo)
       }
     }

@@ -71,8 +71,8 @@ let trackFile       = "Tracks.dat"
   var pendingTrack: Int?
   var currentTrack: TrackInfo?
 
-  // For playback slider updates (later...)
   var playbackTimer: Timer?
+  var delayTask: Task<Void, Never>?
 
   init(playerAlert: PlayerAlert, playerSelection: PlayerSelection) {
     self.playerAlert     = playerAlert
@@ -715,34 +715,45 @@ let trackFile       = "Tracks.dat"
     }
   }
 
+  private func timeStr(from time: Double) -> String {
+    guard (time > Double(Int.min)), (time < Double(Int.max)) else { return "" }
+    let timeSecs = Int(time)
+
+    let hours = timeSecs / 3600
+    let mins  = (timeSecs - 3600*hours) / 60
+    let secs  = timeSecs - 60*hours - 60*mins
+    return (hours > 0) ? String(format:"%d:%02d:%02d", hours, mins, secs) : String(format:"%d:%02d", mins, secs)
+  }
+
+  func performPositionUpdate() {
+    playerSelection.trackPos     = 0.0
+    playerSelection.trackPosStr  = "--:--"
+    playerSelection.trackLeftStr = "--:--"
+    playerSelection.countdownInfo = "Track position:\tUnknown\nTrack length:\tUnknown"
+
+    let playPosition = player.time
+    guard let playPosition else { return }
+
+    let current = playPosition.current
+    guard let current else { return }
+    playerSelection.trackPosStr = timeStr(from: current)
+
+    let total = playPosition.total ?? 0.0
+    if((total > 0.0)) {
+      playerSelection.trackPos     = current / total
+      playerSelection.trackLeftStr = timeStr(from: total - current)
+    }
+
+    playerSelection.countdownInfo  = "Track position:\t\(playerSelection.trackPosStr)\n"
+                                   + "Track length:\t\((total > 0.0) ? timeStr(from: total) : "Unknown")"
+  }
+
   func updatePlayingPosition() {
     playbackTimer?.invalidate()
     playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true, block: { _ in
-      Task { @MainActor in
-        let playPosition = self.player.time
-        guard let playPosition else { return }
-
-        let current = playPosition.current
-        guard let current else { return }
-
-        let total = playPosition.total ?? 0.0
-        if((total > 0.0)) {
-          self.playerSelection.trackPosition = current / total
-        } else {
-          self.playerSelection.trackPosition = 0.0
-        }
-
-        guard (current > Double(Int.min)), (current < Double(Int.max)) else { return; }
-        let currentSecs = Int(current)
-
-        let hours = currentSecs / 3600
-        let mins  = (currentSecs - 3600*hours) / 60
-        let secs  = currentSecs - 60*hours - 60*mins
-        if(hours > 0) {
-          self.playerSelection.trackPosString = String(format:"%d:%02d:%02d", hours, mins, secs)
-        } else {
-          self.playerSelection.trackPosString = String(format:"%d:%02d", mins, secs)
-        }
+      Task { @MainActor [weak self] in
+        guard let self else { return }
+        performPositionUpdate()
        }
     })
   }
@@ -1539,6 +1550,25 @@ let trackFile       = "Tracks.dat"
       let trackSearched = searchedTracks.contains(where: { return ($0.name == trackName) })
       return PlayingItem(name: trackName, searched: trackSearched)
     }
+  }
+
+  func delayAction(_ itemIndex: Int = -1, _ action: @escaping () -> Void) {
+    if(itemIndex != -1) {
+      // setPlayingInfo(for: itemIndex)
+    }
+
+    delayTask?.cancel()
+    delayTask = Task {
+      do {
+        try await Task.sleep(nanoseconds: 1000000000)
+      } catch { return }
+
+      action()
+    }
+  }
+
+  func delayCancel() {
+    delayTask?.cancel()
   }
 
   #if PLAYBACK_TEST
