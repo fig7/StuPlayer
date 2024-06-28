@@ -45,7 +45,7 @@ struct PlayingItem {
   @Published var repeatTracks   = RepeatState.None
   @Published var shuffleTracks  = false
 
-  @Published var list: [String] = []
+  @Published var browserItems: [String] = []
   @Published var playbackState: AudioPlayer.PlaybackState = .stopped
 
   @Published var playPosition = 0
@@ -120,6 +120,9 @@ struct PlayingItem {
     }
   }
 
+  @Published var browserInfo   = ""
+  @Published var playingInfo   = ""
+
   @Published var playlistInfo  = ""
   @Published var trackInfo     = ""
   @Published var countdownInfo = ""
@@ -144,14 +147,14 @@ struct PlayingItem {
     self.album  = ""
 
     if((self.browserScrollPos >= 0) && (newList.count > 0)) { self.browserScrollPos = 0 } else { self.browserScrollPos = -1 }
-    self.list = newList
+    self.browserItems = newList
   }
 
   func setAlbum(newAlbum: String, newList: [String]) {
     self.album = newAlbum
 
     if((self.browserScrollPos >= 0) && (newList.count > 0)) { self.browserScrollPos = 0 } else { self.browserScrollPos = -1 }
-    self.list = newList
+    self.browserItems = newList
   }
 
   func setAll(newArtist: String, newAlbum: String, newList: [String]) {
@@ -159,7 +162,7 @@ struct PlayingItem {
     self.album  = newAlbum
 
     if((self.browserScrollPos >= 0) && (newList.count > 0)) { self.browserScrollPos = 0 } else { self.browserScrollPos = -1 }
-    self.list = newList
+    self.browserItems = newList
   }
 
   func setArtistAndAlbum(newArtist: String, newAlbum: String) {
@@ -188,6 +191,34 @@ struct PlayingItem {
     let artist = playlistSplit[0]
     let album  = playlistSplit[1]
     self.trackInfo = "File:\t\t\(track)\nArtist:\t\(artist)\nAlbum:\t\(album)\nTrack:\t\(trackNum) of \(numTracks)"
+  }
+
+  func setBrowserInfo(itemIndex: Int, artist: String, album: String) {
+    let itemText = browserItems[itemIndex]
+
+    if(artist.isEmpty) {
+      browserInfo = "Artist:\t\(browserItems[itemIndex])"
+      return
+    }
+
+    if(album.isEmpty) {
+      browserInfo = "Artist:\t\(artist)\nAlbum:\t\(itemText)"
+      return
+    }
+
+    browserInfo = "File:\t\t\(itemText)\nArtist:\t\(artist)\nAlbum:\t\(album)"
+  }
+
+  func setPlayingInfo(trackNum: Int, trackInfo: TrackInfo) {
+    let fileName = trackInfo.trackURL.lastPathComponent
+    let playlist = trackInfo.playlist
+    let playlistInfo = playlist.playlistInfo
+
+    let playlistSplit = playlistInfo.playlistPath.split(separator: "/")
+    let artist = playlistSplit[0]
+    let album  = playlistSplit[1]
+
+    playingInfo = "File:\t\t\(fileName)\nArtist:\t\(artist)\nAlbum:\t\(album)\nTrack:\t\(trackNum) of \(playTotal)"
   }
 
   func setPlaylist(newPlaylist: Playlist?) {

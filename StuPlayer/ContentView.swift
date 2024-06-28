@@ -21,6 +21,8 @@ struct DummyView : View {
 }
 
 struct BrowserItemView : View {
+  @State private var browserPopover = false
+
   let model: PlayerDataModel
   @ObservedObject var playerSelection: PlayerSelection
 
@@ -41,9 +43,15 @@ struct BrowserItemView : View {
   }
 
   var body: some View {
-    Text(itemText).fontWeight(highlighted ? .semibold : nil).frame(minWidth: 150, alignment: .leading).padding(.horizontal, 4)
+    Text(itemText).fontWeight(highlighted ? .semibold : nil).padding(.horizontal, 4)
       .background(highlighted ? RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3)) : nil)
-      .onTapGesture { model.itemClicked(itemIndex: itemIndex, itemText: itemText) }
+      .onTapGesture { model.browserItemClicked(itemIndex: itemIndex, itemText: itemText) }
+      .onHover(perform: { hovering in
+        if(hovering) {
+          model.browserDelayAction(itemIndex) { browserPopover = true }
+        } else { model.delayCancel(); browserPopover = false } })
+      .popover(isPresented: $browserPopover) { Text(playerSelection.browserInfo).font(.headline).padding() }
+
   }
 }
 
@@ -78,20 +86,20 @@ struct PlayingItemView : View {
 
   var body: some View {
     HStack(spacing: 0) {
-      Text("         ")
+      Text("         ").onTapGesture { playerItem ? model.togglePause() : nil}
       Text(itemText).fontWeight((highlighted || playerItem) ? .semibold : nil).padding(.horizontal, 4)
         .background(highlighted   ? RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3)) :
                     currentSearch ? RoundedRectangle(cornerRadius: 5).foregroundColor(.orange.opacity(1.0)) :
                     itemSearched  ? RoundedRectangle(cornerRadius: 5).foregroundColor(.yellow.opacity(0.5)) : nil)
+        .onTapGesture { model.playingItemClicked(itemIndex) }
+        .onHover(perform: { hovering in
+          if(hovering) {
+            model.playingDelayAction(itemIndex) { playingPopover = true }
+          } else { model.delayCancel(); playingPopover = false } })
+        .popover(isPresented: $playingPopover) { Text(playerSelection.playingInfo).font(.headline).padding() }
     }
     .background(playerItem ? Image(itemPlaying ? "Playing" : "Paused").resizable().aspectRatio(contentMode: .fit) : nil, alignment: .leading)
     .frame(minWidth: 150, alignment: .leading).padding(.horizontal, 4)
-    .onTapGesture { playerItem ? model.togglePause() : model.playingItemClicked(itemIndex) }
-    .onHover(perform: { hovering in
-      if(hovering) {
-        model.delayAction(itemIndex) { playingPopover = true }
-      } else { model.delayCancel(); playingPopover = false } })
-    .popover(isPresented: $playingPopover) { Text("Hi!") }
   }
 }
 
@@ -288,7 +296,7 @@ struct ContentView: View {
               }
 
               LazyVStack(alignment: .leading) {
-                ForEach(Array(playerSelection.list.enumerated()), id: \.offset) { itemIndex, itemText in
+                ForEach(Array(playerSelection.browserItems.enumerated()), id: \.offset) { itemIndex, itemText in
                   BrowserItemView(model: model, playerSelection: playerSelection, itemText: itemText, itemIndex: itemIndex)
                 }
               }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
@@ -500,12 +508,12 @@ struct ContentView: View {
       case kVK_Return:
         if((scrollViewFocus == .BrowserScrollView)) {
           let itemIndex = playerSelection.browserScrollPos
-          if((itemIndex < 0) && (playerSelection.list.count > 0)) {
+          if((itemIndex < 0) && (playerSelection.browserItems.count > 0)) {
             playerSelection.browserScrollPos = 0
             return nil
           } else if(playerSelection.browserScrollPos < 0) { return nil }
 
-          model.itemSelected(itemIndex: itemIndex, itemText: playerSelection.list[itemIndex])
+          model.browserItemSelected(itemIndex: itemIndex, itemText: playerSelection.browserItems[itemIndex])
         } else { // (scrollViewFocus == .PlayingScrollView)
           let itemIndex = playerSelection.playingScrollPos
           if(itemIndex < 0) {
@@ -560,7 +568,7 @@ struct ContentView: View {
   }
 
   func browserDown(proxy: ScrollViewProxy) {
-    let listLimit = playerSelection.list.count - 1
+    let listLimit = playerSelection.browserItems.count - 1
     if(playerSelection.browserScrollPos >= listLimit) { return }
 
     playerSelection.browserScrollPos += 1;
@@ -568,7 +576,7 @@ struct ContentView: View {
   }
 
   func browserPageDown(proxy: ScrollViewProxy) {
-    let listLimit = playerSelection.list.count - 1
+    let listLimit = playerSelection.browserItems.count - 1
     if(playerSelection.browserScrollPos >= listLimit) { return }
 
     let linesToScroll = Int(0.5 + scrollViewHeight / textHeight)
@@ -580,7 +588,7 @@ struct ContentView: View {
   }
 
   func browserEnd(proxy: ScrollViewProxy) {
-    let listLimit = playerSelection.list.count - 1
+    let listLimit = playerSelection.browserItems.count - 1
     if(playerSelection.browserScrollPos >= listLimit) { return }
 
     playerSelection.browserScrollPos = listLimit;
@@ -714,11 +722,6 @@ struct ContentView: View {
   }
 
   func playingSelected(proxy: ScrollViewProxy) {
-    print("Selected to:")
-    print(playerSelection.prevSel)
-    print(playerSelection.currSel)
-    print("")
-
     if(playerSelection.playingScrollPos < 0) {
       playerSelection.playingScrollPos = playerSelection.playPosition - 1
       playerSelection.searchIndex      = playerSelection.playingScrollPos

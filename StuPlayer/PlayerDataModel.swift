@@ -290,7 +290,7 @@ let trackFile       = "Tracks.dat"
 
             let playlistFile = m3UDict[artist]![album]!
             let playlistInfo = PlaylistInfo(playlistFile: playlistFile, playlistPath: artist + "/" + album + "/", numTracks: 1)
-            playlists.append(Playlist(playlistInfo, [artistAlbumAndTrack.track]))
+            playlists.append(Playlist(playlistInfo: playlistInfo, tracks: [artistAlbumAndTrack.track]))
           }
 
           playTracks(playlists: playlists, trackNum: pendingTrack!)
@@ -310,7 +310,7 @@ let trackFile       = "Tracks.dat"
         let albumTracks  = tracksDict[artist]![album]!
 
         let playlistInfo = PlaylistInfo(playlistFile: playlistFile, playlistPath: artist + "/" + album + "/", numTracks: albumTracks.count)
-        playTracks(playlists: [(playlistInfo, albumTracks)], trackNum: pendingTrack!)
+        playTracks(playlists: [Playlist(playlistInfo: playlistInfo, tracks: albumTracks)], trackNum: pendingTrack!)
         pendingTrack = nil
 
       case .PlayingTrackPressed:
@@ -537,7 +537,7 @@ let trackFile       = "Tracks.dat"
     let playlistFile = m3UDict[filteredArtist]![filteredAlbum]!
     let albumTracks  = tracksDict[filteredArtist]![filteredAlbum]!
     let playlistInfo = PlaylistInfo(playlistFile: playlistFile, playlistPath: filteredArtist + "/" + filteredAlbum + "/", numTracks: albumTracks.count)
-    playTracks(playlists: [(playlistInfo, albumTracks)], trackNum: itemIndex+1)
+    playTracks(playlists: [Playlist(playlistInfo: playlistInfo, tracks: albumTracks)], trackNum: itemIndex+1)
   }
 
   func albumFilterItemSelected(itemIndex: Int, itemText: String) {
@@ -583,7 +583,7 @@ let trackFile       = "Tracks.dat"
     let playlistFile = m3UDict[artist]![album]!
     let albumTracks  = tracksDict[artist]![album]!
     let playlistInfo = PlaylistInfo(playlistFile: playlistFile, playlistPath: artist + "/" + album + "/", numTracks: albumTracks.count)
-    playTracks(playlists: [(playlistInfo, albumTracks)], trackNum: itemIndex+1)
+    playTracks(playlists: [Playlist(playlistInfo: playlistInfo, tracks: albumTracks)], trackNum: itemIndex+1)
   }
 
   func trackFilterItemSelected(itemIndex: Int, itemText: String) {
@@ -613,7 +613,7 @@ let trackFile       = "Tracks.dat"
 
       let playlistFile = m3UDict[artist]![album]!
       let playlistInfo = PlaylistInfo(playlistFile: playlistFile, playlistPath: artist + "/" + album + "/", numTracks: 1)
-      playlists.append(Playlist(playlistInfo, [artistAlbumAndTrack.track]))
+      playlists.append(Playlist(playlistInfo: playlistInfo, tracks: [artistAlbumAndTrack.track]))
     }
 
     playTracks(playlists: playlists, trackNum: itemIndex+1)
@@ -634,12 +634,12 @@ let trackFile       = "Tracks.dat"
     }
   }
 
-  func itemClicked(itemIndex: Int, itemText: String) {
+  func browserItemClicked(itemIndex: Int, itemText: String) {
     playerSelection.browserScrollPos = -1
-    itemSelected(itemIndex: itemIndex, itemText: itemText)
+    browserItemSelected(itemIndex: itemIndex, itemText: itemText)
   }
 
-  func itemSelected(itemIndex: Int, itemText: String) {
+  func browserItemSelected(itemIndex: Int, itemText: String) {
     if(!playerSelection.filterString.isEmpty) {
       filteredItemSelected(itemIndex: itemIndex, itemText: itemText)
       return
@@ -682,7 +682,7 @@ let trackFile       = "Tracks.dat"
     let playlistFile = m3UDict[selectedArtist]![selectedAlbum]!
     let albumTracks  = tracksDict[selectedArtist]![selectedAlbum]!
     let playlistInfo = PlaylistInfo(playlistFile: playlistFile, playlistPath: selectedArtist + "/" + selectedAlbum + "/", numTracks: albumTracks.count)
-    playTracks(playlists: [(playlistInfo, albumTracks)], trackNum: itemIndex+1)
+    playTracks(playlists: [Playlist(playlistInfo: playlistInfo, tracks: albumTracks)], trackNum: itemIndex+1)
   }
 
   func playingItemClicked(_ itemIndex: Int) {
@@ -811,13 +811,13 @@ let trackFile       = "Tracks.dat"
 
   func playAllArtists() {
     var playlists = Playlists()
-    for artist in playerSelection.list {
+    for artist in playerSelection.browserItems {
       let albums = tracksDict[artist]!
       for album in albums.keys.sorted() {
         let albumTracks = albums[album]!
         if(!albumTracks.isEmpty) {
           let playlistInfo = PlaylistInfo(playlistFile: m3UDict[artist]![album]!, playlistPath: artist + "/" + album + "/", numTracks: albumTracks.count)
-          playlists.append((playlistInfo, albumTracks))
+          playlists.append(Playlist(playlistInfo: playlistInfo, tracks: albumTracks))
         }
       }
     }
@@ -834,7 +834,7 @@ let trackFile       = "Tracks.dat"
       let albumTracks = tracksDict[artist]![album]!
       if(!albumTracks.isEmpty) {
         let playlistInfo = PlaylistInfo(playlistFile: m3UDict[artist]![album]!, playlistPath: artist + "/" + album + "/", numTracks: albumTracks.count)
-        playlists.append((playlistInfo, albumTracks))
+        playlists.append(Playlist(playlistInfo: playlistInfo, tracks: albumTracks))
       }
     }
 
@@ -850,11 +850,11 @@ let trackFile       = "Tracks.dat"
     }
 
     var playlists = Playlists()
-    for album in playerSelection.list {
+    for album in playerSelection.browserItems {
       let albumTracks = tracksDict[artist]![album]!
       if(!albumTracks.isEmpty) {
         let playlistInfo = PlaylistInfo(playlistFile: m3UDict[artist]![album]!, playlistPath: artist + "/" + album + "/", numTracks: albumTracks.count)
-        playlists.append((playlistInfo, albumTracks))
+        playlists.append(Playlist(playlistInfo: playlistInfo, tracks: albumTracks))
       }
     }
 
@@ -873,7 +873,7 @@ let trackFile       = "Tracks.dat"
 
         let playlistFile = m3UDict[artist]![album]!
         let playlistInfo = PlaylistInfo(playlistFile: playlistFile, playlistPath: artist + "/" + album + "/", numTracks: 1)
-        playlists.append(Playlist(playlistInfo, [artistAlbumAndTrack.track]))
+        playlists.append(Playlist(playlistInfo: playlistInfo, tracks: [artistAlbumAndTrack.track]))
       }
 
       playTracks(playlists: playlists)
@@ -894,7 +894,7 @@ let trackFile       = "Tracks.dat"
 
     var playlists = Playlists()
     let playlistInfo = PlaylistInfo(playlistFile: m3UDict[artist]![album]!, playlistPath: artist + "/" + album + "/", numTracks: albumTracks.count)
-    playlists.append((playlistInfo, albumTracks))
+    playlists.append(Playlist(playlistInfo: playlistInfo, tracks: albumTracks))
 
     playTracks(playlists: playlists)
   }
@@ -1552,11 +1552,42 @@ let trackFile       = "Tracks.dat"
     }
   }
 
-  func delayAction(_ itemIndex: Int = -1, _ action: @escaping () -> Void) {
-    if(itemIndex != -1) {
-      // setPlayingInfo(for: itemIndex)
+  func browserDelayAction(_ itemIndex: Int, _ action: @escaping () -> Void) {
+    let artist, album: String
+    if(playerSelection.filterString.isEmpty) {
+      artist = selectedArtist
+      album  = selectedAlbum
+    }
+    else {
+      switch(playerSelection.filterMode) {
+      case .Artist:
+        artist = filteredArtist
+        album  = filteredAlbum
+
+      case .Album:
+        if(filteredAlbum.isEmpty) {
+          (artist, _) = filteredAlbums[itemIndex]
+          album = ""
+        } else {
+          artist = String(filteredArtist.dropFirst(13).dropLast())
+          album  = filteredAlbum
+        }
+
+      case .Track:
+        (artist, album, _) = filteredTracks[itemIndex]
+      }
     }
 
+    playerSelection.setBrowserInfo(itemIndex: itemIndex, artist: artist, album: album)
+    delayAction(action)
+  }
+
+  func playingDelayAction(_ itemIndex: Int, _ action: @escaping () -> Void) {
+    playerSelection.setPlayingInfo(trackNum: itemIndex+1, trackInfo: playlistManager.trackAt(position: itemIndex))
+    delayAction(action)
+  }
+
+  func delayAction(_ action: @escaping () -> Void) {
     delayTask?.cancel()
     delayTask = Task {
       do {

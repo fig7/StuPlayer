@@ -20,4 +20,12 @@ struct TrackInfo {
 }
 
 // A Playlist describes an m3u file and includes the tracks
-typealias Playlist = (playlistInfo: PlaylistInfo, tracks: [String])
+class Playlist {
+  let playlistInfo: PlaylistInfo
+  let tracks: [String]
+
+  init(playlistInfo: PlaylistInfo, tracks: [String]) {
+    self.playlistInfo = playlistInfo
+    self.tracks       = tracks
+  }
+}
