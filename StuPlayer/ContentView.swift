@@ -50,7 +50,7 @@ struct BrowserItemView : View {
         if(hovering) {
           model.browserDelayAction(itemIndex) { browserPopover = true }
         } else { model.delayCancel(); browserPopover = false } })
-      .popover(isPresented: $browserPopover) { Text(playerSelection.browserInfo).font(.headline).padding() }
+      .popover(isPresented: $browserPopover) { Text(playerSelection.browserItemInfo).font(.headline).padding() }
 
   }
 }
@@ -96,7 +96,7 @@ struct PlayingItemView : View {
           if(hovering) {
             model.playingDelayAction(itemIndex) { playingPopover = true }
           } else { model.delayCancel(); playingPopover = false } })
-        .popover(isPresented: $playingPopover) { Text(playerSelection.playingInfo).font(.headline).padding() }
+        .popover(isPresented: $playingPopover) { Text(playerSelection.playingTrackInfo).font(.headline).padding() }
     }
     .background(playerItem ? Image(itemPlaying ? "Playing" : "Paused").resizable().aspectRatio(contentMode: .fit) : nil, alignment: .leading)
     .frame(minWidth: 150, alignment: .leading).padding(.horizontal, 4)
@@ -114,6 +114,7 @@ struct ContentView: View {
   @State private var scrollViewHeight = CGFloat(0.0)
   @FocusState private var scrollViewFocus: ScrollViewFocus?
 
+  @State private var playingPopover   = false
   @State private var playlistPopover  = false
   @State private var trackPopover     = false
   @State private var countdownPopover = false
@@ -337,11 +338,11 @@ struct ContentView: View {
             }.frame(minWidth: 150, maxWidth: .infinity).padding(7).overlay(
               RoundedRectangle(cornerRadius: 8).stroke((hasFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
             .onChange(of: playerSelection.playPosition) { newPos in
-              if(newPos == 0) { scrollViewFocus = .BrowserScrollView; return }
+              if(newPos == 0) { return }
 
               playerSelection.prevSel = -1
               playerSelection.currSel = -1
-              scrollViewProxy.scrollTo(playerSelection.playPosition, anchor: .center)
+              scrollViewProxy.scrollTo(newPos-1, anchor: .center)
             }
             .onChange(of: playerSelection.playingScrollTo) { _ in
               if(playerSelection.playingScrollTo == -1) { return }
@@ -355,18 +356,26 @@ struct ContentView: View {
         } else {
           Spacer().frame(minWidth: 150, maxWidth: .infinity).padding(7)
         }
-      }
+      }.onChange(of: playerSelection.playPosition) { newPos in if(newPos == 0) { scrollViewFocus = .BrowserScrollView } }
 
       Spacer().frame(height: 30)
 
       HStack {
         if(playerSelection.playPosition > 0) {
           Text(String(format: "Playing: %d/%d", playerSelection.playPosition, playerSelection.playTotal)).frame(width: 142, alignment:.leading)
+            .onHover(perform: { hovering in
+              if(hovering) {
+                model.delayAction() { playingPopover = true }
+              } else { model.delayCancel(); playingPopover = false } })
+            .popover(isPresented: $playingPopover) { Text("\(playerSelection.playingInfo)").font(.headline).padding() }
+
           Slider(value: $playerSelection.trackPos, in: 0...1, onEditingChanged: { startFinish in
             if(startFinish) { return; }
             model.seekTo(newPosition: playerSelection.trackPos)
           }).frame(width:300, alignment:.leading).disabled(!playerSelection.seekEnabled)
+
           Spacer().frame(width: 15)
+
           Text(playerSelection.trackCountdown ? playerSelection.trackLeftStr : playerSelection.trackPosStr).monospacedDigit().frame(width: 42, alignment: .trailing).padding(.horizontal, 6)
             .onTapGesture { playerSelection.trackCountdown.toggle() }
             .onHover(perform: { hovering in
@@ -376,6 +385,8 @@ struct ContentView: View {
             .popover(isPresented: $countdownPopover) { Text("\(playerSelection.countdownInfo)").font(.headline).monospacedDigit().padding() }
         } else {
           Text("Playing: ").frame(alignment: .leading)
+
+          // Needed to keep the height of the HStack the same
           Slider(value: $playerSelection.trackPos, in: 0...1).frame(width: 300, alignment: .leading).hidden()
           Spacer().frame(width: 15).hidden()
           Text(playerSelection.trackPosStr).monospacedDigit().frame(width: 42, alignment: .trailing).hidden()
@@ -393,7 +404,7 @@ struct ContentView: View {
         Spacer().frame(width: 20)
 
         if playerSelection.trackNum > 0 {
-          Text(String(format: "Track %d/%d: %@", playerSelection.trackNum, playerSelection.numTracks, playerSelection.track)).frame(minWidth: 120, alignment: .leading)
+          Text(String(format: "Track %d/%d: %@", playerSelection.trackNum, playerSelection.numTracks, playerSelection.fileName)).frame(minWidth: 120, alignment: .leading)
             .onHover(perform: { hovering in
               if(hovering) {
                 model.delayAction() { trackPopover = true }
@@ -528,19 +539,19 @@ struct ContentView: View {
         return nil
 
       case kVK_F1:
-        model.playAll()
+        model.toggleFilter()
         return nil
 
       case kVK_F2:
-        model.toggleShuffle()
+        model.playAll()
         return nil
 
       case kVK_F3:
-        model.toggleRepeat()
+        model.toggleShuffle()
         return nil
 
       case kVK_F4:
-        model.toggleFilter()
+        model.toggleRepeat()
         return nil
 
       case kVK_ANSI_KeypadEnter:

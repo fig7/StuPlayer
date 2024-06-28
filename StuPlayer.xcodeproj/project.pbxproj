@@ -21,6 +21,8 @@
 		12B87E2B2BBC02580064E6B8 /* PlayerAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */; };
 		12B87E2E2BBECE7A0064E6B8 /* URL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B87E2D2BBECE7A0064E6B8 /* URL.swift */; };
 		12C617DD2BB4BCB700B1EE65 /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = 12C617DC2BB4BCB700B1EE65 /* Credits.html */; };
+		12CF57392C2EDF9A00E9CEAB /* Double.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12CF57382C2EDF9A00E9CEAB /* Double.swift */; };
+		12CF573B2C2EE19900E9CEAB /* TimeUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12CF573A2C2EE19900E9CEAB /* TimeUtil.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -72,6 +74,8 @@
 		12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerAlert.swift; sourceTree = "<group>"; };
 		12B87E2D2BBECE7A0064E6B8 /* URL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URL.swift; sourceTree = "<group>"; };
 		12C617DC2BB4BCB700B1EE65 /* Credits.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Credits.html; sourceTree = "<group>"; };
+		12CF57382C2EDF9A00E9CEAB /* Double.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Double.swift; sourceTree = "<group>"; };
+		12CF573A2C2EE19900E9CEAB /* TimeUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeUtil.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -146,6 +150,8 @@
 			isa = PBXGroup;
 			children = (
 				12B87E2D2BBECE7A0064E6B8 /* URL.swift */,
+				12CF57382C2EDF9A00E9CEAB /* Double.swift */,
+				12CF573A2C2EE19900E9CEAB /* TimeUtil.swift */,
 			);
 			path = Ext;
 			sourceTree = "<group>";
@@ -249,10 +255,12 @@
 				125432A22BB763B600CB6A64 /* LogFileManager.swift in Sources */,
 				12B87E2E2BBECE7A0064E6B8 /* URL.swift in Sources */,
 				1297A5B92B9619CE0017B083 /* ContentView.swift in Sources */,
+				12CF573B2C2EE19900E9CEAB /* TimeUtil.swift in Sources */,
 				1297A5B72B9619CE0017B083 /* StuPlayerApp.swift in Sources */,
 				1297A5C82B963B180017B083 /* PlayerDataModel.swift in Sources */,
 				1297A5CA2B9778CA0017B083 /* PlayerSelection.swift in Sources */,
 				1214C6332BA3159C00302CA3 /* PlaylistManager.swift in Sources */,
+				12CF57392C2EDF9A00E9CEAB /* Double.swift in Sources */,
 				1214C6382BA4F7DB00302CA3 /* Playlist.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -392,7 +400,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = YV8CWLF497;
@@ -428,7 +436,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = YV8CWLF497;

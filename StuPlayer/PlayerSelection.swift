@@ -37,7 +37,7 @@ struct PlayingItem {
   @Published var album  = ""
 
   @Published var playlist = ""
-  @Published var track    = ""
+  @Published var fileName = ""
 
   @Published var trackNum  = 0
   @Published var numTracks = 0
@@ -120,9 +120,10 @@ struct PlayingItem {
     }
   }
 
-  @Published var browserInfo   = ""
-  @Published var playingInfo   = ""
+  @Published var browserItemInfo   = ""
+  @Published var playingTrackInfo  = ""
 
+  @Published var playingInfo   = ""
   @Published var playlistInfo  = ""
   @Published var trackInfo     = ""
   @Published var countdownInfo = ""
@@ -170,18 +171,62 @@ struct PlayingItem {
     self.album  = newAlbum
   }
 
+  private func fetchMetadata(trackURL: URL) -> String {
+    let audioFile = try? AudioFile(readingPropertiesAndMetadataFrom: trackURL)
+    guard let audioFile else { return "" }
+
+    var meta: [String] = []
+    let title = audioFile.metadata.title
+    if(title != nil) { meta.append("Title:\t\(title!)") }
+
+    let metaArtist = audioFile.metadata.artist
+    if(metaArtist != nil) { meta.append("Artist:\t\(metaArtist!)") }
+
+    let metaAlbum = audioFile.metadata.albumTitle
+    if(metaAlbum != nil) { meta.append("Album:\t\(metaAlbum!)") }
+
+    let genre = audioFile.metadata.genre
+    if(genre != nil) { meta.append("Genre:\t\(genre!)") }
+
+    var metadataStr = ""
+    if(!meta.isEmpty) {
+      metadataStr = "Metadata:\n\t" + meta.joined(separator: "\n\t")
+    }
+
+    var props: [String] = []
+    let sampleRate = audioFile.properties.sampleRate
+    if(sampleRate != nil) { props.append("Sample rate:\t\(sampleRate!.toIntStr())") }
+
+    let numChannels = audioFile.properties.channelCount
+    if(numChannels != nil) { props.append("Channels:\t\(numChannels!)") }
+
+    let duration = audioFile.properties.duration
+    if(duration != nil) { props.append("Duration:\t\(timeStr(from: duration!))") }
+
+    let bitrate = audioFile.properties.bitrate
+    if(bitrate != nil) { props.append("Bit rate:\t\t\(bitrate!.toIntStr()) KB/s") }
+
+    if(!props.isEmpty) {
+      if(!metadataStr.isEmpty) { metadataStr += "\n\n" }
+      metadataStr += "Properties:\n\t" + props.joined(separator: "\n\t")
+    }
+
+    return metadataStr
+  }
+
   func setTrack(newTrack: TrackInfo?) {
     setPlaylist(newPlaylist: newTrack?.playlist)
 
     guard let newTrack else {
-      self.track    = ""
+      self.fileName = ""
       self.trackNum = 0
 
-      self.trackInfo = ""
+      self.playingInfo = ""
+      self.trackInfo   = ""
       return
     }
 
-    self.track    = newTrack.trackURL.lastPathComponent
+    self.fileName = newTrack.trackURL.lastPathComponent
     self.trackNum = newTrack.trackNum
 
     let playlist = newTrack.playlist
@@ -190,26 +235,34 @@ struct PlayingItem {
     let playlistSplit = playlistInfo.playlistPath.split(separator: "/")
     let artist = playlistSplit[0]
     let album  = playlistSplit[1]
-    self.trackInfo = "File:\t\t\(track)\nArtist:\t\(artist)\nAlbum:\t\(album)\nTrack:\t\(trackNum) of \(numTracks)"
+
+    let trackInfo   = "File:\t\t\(fileName)\nArtist:\t\(artist)\nAlbum:\t\(album)\nTrack:\t\(trackNum) of \(numTracks)"
+    let metadataStr = fetchMetadata(trackURL: newTrack.trackURL)
+    self.trackInfo  = !metadataStr.isEmpty ? trackInfo + "\n\n" + metadataStr : trackInfo
   }
 
-  func setBrowserInfo(itemIndex: Int, artist: String, album: String) {
-    let itemText = browserItems[itemIndex]
+  func setBrowserItemInfo(itemIndex: Int, artist: String, album: String, m3U: String?, trackURL: URL?) {
+    let trackNum  = itemIndex+1
+    let numTracks = browserItems.count
+    let itemText  = browserItems[itemIndex]
 
     if(artist.isEmpty) {
-      browserInfo = "Artist:\t\(browserItems[itemIndex])"
+      browserItemInfo = "Artist:\t\(browserItems[itemIndex])"
       return
     }
 
     if(album.isEmpty) {
-      browserInfo = "Artist:\t\(artist)\nAlbum:\t\(itemText)"
+      browserItemInfo = "Artist:\t\(artist)\nAlbum:\t\(itemText)\nM3U:\t\(m3U!)"
       return
     }
 
-    browserInfo = "File:\t\t\(itemText)\nArtist:\t\(artist)\nAlbum:\t\(album)"
+    let fileName = itemText
+    let browserInfo = "File:\t\t\(fileName)\nArtist:\t\(artist)\nAlbum:\t\(album)\nTrack:\t\(trackNum) of \(numTracks)"
+    let metadataStr = fetchMetadata(trackURL: trackURL!)
+    self.browserItemInfo = !metadataStr.isEmpty ? browserInfo + "\n\n" + metadataStr : browserInfo
   }
 
-  func setPlayingInfo(trackNum: Int, trackInfo: TrackInfo) {
+  func setPlayingTrackInfo(trackNum: Int, trackInfo: TrackInfo) {
     let fileName = trackInfo.trackURL.lastPathComponent
     let playlist = trackInfo.playlist
     let playlistInfo = playlist.playlistInfo
@@ -218,7 +271,9 @@ struct PlayingItem {
     let artist = playlistSplit[0]
     let album  = playlistSplit[1]
 
-    playingInfo = "File:\t\t\(fileName)\nArtist:\t\(artist)\nAlbum:\t\(album)\nTrack:\t\(trackNum) of \(playTotal)"
+    let playingInfo   = "File:\t\t\(fileName)\nArtist:\t\(artist)\nAlbum:\t\(album)\nTrack:\t\(trackNum) of \(playTotal)"
+    let metadataStr   = fetchMetadata(trackURL: trackInfo.trackURL)
+    self.playingTrackInfo = !metadataStr.isEmpty ? playingInfo + "\n\n" + metadataStr : playingInfo
   }
 
   func setPlaylist(newPlaylist: Playlist?) {
@@ -257,6 +312,11 @@ struct PlayingItem {
       self.trackLeftStr = "0:00"
       self.seekEnabled = false
     }
+  }
+
+  func setPlayingInfo() {
+    // NB: Call after both setTrack() and setPlayingPosition()
+    self.playingInfo = (playPosition > 0) ? "Playing:\t\(fileName)\nTrack:\t\(playPosition) of \(playTotal)" : ""
   }
 
   func setSeekEnabled(seekEnabled: Bool) {

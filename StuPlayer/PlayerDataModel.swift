@@ -197,6 +197,8 @@ let trackFile       = "Tracks.dat"
     playerSelection.setTrack(newTrack: currentTrack!)
     playerSelection.setSeekEnabled(seekEnabled: player.supportsSeeking)
     playerSelection.setPlayingPosition(playPosition: playPosition, playTotal: playlistManager.trackCount)
+    playerSelection.setPlayingInfo()
+
     logManager.append(logCat: .LogInfo, logMessage: "Track playing: " + currentTrack!.trackURL.filePath())
 
     let nextTrack = (repeatingTrack) ? currentTrack : playlistManager.peekNextTrack()
@@ -235,15 +237,18 @@ let trackFile       = "Tracks.dat"
       switch(stopReason) {
       case .PlaybackError:
         playPosition = 0
-        playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
-        playerSelection.setTrack(newTrack: nil)
-        playerSelection.setPlaybackState(newPlaybackState: .stopped)
-        bmURL.stopAccessingSecurityScopedResource()
 
+        playerSelection.setTrack(newTrack: nil)
+        playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
+        playerSelection.setPlaybackState(newPlaybackState: .stopped)
+        playerSelection.setPlayingInfo()
+
+        bmURL.stopAccessingSecurityScopedResource()
         playerAlert.triggerAlert(alertMessage: "A playback error occurred. Check log file for details.")
 
       case .EndOfAudio:
         playPosition = 0
+
         if(playerSelection.repeatTracks == RepeatState.All) {
           playlistManager.reset(shuffleTracks: playerSelection.shuffleTracks)
           let firstTrack = playlistManager.peekNextTrack()
@@ -262,24 +267,31 @@ let trackFile       = "Tracks.dat"
           }
         }
 
-        playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
         playerSelection.setTrack(newTrack: nil)
+        playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
         playerSelection.setPlaybackState(newPlaybackState: .stopped)
+        playerSelection.setPlayingInfo()
+
         bmURL.stopAccessingSecurityScopedResource()
 
       case .PlayAllPressed:
         playPosition = 0
+
         playAll()
 
       case .StopPressed:
         playPosition = 0
-        playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
+
         playerSelection.setTrack(newTrack: nil)
+        playerSelection.setPlayingPosition(playPosition: 0, playTotal: 0)
         playerSelection.setPlaybackState(newPlaybackState: .stopped)
+        playerSelection.setPlayingInfo()
+
         bmURL.stopAccessingSecurityScopedResource()
 
       case .TrackPressed:
         playPosition = 0
+
         let album = playerSelection.album
         if(album.hasPrefix("from filter")) {
           // Filtered tracks
@@ -315,6 +327,7 @@ let trackFile       = "Tracks.dat"
 
       case .PlayingTrackPressed:
         playPosition = pendingTrack!
+
         let newTrack = playlistManager.moveTo(trackNum: playPosition+1)
         let trackURL      = newTrack!.trackURL
         let trackPath     = trackURL.filePath()
@@ -365,6 +378,7 @@ let trackFile       = "Tracks.dat"
 
       case .RestartPressed:
         playPosition = 0
+
         playlistManager.reset()
         let firstTrack = playlistManager.peekNextTrack()
 
@@ -635,7 +649,9 @@ let trackFile       = "Tracks.dat"
   }
 
   func browserItemClicked(itemIndex: Int, itemText: String) {
+    delayCancel()
     playerSelection.browserScrollPos = -1
+
     browserItemSelected(itemIndex: itemIndex, itemText: itemText)
   }
 
@@ -686,7 +702,9 @@ let trackFile       = "Tracks.dat"
   }
 
   func playingItemClicked(_ itemIndex: Int) {
+    delayCancel()
     playerSelection.playingScrollPos = -1
+
     playingItemSelected(itemIndex)
   }
 
@@ -713,16 +731,6 @@ let trackFile       = "Tracks.dat"
       logManager.append(logCat: .LogThrownError,   logMessage: "Play error: " + error.localizedDescription)
       playerAlert.triggerAlert(alertMessage: "Error playing track. Check log file for details.")
     }
-  }
-
-  private func timeStr(from time: Double) -> String {
-    guard (time > Double(Int.min)), (time < Double(Int.max)) else { return "" }
-    let timeSecs = Int(time)
-
-    let hours = timeSecs / 3600
-    let mins  = (timeSecs - 3600*hours) / 60
-    let secs  = timeSecs - 60*hours - 60*mins
-    return (hours > 0) ? String(format:"%d:%02d:%02d", hours, mins, secs) : String(format:"%d:%02d", mins, secs)
   }
 
   func performPositionUpdate() {
@@ -1007,6 +1015,7 @@ let trackFile       = "Tracks.dat"
     // Inform the playlist manager
     playPosition = playlistManager.shuffleChanged(shuffleTracks: playerSelection.shuffleTracks)
     playerSelection.setPlayingPosition(playPosition: playPosition, playTotal: playlistManager.trackCount)
+    playerSelection.setPlayingInfo()
 
     // Stay on the same track
     if(selectedTrack != nil) {
@@ -1553,48 +1562,100 @@ let trackFile       = "Tracks.dat"
   }
 
   func browserDelayAction(_ itemIndex: Int, _ action: @escaping () -> Void) {
-    let artist, album: String
-    if(playerSelection.filterString.isEmpty) {
-      artist = selectedArtist
-      album  = selectedAlbum
-    }
-    else {
-      switch(playerSelection.filterMode) {
-      case .Artist:
-        artist = filteredArtist
-        album  = filteredAlbum
+    delayTask?.cancel()
+    delayTask = Task { @MainActor in
+      do {
+        try await Task.sleep(nanoseconds: 1000000000)
+      } catch { return }
 
-      case .Album:
-        if(filteredAlbum.isEmpty) {
-          (artist, _) = filteredAlbums[itemIndex]
-          album = ""
-        } else {
-          artist = String(filteredArtist.dropFirst(13).dropLast())
-          album  = filteredAlbum
+      let artist, album: String
+      var m3U: String? = nil
+      var trackURL: URL? = nil
+      if(playerSelection.filterString.isEmpty) {
+        artist = selectedArtist
+        album  = selectedAlbum
+        if(!artist.isEmpty && album.isEmpty) {
+          let itemAlbum = playerSelection.browserItems[itemIndex]
+          m3U = m3UDict[artist]![itemAlbum]!
         }
 
-      case .Track:
-        (artist, album, _) = filteredTracks[itemIndex]
-      }
-    }
+        if(!artist.isEmpty && !album.isEmpty) {
+          let track = playerSelection.browserItems[itemIndex]
 
-    playerSelection.setBrowserInfo(itemIndex: itemIndex, artist: artist, album: album)
-    delayAction(action)
+          let baseURL   = URL(fileURLWithPath: musicPath + artist + "/" + album)
+          trackURL      = baseURL.appendingFile(file: track)
+        }
+      }
+      else {
+        switch(playerSelection.filterMode) {
+        case .Artist:
+          artist = filteredArtist
+          album  = filteredAlbum
+          if(!artist.isEmpty && album.isEmpty) {
+            let itemAlbum = playerSelection.browserItems[itemIndex]
+            m3U = m3UDict[artist]![itemAlbum]!
+          }
+
+          if(!artist.isEmpty && !album.isEmpty) {
+            let itemTrack = playerSelection.browserItems[itemIndex]
+            let baseURL   = URL(fileURLWithPath: musicPath + "/" + artist + "/" + album)
+            trackURL      = baseURL.appendingFile(file: itemTrack)
+          }
+
+        case .Album:
+          if(filteredAlbum.isEmpty) {
+            album = ""
+
+            let itemAlbum: String
+            (artist, itemAlbum) = filteredAlbums[itemIndex]
+            m3U = m3UDict[artist]![itemAlbum]!
+          } else {
+            artist = String(filteredArtist.dropFirst(13).dropLast())
+            album  = filteredAlbum
+
+            let itemTrack = playerSelection.browserItems[itemIndex]
+            let baseURL   = URL(fileURLWithPath: musicPath + "/" + artist + "/" + album)
+            trackURL      = baseURL.appendingFile(file: itemTrack)
+          }
+
+        case .Track:
+          let track: String
+          (artist, album, track) = filteredTracks[itemIndex]
+
+          let baseURL   = URL(fileURLWithPath: musicPath + "/" + artist + "/" + album)
+          trackURL      = baseURL.appendingFile(file: track)
+        }
+      }
+      playerSelection.setBrowserItemInfo(itemIndex: itemIndex, artist: artist, album: album, m3U: m3U, trackURL: trackURL)
+
+      action()
+      delayTask = nil
+    }
   }
 
   func playingDelayAction(_ itemIndex: Int, _ action: @escaping () -> Void) {
-    playerSelection.setPlayingInfo(trackNum: itemIndex+1, trackInfo: playlistManager.trackAt(position: itemIndex))
-    delayAction(action)
+    delayTask?.cancel()
+    delayTask = Task { @MainActor in
+      do {
+        try await Task.sleep(nanoseconds: 1000000000)
+      } catch { return }
+
+      playerSelection.setPlayingTrackInfo(trackNum: itemIndex+1, trackInfo: playlistManager.trackAt(position: itemIndex))
+
+      action()
+      delayTask = nil
+    }
   }
 
   func delayAction(_ action: @escaping () -> Void) {
     delayTask?.cancel()
-    delayTask = Task {
+    delayTask = Task { @MainActor in
       do {
         try await Task.sleep(nanoseconds: 1000000000)
       } catch { return }
 
       action()
+      delayTask = nil
     }
   }
 
