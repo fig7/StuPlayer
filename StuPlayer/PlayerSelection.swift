@@ -84,8 +84,13 @@ struct PlayingItem {
   @Published var searchDownAllowed = false
   @Published var searchString = "" {
     didSet {
+      // Updating published values, on the fly, appears to be a hugely bad idea
+      // So, make a local copy, modify it, then write the whole thing back
+      var playingTracksLocal = playingTracks
+      
       if(searchString.isEmpty) {
-        for i in playingTracks.indices { playingTracks[i].searched = false }
+        for i in playingTracksLocal.indices { playingTracksLocal[i].searched = false }
+        playingTracks = playingTracksLocal
 
         searchIndex       = playingScrollPos
         searchUpAllowed   = false
@@ -95,12 +100,13 @@ struct PlayingItem {
 
       let lcSearchString = searchString.lowercased()
       var firstIndex = -1
-      for i in playingTracks.indices {
-        if(playingTracks[i].name.lowercased().hasPrefix(lcSearchString)) {
-          playingTracks[i].searched = true
+      for i in playingTracksLocal.indices {
+        if(playingTracksLocal[i].name.lowercased().hasPrefix(lcSearchString)) {
+          playingTracksLocal[i].searched = true
           if(firstIndex == -1) { firstIndex = i }
-        } else { playingTracks[i].searched = false }
+        } else { playingTracksLocal[i].searched = false }
       }
+      playingTracks = playingTracksLocal
 
       if(firstIndex == -1) {
         searchIndex       = playingScrollPos
