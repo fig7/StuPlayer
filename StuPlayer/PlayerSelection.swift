@@ -45,7 +45,7 @@ struct PlayingItem {
   @Published var repeatTracks   = RepeatState.None
   @Published var shuffleTracks  = false
 
-  @Published var browserItems: [String] = []
+  @Published var browserItems: [String] = [] { didSet { browserPopover = -1 } }
   @Published var playbackState: AudioPlayer.PlaybackState = .stopped
 
   @Published var playPosition = 0
@@ -63,18 +63,22 @@ struct PlayingItem {
   @Published var filterMode   = FilterMode.Artist
   @Published var filterString = "" {
     didSet {
+      if(oldValue == filterString) { return }
       delegate?.filterChanged(newFilter: filterString)
     }
   }
 
   @Published var browserScrollPos = -1 {
     didSet {
+      if(browserScrollPos != browserPopover) { browserPopover = -1 }
       delegate?.browserScrollPosChanged(newScrollPos: browserScrollPos)
     }
   }
+  @Published var browserPopover = -1
 
+  @Published var playingScrollPos  = -1 { didSet { if(playingScrollPos != playingPopover) { playingPopover = -1 } }}
   @Published var playingScrollTo   = -1
-  @Published var playingScrollPos  = -1
+  @Published var playingPopover    = -1
 
   var prevSel = -1
   var currSel = -1
@@ -84,6 +88,8 @@ struct PlayingItem {
   @Published var searchDownAllowed = false
   @Published var searchString = "" {
     didSet {
+      if(oldValue == searchString) { return }
+
       // Updating published values, on the fly, appears to be a hugely bad idea
       // So, make a local copy, modify it, then write the whole thing back
       var playingTracksLocal = playingTracks
@@ -183,34 +189,32 @@ struct PlayingItem {
 
     var meta: [String] = []
     let title = audioFile.metadata.title
-    if(title != nil) { meta.append("Title:\t\(title!)") }
+    if let title { if(!title.isEmpty) { meta.append("Title:\t\(title)") } }
 
     let metaArtist = audioFile.metadata.artist
-    if(metaArtist != nil) { meta.append("Artist:\t\(metaArtist!)") }
+    if let metaArtist { if(!metaArtist.isEmpty) { meta.append("Artist:\t\(metaArtist)") } }
 
     let metaAlbum = audioFile.metadata.albumTitle
-    if(metaAlbum != nil) { meta.append("Album:\t\(metaAlbum!)") }
+    if let metaAlbum { if(!metaAlbum.isEmpty) { meta.append("Album:\t\(metaAlbum)") } }
 
     let genre = audioFile.metadata.genre
-    if(genre != nil) { meta.append("Genre:\t\(genre!)") }
+    if let genre { if(!genre.isEmpty) { meta.append("Genre:\t\(genre)") } }
 
     var metadataStr = ""
-    if(!meta.isEmpty) {
-      metadataStr = "Metadata:\n\t" + meta.joined(separator: "\n\t")
-    }
+    if(!meta.isEmpty) { metadataStr = "Metadata:\n\t" + meta.joined(separator: "\n\t") }
 
     var props: [String] = []
     let sampleRate = audioFile.properties.sampleRate
-    if(sampleRate != nil) { props.append("Sample rate:\t\(sampleRate!.toIntStr())") }
+    if let sampleRate { props.append("Sample rate:\t\(sampleRate.toIntStr())") }
 
     let numChannels = audioFile.properties.channelCount
-    if(numChannels != nil) { props.append("Channels:\t\(numChannels!)") }
+    if let numChannels { props.append("Channels:\t\(numChannels)") }
 
     let duration = audioFile.properties.duration
-    if(duration != nil) { props.append("Duration:\t\(timeStr(from: duration!))") }
+    if let duration { props.append("Duration:\t\(timeStr(from: duration))") }
 
     let bitrate = audioFile.properties.bitrate
-    if(bitrate != nil) { props.append("Bit rate:\t\t\(bitrate!.toIntStr()) KB/s") }
+    if let bitrate { props.append("Bit rate:\t\t\(bitrate.toIntStr()) KB/s") }
 
     if(!props.isEmpty) {
       if(!metadataStr.isEmpty) { metadataStr += "\n\n" }

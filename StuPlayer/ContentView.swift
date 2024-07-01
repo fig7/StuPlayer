@@ -20,6 +20,15 @@ struct DummyView : View {
   }
 }
 
+// Really just to extend the two ItemView types, but I don't know how to do that
+extension View {
+  func sync(_ published: Binding<Int>, with binding: Binding<Bool>, for itemIndex: Int) -> some View {
+    self
+      .onChange(of: published.wrappedValue) { published in binding.wrappedValue = (published == itemIndex) }
+      .onChange(of: binding.wrappedValue)   { binding   in if(binding) { published.wrappedValue = itemIndex } else if(published.wrappedValue == itemIndex) { published.wrappedValue = -1 } }
+  }
+}
+
 struct BrowserItemView : View {
   @State private var browserPopover = false
 
@@ -39,7 +48,6 @@ struct BrowserItemView : View {
     self.itemIndex    = itemIndex
 
     highlighted = (itemIndex == playerSelection.browserScrollPos)
-
   }
 
   var body: some View {
@@ -48,10 +56,14 @@ struct BrowserItemView : View {
       .onTapGesture { model.browserItemClicked(itemIndex: itemIndex, itemText: itemText) }
       .onHover(perform: { hovering in
         if(hovering) {
-          model.browserDelayAction(itemIndex) { browserPopover = true }
-        } else { model.delayCancel(); browserPopover = false } })
+          if(playerSelection.browserPopover == itemIndex) { return }
+          model.browserDelayAction(itemIndex) { playerSelection.browserPopover = itemIndex }
+        } else {
+          model.delayCancel()
+          playerSelection.browserPopover = -1
+        } })
       .popover(isPresented: $browserPopover) { Text(playerSelection.browserItemInfo).font(.headline).padding() }
-
+      .sync($playerSelection.browserPopover, with: $browserPopover, for: itemIndex)
   }
 }
 
@@ -94,9 +106,14 @@ struct PlayingItemView : View {
         .onTapGesture { model.playingItemClicked(itemIndex) }
         .onHover(perform: { hovering in
           if(hovering) {
-            model.playingDelayAction(itemIndex) { playingPopover = true }
-          } else { model.delayCancel(); playingPopover = false } })
+            if(playerSelection.playingPopover == itemIndex) { return }
+            model.playingDelayAction(itemIndex) { playerSelection.playingPopover = itemIndex }
+          } else {
+            model.delayCancel();
+            playerSelection.playingPopover = -1 }
+          })
         .popover(isPresented: $playingPopover) { Text(playerSelection.playingTrackInfo).font(.headline).padding() }
+        .sync($playerSelection.playingPopover, with: $playingPopover, for: itemIndex)
     }
     .background(playerItem ? Image(itemPlaying ? "Playing" : "Paused").resizable().aspectRatio(contentMode: .fit) : nil, alignment: .leading)
     .frame(minWidth: 150, alignment: .leading).padding(.horizontal, 4)
@@ -483,7 +500,14 @@ struct ContentView: View {
       switch(keyCode) {
       case kVK_Escape:
         if(scrollViewFocus == .BrowserScrollView) {
-          // Clear album first
+          // Clear popup first
+          model.delayCancel()
+          if(playerSelection.browserPopover != -1) {
+            playerSelection.browserPopover = -1
+            return nil
+          }
+
+          // Clear album next
           if((playerSelection.filterString.isEmpty || (playerSelection.filterMode != .Track)) && !playerSelection.album.isEmpty) {
             model.clearAlbum()
             return nil
@@ -505,7 +529,14 @@ struct ContentView: View {
           playerSelection.browserScrollPos = -1
           return nil
         } else { // (scrollViewFocus == .PlayingScrollView)
-          // Clear search first
+          // Clear popup first
+          model.delayCancel()
+          if(playerSelection.playingPopover != -1) {
+            playerSelection.playingPopover = -1
+            return nil
+          }
+
+          // Clear search next
           if(!playerSelection.searchString.isEmpty) {
             playerSelection.clearSearch()
             return nil
@@ -539,23 +570,31 @@ struct ContentView: View {
         return nil
 
       case kVK_F1:
-        model.toggleFilter()
-        return nil
-
-      case kVK_F2:
         model.playAll()
         return nil
 
-      case kVK_F3:
+      case kVK_F2:
         model.toggleShuffle()
         return nil
 
-      case kVK_F4:
+      case kVK_F3:
         model.toggleRepeat()
+        return nil
+
+      case kVK_F4:
+        model.toggleFilter()
         return nil
 
       case kVK_ANSI_KeypadEnter:
         model.togglePause()
+        return nil
+
+      case kVK_ANSI_Grave:
+        if((scrollViewFocus == .BrowserScrollView)) {
+          model.toggleBrowserPopup()
+        } else { // (scrollViewFocus == .PlayingScrollView)
+          model.togglePlayingPopup()
+        }
         return nil
 
       default:

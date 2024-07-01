@@ -813,7 +813,8 @@ let trackFile       = "Tracks.dat"
     playerSelection.clearSearch()
     if(playerSelection.playingScrollPos >= 0) {
       playerSelection.playingScrollPos = 0
-      playerSelection.playingScrollTo = 0
+      playerSelection.playingScrollTo  = 0
+      playerSelection.playingPopover   = -1
     }
   }
 
@@ -1561,6 +1562,72 @@ let trackFile       = "Tracks.dat"
     }
   }
 
+  private func setBrowserInfo(_ itemIndex: Int) {
+    let artist, album: String
+    var m3U: String? = nil
+    var trackURL: URL? = nil
+    if(playerSelection.filterString.isEmpty) {
+      artist = selectedArtist
+      album  = selectedAlbum
+      if(!artist.isEmpty && album.isEmpty) {
+        let itemAlbum = playerSelection.browserItems[itemIndex]
+        m3U = m3UDict[artist]![itemAlbum]!
+      }
+
+      if(!artist.isEmpty && !album.isEmpty) {
+        let track = playerSelection.browserItems[itemIndex]
+
+        let baseURL   = URL(fileURLWithPath: musicPath + artist + "/" + album)
+        trackURL      = baseURL.appendingFile(file: track)
+      }
+    }
+    else {
+      switch(playerSelection.filterMode) {
+      case .Artist:
+        artist = filteredArtist
+        album  = filteredAlbum
+        if(!artist.isEmpty && album.isEmpty) {
+          let itemAlbum = playerSelection.browserItems[itemIndex]
+          m3U = m3UDict[artist]![itemAlbum]!
+        }
+
+        if(!artist.isEmpty && !album.isEmpty) {
+          let itemTrack = playerSelection.browserItems[itemIndex]
+          let baseURL   = URL(fileURLWithPath: musicPath + "/" + artist + "/" + album)
+          trackURL      = baseURL.appendingFile(file: itemTrack)
+        }
+
+      case .Album:
+        if(filteredAlbum.isEmpty) {
+          album = ""
+
+          let itemAlbum: String
+          (artist, itemAlbum) = filteredAlbums[itemIndex]
+          m3U = m3UDict[artist]![itemAlbum]!
+        } else {
+          artist = String(filteredArtist.dropFirst(13).dropLast())
+          album  = filteredAlbum
+
+          let itemTrack = playerSelection.browserItems[itemIndex]
+          let baseURL   = URL(fileURLWithPath: musicPath + "/" + artist + "/" + album)
+          trackURL      = baseURL.appendingFile(file: itemTrack)
+        }
+
+      case .Track:
+        let track: String
+        (artist, album, track) = filteredTracks[itemIndex]
+
+        let baseURL   = URL(fileURLWithPath: musicPath + "/" + artist + "/" + album)
+        trackURL      = baseURL.appendingFile(file: track)
+      }
+    }
+
+    var trackAccess = false
+    if(trackURL != nil) { trackAccess = bmURL.startAccessingSecurityScopedResource() }
+    playerSelection.setBrowserItemInfo(itemIndex: itemIndex, artist: artist, album: album, m3U: m3U, trackURL: trackURL)
+    if(trackAccess) { bmURL.stopAccessingSecurityScopedResource() }
+  }
+
   func browserDelayAction(_ itemIndex: Int, _ action: @escaping () -> Void) {
     delayTask?.cancel()
     delayTask = Task { @MainActor in
@@ -1568,67 +1635,9 @@ let trackFile       = "Tracks.dat"
         try await Task.sleep(nanoseconds: 1000000000)
       } catch { return }
 
-      let artist, album: String
-      var m3U: String? = nil
-      var trackURL: URL? = nil
-      if(playerSelection.filterString.isEmpty) {
-        artist = selectedArtist
-        album  = selectedAlbum
-        if(!artist.isEmpty && album.isEmpty) {
-          let itemAlbum = playerSelection.browserItems[itemIndex]
-          m3U = m3UDict[artist]![itemAlbum]!
-        }
-
-        if(!artist.isEmpty && !album.isEmpty) {
-          let track = playerSelection.browserItems[itemIndex]
-
-          let baseURL   = URL(fileURLWithPath: musicPath + artist + "/" + album)
-          trackURL      = baseURL.appendingFile(file: track)
-        }
-      }
-      else {
-        switch(playerSelection.filterMode) {
-        case .Artist:
-          artist = filteredArtist
-          album  = filteredAlbum
-          if(!artist.isEmpty && album.isEmpty) {
-            let itemAlbum = playerSelection.browserItems[itemIndex]
-            m3U = m3UDict[artist]![itemAlbum]!
-          }
-
-          if(!artist.isEmpty && !album.isEmpty) {
-            let itemTrack = playerSelection.browserItems[itemIndex]
-            let baseURL   = URL(fileURLWithPath: musicPath + "/" + artist + "/" + album)
-            trackURL      = baseURL.appendingFile(file: itemTrack)
-          }
-
-        case .Album:
-          if(filteredAlbum.isEmpty) {
-            album = ""
-
-            let itemAlbum: String
-            (artist, itemAlbum) = filteredAlbums[itemIndex]
-            m3U = m3UDict[artist]![itemAlbum]!
-          } else {
-            artist = String(filteredArtist.dropFirst(13).dropLast())
-            album  = filteredAlbum
-
-            let itemTrack = playerSelection.browserItems[itemIndex]
-            let baseURL   = URL(fileURLWithPath: musicPath + "/" + artist + "/" + album)
-            trackURL      = baseURL.appendingFile(file: itemTrack)
-          }
-
-        case .Track:
-          let track: String
-          (artist, album, track) = filteredTracks[itemIndex]
-
-          let baseURL   = URL(fileURLWithPath: musicPath + "/" + artist + "/" + album)
-          trackURL      = baseURL.appendingFile(file: track)
-        }
-      }
-      playerSelection.setBrowserItemInfo(itemIndex: itemIndex, artist: artist, album: album, m3U: m3U, trackURL: trackURL)
-
+      setBrowserInfo(itemIndex)
       action()
+
       delayTask = nil
     }
   }
@@ -1641,8 +1650,8 @@ let trackFile       = "Tracks.dat"
       } catch { return }
 
       playerSelection.setPlayingTrackInfo(trackNum: itemIndex+1, trackInfo: playlistManager.trackAt(position: itemIndex))
-
       action()
+
       delayTask = nil
     }
   }
@@ -1661,6 +1670,22 @@ let trackFile       = "Tracks.dat"
 
   func delayCancel() {
     delayTask?.cancel()
+  }
+
+  func toggleBrowserPopup() {
+    if(playerSelection.browserScrollPos < 0) { return }
+    if(playerSelection.browserScrollPos == playerSelection.browserPopover) { playerSelection.browserPopover = -1; return }
+
+    setBrowserInfo(playerSelection.browserScrollPos)
+    playerSelection.browserPopover = playerSelection.browserScrollPos
+  }
+
+  func togglePlayingPopup() {
+    if(playerSelection.playingScrollPos < 0) { return }
+    if(playerSelection.playingScrollPos == playerSelection.playingPopover) { playerSelection.playingPopover = -1; return }
+
+    playerSelection.setPlayingTrackInfo(trackNum: playerSelection.playingScrollPos+1, trackInfo: playlistManager.trackAt(position: playerSelection.playingScrollPos))
+    playerSelection.playingPopover = playerSelection.playingScrollPos
   }
 
   #if PLAYBACK_TEST
