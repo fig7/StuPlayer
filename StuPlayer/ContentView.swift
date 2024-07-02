@@ -491,7 +491,10 @@ struct ContentView: View {
     .padding()
     .frame(minWidth:  200, maxWidth: .infinity, minHeight: 200, maxHeight: .infinity, alignment: .topLeading)
     .alert(playerAlert.alertMessage, isPresented: $playerAlert.alertTriggered) { }
-    .onAppear { handleKeyEvents() }
+    .onAppear {
+      scrollViewFocus = .BrowserScrollView
+      handleKeyEvents()
+    }
   }
 
   func handleKeyEvents() {
