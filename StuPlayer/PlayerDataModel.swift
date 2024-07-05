@@ -29,6 +29,7 @@ let rootTypesFile = "RootTypes.dat"
 
 let m3UFile         = "Playlists.dat"
 let trackFile       = "Tracks.dat"
+let countdownFile   = "Countdown.dat"
 
 @MainActor class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate {
   var playerAlert: PlayerAlert
@@ -141,6 +142,14 @@ let trackFile       = "Tracks.dat"
       return
     }
 
+    let trackCountdown: Bool
+    do {
+      trackCountdown = try PlayerDataModel.getTrackCountdown(countdownFile: countdownFile)
+    } catch {
+      trackCountdown = false
+      logManager.append(logCat: .LogInitError, logMessage: "Error reading track countdown")
+    }
+
     self.m3UDict    = allM3UDict[selectedType] ?? [:]
     self.tracksDict = allTracksDict[selectedType] ?? [:]
     self.musicPath  = rootPath + selectedType + "/"
@@ -155,6 +164,7 @@ let trackFile       = "Tracks.dat"
       playerSelection.setRootPath(newRootPath: rootPath)
       playerSelection.setTypes(newType: selectedType, newTypeList: typesList)
       playerSelection.setAll(newArtist: selectedArtist, newAlbum: selectedAlbum, newList: tracksDict.keys.sorted())
+      playerSelection.trackCountdown = trackCountdown
     }
   }
 
@@ -1087,27 +1097,27 @@ let trackFile       = "Tracks.dat"
 
   static func getM3UDict(m3UFile: String) throws -> AllM3UDict {
     let m3UData = NSData(contentsOfFile: m3UFile) as Data?
-    guard let m3UData else {
-      return [:]
-    }
+    guard let m3UData else { return [:] }
 
     return try PropertyListDecoder().decode(AllM3UDict.self, from: m3UData)
   }
 
   static func getTrackDict(trackFile: String) throws -> AllTracksDict {
     let trackData = NSData(contentsOfFile: trackFile) as Data?
-    guard let trackData else {
-      return [:]
-    }
+    guard let trackData else { return [:] }
 
     return try PropertyListDecoder().decode(AllTracksDict.self, from: trackData)
   }
 
+  static func getTrackCountdown(countdownFile: String) throws -> Bool {
+    let countdownData = try NSData(contentsOfFile: countdownFile) as Data
+    let countdownStr  = String(decoding: countdownData, as: UTF8.self)
+    return (countdownStr == "TRUE")
+  }
+
   static func getTypes(typesFile: String) throws -> (String, [String]) {
     let typesData = NSData(contentsOfFile: typesFile) as Data?
-    guard let typesData else {
-      return ("", [])
-    }
+    guard let typesData else { return ("", []) }
 
     let typesStr   = String(decoding: typesData, as: UTF8.self)
     let typesSplit = typesStr.split(whereSeparator: \.isNewline)
@@ -1686,6 +1696,13 @@ let trackFile       = "Tracks.dat"
 
     playerSelection.setPlayingTrackInfo(trackNum: playerSelection.playingScrollPos+1, trackInfo: playlistManager.trackAt(position: playerSelection.playingScrollPos))
     playerSelection.playingPopover = playerSelection.playingScrollPos
+  }
+
+  func toggleTrackCountdown() {
+    playerSelection.trackCountdown.toggle()
+
+    let trackCountdown = playerSelection.trackCountdown ? "TRUE" : "FALSE"
+    try? trackCountdown.write(toFile: countdownFile, atomically: true, encoding: .utf8)
   }
 
   #if PLAYBACK_TEST

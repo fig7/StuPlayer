@@ -394,7 +394,7 @@ struct ContentView: View {
           Spacer().frame(width: 15)
 
           Text(playerSelection.trackCountdown ? playerSelection.trackLeftStr : playerSelection.trackPosStr).monospacedDigit().frame(width: 42, alignment: .trailing).padding(.horizontal, 6)
-            .onTapGesture { playerSelection.trackCountdown.toggle() }
+            .onTapGesture { model.toggleTrackCountdown() }
             .onHover(perform: { hovering in
               if(hovering) {
                 model.delayAction() { countdownPopover = true }
