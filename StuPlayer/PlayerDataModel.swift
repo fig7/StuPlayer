@@ -1437,9 +1437,6 @@ let countdownFile   = "Countdown.dat"
       // (it's not critical)
     }
 
-    playerSelection.browserScrollPos = -1
-    playerSelection.clearFilter(resetMode: true)
-
     m3UDict      = allM3UDict[selectedType]    ?? [:]
     tracksDict   = allTracksDict[selectedType] ?? [:]
     musicPath    = rootPath + selectedType + "/"
@@ -1447,8 +1444,11 @@ let countdownFile   = "Countdown.dat"
     selectedArtist = ""
     selectedAlbum  = ""
 
+    playerSelection.browserScrollPos = -1
+
     let artistList = tracksDict.keys.sorted()
     playerSelection.setAll(newArtist: "", newAlbum: "", newList: artistList)
+    playerSelection.clearFilter(resetMode: true)
   }
 
   func artists(filteredBy: String) -> [String] {
