@@ -636,9 +636,9 @@ struct ContentView: View {
       case .tab:
         let browserFocus = (scrollViewFocus == .BrowserScrollView)
         let playingFocus = (scrollViewFocus == .PlayingScrollView)
-        if(browserFocus && (playerSelection.playPosition > 0)) { scrollViewFocus = .PlayingScrollView  }
-        else if(playingFocus)                                  { scrollViewFocus = .CurrentPlayingView }
-        else if(!browserFocus)                                 { scrollViewFocus = .BrowserScrollView  }
+        if(browserFocus && (playerSelection.playPosition > 0)) { playerSelection.browserPopover = -1; scrollViewFocus = .PlayingScrollView  }
+        else if(playingFocus)                                  { playerSelection.playingPopover = -1; scrollViewFocus = .CurrentPlayingView }
+        else if(!browserFocus)                                 { trackPopover = false;                scrollViewFocus = .BrowserScrollView  }
         return nil
 
       default:
