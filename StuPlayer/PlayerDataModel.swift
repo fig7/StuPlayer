@@ -71,6 +71,7 @@ let countdownFile   = "Countdown.dat"
 
   var pendingTrack: Int?
   var currentTrack: TrackInfo?
+  var currentLyrics: [LyricsItem]?
 
   var playbackTimer: Timer?
   var delayTask: Task<Void, Never>?
@@ -78,8 +79,8 @@ let countdownFile   = "Countdown.dat"
   init(playerAlert: PlayerAlert, playerSelection: PlayerSelection) {
     self.playerAlert     = playerAlert
     self.playerSelection = playerSelection
-    self.bmData          = PlayerDataModel.getBookmarkData()
 
+    self.bmData = PlayerDataModel.getBookmarkData()
     if let bmData = self.bmData {
       do {
         var isStale = false
@@ -192,6 +193,114 @@ let countdownFile   = "Countdown.dat"
   }
   #endif
 
+  func lyricTimeParseHH(_ hundrethsStr: Substring) -> TimeInterval? {
+    let hundrethsInt = Int(hundrethsStr)
+    guard let hundrethsInt else { return nil }
+    if((hundrethsInt<0) || (hundrethsInt>99)) { return nil}
+
+    return TimeInterval(hundrethsInt)/100.0
+  }
+
+  func lyricTimeParseMS(mins: Substring, secs: Substring) -> TimeInterval? {
+    let minsInt = Int(mins)
+    guard let minsInt else { return nil }
+    if((minsInt<0) || (minsInt>59)) { return nil}
+    let minsDbl = TimeInterval(minsInt)
+
+    let timeSplit = secs.split(separator: ".")
+    if(timeSplit.count > 2) { return nil }
+
+    let secsWhole = timeSplit[0]
+    if(secsWhole.count != 2) { return nil}
+
+    let secsInt = Int(secsWhole)
+    guard let secsInt else { return nil }
+    if((secsInt<0) || (secsInt>59)) { return nil}
+    let secsDbl = TimeInterval(secsInt)
+
+    let hundredths = (timeSplit.count == 2) ? lyricTimeParseHH(timeSplit[1]) : 0.0
+    guard let hundredths else { return nil }
+
+    return 60.0*minsDbl + secsDbl + hundredths
+  }
+
+  func lyricTimeParseHMS(hours: Substring, mins: Substring, secs: Substring) -> TimeInterval? {
+    let hoursInt = Int(hours)
+    guard let hoursInt else { return nil }
+    if(hoursInt<0) { return nil}
+    let hoursDbl = TimeInterval(hoursInt)
+
+    if(mins.count != 2) { return nil }
+    let minsSecsDbl = lyricTimeParseMS(mins: mins, secs: secs)
+    guard let minsSecsDbl else { return nil }
+
+    return 3600.0*hoursDbl + minsSecsDbl
+  }
+
+  func lyricTimeParse(_ lyricTimeStr: Substring) -> TimeInterval? {
+    let timeSplit = lyricTimeStr.split(separator: ":")
+    switch timeSplit.count {
+    case 3:
+      return lyricTimeParseHMS(hours: timeSplit[0], mins: timeSplit[1], secs: timeSplit[2])
+
+    case 2:
+      return lyricTimeParseMS(mins: timeSplit[0], secs: timeSplit[1])
+
+    default:
+      return nil
+    }
+  }
+
+  func lyricsForTrack(_ trackURL: URL) -> [LyricsItem]? {
+    let lyricsURL  = trackURL.deletingPathExtension().appendingPathExtension("spl")
+    let lyricsPath = lyricsURL.filePath()
+    let lyricsData = NSData(contentsOfFile: lyricsPath) as Data?
+    guard let lyricsData else {
+      logManager.append(logCat: .LogFileError, logMessage: "Lyrics missing for: " + lyricsPath)
+      return nil
+    }
+
+    var lyrics: [LyricsItem] = []
+    lyrics.append(LyricsItem(lyric: "[Track start]", time: 0.0))
+    let lyricsStr = String(decoding: lyricsData, as: UTF8.self)
+    let lyricLines = lyricsStr.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
+    var lyricLastTime = 0.0
+    for lyricLine in lyricLines {
+      if(lyricLine.isEmpty) { lyrics.append(LyricsItem(lyric: "")); continue }
+
+      let lineSplit = lyricLine.split(separator: "*")
+      if(lineSplit.count > 2) {
+        logManager.append(logCat: .LogFileError, logMessage: "Error decoding lyrics for: " + lyricsPath)
+        return nil
+      }
+
+      var lyricTime: TimeInterval? = nil
+      if(lineSplit.count == 2) {
+        let lyricText = lineSplit[1]
+        if(lyricText.isEmpty) {
+          logManager.append(logCat: .LogFileError, logMessage: "Lyric time given for empty lyric")
+          logManager.append(logCat: .LogFileError, logMessage: "Error decoding lyric time for: " + lyricsPath)
+        }
+
+        lyricTime = lyricTimeParse(lineSplit[0])
+        guard let lyricTime else {
+          logManager.append(logCat: .LogFileError, logMessage: "Error decoding lyric time for: " + lyricsPath)
+          return nil
+        }
+
+        if(lyricTime < lyricLastTime) {
+          logManager.append(logCat: .LogFileError, logMessage: "Lyric times must increase")
+          logManager.append(logCat: .LogFileError, logMessage: "Error decoding lyric time for: " + lyricsPath)
+        }
+
+        lyricLastTime = lyricTime
+        lyrics.append(LyricsItem(lyric: lyricText, time: lyricTime))
+      } else { lyrics.append(LyricsItem(lyric: lineSplit[0]))}
+    }
+
+    return lyrics
+  }
+
   func handleNextTrack() {
     let repeatingTrack = (playerSelection.repeatTracks == RepeatState.Track)
     if(!nowPlaying || !repeatingTrack) {
@@ -202,9 +311,13 @@ let countdownFile   = "Countdown.dat"
 
       playPosition += 1
       currentTrack = playlistManager.nextTrack()
+
+      // Fetch lyrics (if available)
+      let trackURL = currentTrack!.trackURL
+      currentLyrics = lyricsForTrack(trackURL)
     }
 
-    playerSelection.setTrack(newTrack: currentTrack!)
+    playerSelection.setTrack(newTrack: currentTrack!, newLyrics: currentLyrics)
     playerSelection.setSeekEnabled(seekEnabled: player.supportsSeeking)
     playerSelection.setPlayingPosition(playPosition: playPosition, playTotal: playlistManager.trackCount)
     playerSelection.setPlayingInfo()
@@ -714,6 +827,7 @@ let countdownFile   = "Countdown.dat"
   func playingItemClicked(_ itemIndex: Int) {
     delayCancel()
     playerSelection.playingScrollPos = -1
+    playerSelection.lyricsScrollPos = -1
 
     playingItemSelected(itemIndex)
   }
@@ -764,6 +878,16 @@ let countdownFile   = "Countdown.dat"
 
     playerSelection.countdownInfo  = "Track position:\t\(playerSelection.trackPosStr)\n"
                                    + "Track length:\t\((total > 0.0) ? timeStr(from: total) : "Unknown")"
+
+    if let currentLyrics {
+      for (index, lyric) in currentLyrics.enumerated().reversed() {
+        guard let lyricTime = lyric.time else { continue }
+        if(current > lyricTime) {
+          playerSelection.lyricsPosition = index
+          break
+        }
+      }
+    }
   }
 
   func updatePlayingPosition() {
@@ -825,6 +949,10 @@ let countdownFile   = "Countdown.dat"
       playerSelection.playingScrollPos = 0
       playerSelection.playingScrollTo  = 0
       playerSelection.playingPopover   = -1
+    }
+
+    if(playerSelection.lyricsScrollPos >= 0) {
+      playerSelection.lyricsScrollPos = 0
     }
   }
 
@@ -1095,6 +1223,10 @@ let countdownFile   = "Countdown.dat"
     playerSelection.toggleFilterMode()
   }
 
+  func toggleLyrics() {
+    playerSelection.toggleLyricsMode()
+  }
+
   static func getM3UDict(m3UFile: String) throws -> AllM3UDict {
     let m3UData = NSData(contentsOfFile: m3UFile) as Data?
     guard let m3UData else { return [:] }
@@ -1216,14 +1348,9 @@ let countdownFile   = "Countdown.dat"
       return []
     }
 
-    var tracks = m3UStr.split(whereSeparator: \.isNewline).map(String.init)
-    tracks.indices.forEach {
-      tracks[$0] = tracks[$0].trimmingCharacters(in: .whitespaces)
-    }
-
-    return tracks.filter { track in
-      return !track.starts(with: "#")
-    }
+    var m3ULines = m3UStr.split(whereSeparator: \.isNewline).map(String.init)
+    m3ULines.indices.forEach { m3ULines[$0] = m3ULines[$0].trimmingCharacters(in: .whitespaces) }
+    return m3ULines.filter { m3ULine in return !m3ULine.starts(with: "#") }
   }
 
   func scanAlbum(albumPath: String) -> (String, [String]) {
@@ -1703,6 +1830,15 @@ let countdownFile   = "Countdown.dat"
 
     let trackCountdown = playerSelection.trackCountdown ? "TRUE" : "FALSE"
     try? trackCountdown.write(toFile: countdownFile, atomically: true, encoding: .utf8)
+  }
+
+  func lyricsItemSelected(_ itemIndex: Int) {
+    // Seek to position (if present)
+    // Or update file
+  }
+
+  func lyricsItemClicked(_ itemIndex: Int) {
+    lyricsItemSelected(itemIndex)
   }
 
   #if PLAYBACK_TEST

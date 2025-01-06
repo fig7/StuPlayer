@@ -10,10 +10,19 @@ import SFBAudioEngine
 
 enum RepeatState { case None, Track, All }
 enum FilterMode  { case Artist, Album, Track }
+enum LyricsMode  { case Navigate, Update }
 
 struct PlayingItem {
   let name: String
   var searched: Bool
+}
+
+struct LyricsItem {
+  let text: String
+  var time: TimeInterval?
+
+  init(lyric: Substring) { text = String(lyric) }
+  init(lyric: Substring, time: TimeInterval) { text = String(lyric); self.time = time }
 }
 
 @MainActor class PlayerSelection: ObservableObject
@@ -59,6 +68,7 @@ struct PlayingItem {
   @Published var seekEnabled    = false  // Enable and disable the slider
 
   @Published var playingTracks: [PlayingItem] = []
+  @Published var playingLyrics: [LyricsItem] = []
 
   @Published var filterMode   = FilterMode.Artist
   @Published var filterString = "" {
@@ -67,6 +77,8 @@ struct PlayingItem {
       delegate?.filterChanged(newFilter: filterString)
     }
   }
+
+  @Published var lyricsMode = LyricsMode.Navigate
 
   @Published var browserScrollPos = -1 {
     didSet {
@@ -79,6 +91,9 @@ struct PlayingItem {
   @Published var playingScrollPos  = -1 { didSet { if(playingScrollPos != playingPopover) { playingPopover = -1 } }}
   @Published var playingScrollTo   = -1
   @Published var playingPopover    = -1
+
+  @Published var lyricsPosition   = -1
+  @Published var lyricsScrollPos  = -1
 
   var prevSel = -1
   var currSel = -1
@@ -132,12 +147,15 @@ struct PlayingItem {
     }
   }
 
+  @Published var dummyString = ""
+
   @Published var browserItemInfo   = ""
   @Published var playingTrackInfo  = ""
 
   @Published var playingInfo   = ""
   @Published var playlistInfo  = ""
   @Published var trackInfo     = ""
+  @Published var lyricsInfo    = (artist: "", album: "", track: "")
   @Published var countdownInfo = ""
 
   weak var delegate: Delegate?
@@ -224,8 +242,9 @@ struct PlayingItem {
     return metadataStr
   }
 
-  func setTrack(newTrack: TrackInfo?) {
+  func setTrack(newTrack: TrackInfo?, newLyrics: [LyricsItem]? = nil) {
     setPlaylist(newPlaylist: newTrack?.playlist)
+    setLyrics(newLyrics: newLyrics)
 
     guard let newTrack else {
       self.fileName = ""
@@ -233,6 +252,7 @@ struct PlayingItem {
 
       self.playingInfo = ""
       self.trackInfo   = ""
+      self.lyricsInfo  = ("", "", "")
       return
     }
 
@@ -246,9 +266,10 @@ struct PlayingItem {
     let artist = playlistSplit[0]
     let album  = playlistSplit[1]
 
-    let trackInfo   = "File:\t\t\(fileName)\nArtist:\t\(artist)\nAlbum:\t\(album)\nTrack:\t\(trackNum) of \(numTracks)"
-    let metadataStr = fetchMetadata(trackURL: newTrack.trackURL)
-    self.trackInfo  = !metadataStr.isEmpty ? trackInfo + "\n\n" + metadataStr : trackInfo
+    let trackInfo    = "File:\t\t\(fileName)\nArtist:\t\(artist)\nAlbum:\t\(album)\nTrack:\t\(trackNum) of \(numTracks)"
+    let metadataStr  = fetchMetadata(trackURL: newTrack.trackURL)
+    self.trackInfo   = !metadataStr.isEmpty ? trackInfo + "\n\n" + metadataStr : trackInfo
+    self.lyricsInfo  = (String(artist), String(album), (fileName as NSString).deletingPathExtension)
   }
 
   func setBrowserItemInfo(itemIndex: Int, artist: String, album: String, m3U: String?, trackURL: URL?) {
@@ -306,6 +327,10 @@ struct PlayingItem {
     let baseStr  = "Playlist:\t\(playlist)\nArtist:\t\(artist)\nAlbum:\t\(album)\nTracks:\t"
     let trackStr = newPlaylist.tracks.joined(separator: "\n\t\t")
     self.playlistInfo = baseStr + trackStr
+  }
+
+  func setLyrics(newLyrics: [LyricsItem]?) {
+    self.playingLyrics = newLyrics ?? []
   }
 
   func setPlaybackState(newPlaybackState: AudioPlayer.PlaybackState) {
@@ -381,6 +406,16 @@ struct PlayingItem {
 
     if(!filterString.isEmpty) {
       delegate?.filterChanged(newFilter: filterString)
+    }
+  }
+
+  func toggleLyricsMode() {
+    switch(lyricsMode) {
+    case .Navigate:
+      lyricsMode = .Update
+
+    case .Update:
+      lyricsMode = .Navigate
     }
   }
 

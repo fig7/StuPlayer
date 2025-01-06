@@ -9,7 +9,7 @@ import SwiftUI
 import Carbon.HIToolbox
 import SFBAudioEngine
 
-enum ScrollViewFocus { case BrowserScrollView, PlayingScrollView, CurrentPlayingView }
+enum ScrollViewFocus { case BrowserScrollView, PlayingScrollView, LyricsLeftView, LyricsScrollView, CurrentPlayingView }
 
 struct DummyView : View {
   init(action: @escaping () -> Void) { self.onPressed = action }
@@ -120,10 +120,46 @@ struct PlayingItemView : View {
   }
 }
 
+struct LyricsItemView : View {
+  let model: PlayerDataModel
+  @ObservedObject var playerSelection: PlayerSelection
+
+  let itemText: String
+  let itemIndex: Int
+
+  let itemPlaying: Bool
+  let lyricsItem: Bool
+  let highlighted: Bool
+
+  init(model: PlayerDataModel, playerSelection: PlayerSelection, itemText: String, itemIndex: Int) {
+    self.model = model
+    self.playerSelection = playerSelection
+
+    self.itemText     = itemText
+    self.itemIndex    = itemIndex
+
+    itemPlaying   = (playerSelection.playbackState == .playing)
+    lyricsItem    = (itemIndex == (playerSelection.lyricsPosition))
+    highlighted   = (itemIndex == playerSelection.lyricsScrollPos)
+  }
+
+  var body: some View {
+    HStack(spacing: 0) {
+      Text("         ").onTapGesture { lyricsItem ? model.togglePause() : nil}
+      Text(itemText).fontWeight((highlighted || lyricsItem) ? .semibold : nil).padding(.horizontal, 4)
+        .background(highlighted ? RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3)) : nil)
+        .onTapGesture { model.lyricsItemClicked(itemIndex) }
+    }
+    .background(lyricsItem ? Image(itemPlaying ? "Playing" : "Paused").resizable().aspectRatio(contentMode: .fit) : nil, alignment: .leading)
+    .frame(minWidth: 150, alignment: .leading).padding(.horizontal, 4)
+  }
+}
+
 struct ContentView: View {
   @Environment(\.controlActiveState) var controlActiveState
 
   let model: PlayerDataModel
+  @ObservedObject var skManager: SKManager
   @ObservedObject var playerAlert: PlayerAlert
   @ObservedObject var playerSelection: PlayerSelection
 
@@ -234,29 +270,31 @@ struct ContentView: View {
           }
         }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
 
-        HStack {
-          Text("Track:").padding(.horizontal, 10).padding(.vertical, 2).foregroundStyle((playerSelection.playPosition > 0) ? .black : .gray)
+        if(skManager.plViewPurchased) {
+          HStack {
+            Text("Track:").padding(.horizontal, 10).padding(.vertical, 2).foregroundStyle((playerSelection.playPosition > 0) ? .black : .gray)
 
-          Spacer().frame(width: 10)
+            Spacer().frame(width: 10)
 
-          TextField("Search", text: $playerSelection.searchString).frame(width: 120)
-            .autocorrectionDisabled(/*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
-            .textSelection(.disabled)
-            .textFieldStyle(.roundedBorder)
-            .focused($scrollViewFocus, equals: .PlayingScrollView)
+            TextField("Search", text: $playerSelection.searchString).frame(width: 120)
+              .autocorrectionDisabled(/*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
+              .textSelection(.disabled)
+              .textFieldStyle(.roundedBorder)
+              .focused($scrollViewFocus, equals: .PlayingScrollView)
 
-          Button(action: { _ = playerSelection.searchPrev() }) {
-            Text("▲")
-          }.disabled(!playerSelection.searchUpAllowed)
+            Button(action: { _ = playerSelection.searchPrev() }) {
+              Text("▲")
+            }.disabled(!playerSelection.searchUpAllowed)
 
-          Button(action: { _ = playerSelection.searchNext() }) {
-            Text("▼")
-          }.disabled(!playerSelection.searchDownAllowed)
+            Button(action: { _ = playerSelection.searchNext() }) {
+              Text("▼")
+            }.disabled(!playerSelection.searchDownAllowed)
 
-          Button(action: playerSelection.clearSearch) {
-            Text("✖")
-          }
-        }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading).disabled(playerSelection.playPosition == 0)
+            Button(action: playerSelection.clearSearch) {
+              Text("✖")
+            }
+          }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading).disabled(playerSelection.playPosition == 0)
+        }
       }
 
       Spacer().frame(height: 20)
@@ -291,89 +329,175 @@ struct ContentView: View {
             Text("Repeat: all").frame(width: 90).padding(.horizontal, 10).padding(.vertical, 2)
           }
         }
+
+        if(skManager.lViewPurchased) {
+          Spacer().frame(width: 20)
+
+          HStack {
+            Button(action: model.toggleLyrics) {
+              switch(playerSelection.lyricsMode) {
+              case LyricsMode.Navigate:
+                Text("Lyrics: Navigate").frame(width: 110).padding(.horizontal, 10).padding(.vertical, 2)
+
+              case LyricsMode.Update:
+                Text("Lyrics: Update").frame(width: 110).padding(.horizontal, 10).padding(.vertical, 2)
+              }
+            }
+
+            // Dummy text fields to hold focus
+            TextField("", text: $playerSelection.dummyString).frame(width: 0)
+              .autocorrectionDisabled(/*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
+              .textSelection(.disabled)
+              .focused($scrollViewFocus, equals: .LyricsLeftView)
+              .opacity(0.0)
+
+            TextField("", text: $playerSelection.dummyString).frame(width: 0)
+              .autocorrectionDisabled(/*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
+              .textSelection(.disabled)
+              .focused($scrollViewFocus, equals: .LyricsScrollView)
+              .opacity(0.0)
+          }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
+        }
       }
 
       Spacer().frame(height: 20)
 
-      HStack {
-        ScrollViewReader { scrollViewProxy in
-          let hasFocus = (scrollViewFocus == .BrowserScrollView)
-
-          ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-              if(hasFocus) {
-                HStack() {
-                  DummyView(action: { browserDown     (proxy: scrollViewProxy) }).keyboardShortcut(.downArrow, modifiers: [])
-                  DummyView(action: { browserPageDown (proxy: scrollViewProxy) }).keyboardShortcut(.pageDown,  modifiers: [])
-                  DummyView(action: { browserEnd      (proxy: scrollViewProxy) }).keyboardShortcut(.end,       modifiers: [])
-
-                  DummyView(action: { browserUp      (proxy: scrollViewProxy) }).keyboardShortcut(.upArrow, modifiers: [])
-                  DummyView(action: { browserPageUp  (proxy: scrollViewProxy) }).keyboardShortcut(.pageUp,  modifiers: [])
-                  DummyView(action: { browserHome    (proxy: scrollViewProxy) }).keyboardShortcut(.home,    modifiers: [])
-                }.frame(maxWidth: 0, maxHeight: 0)
-              }
-
-              LazyVStack(alignment: .leading) {
-                ForEach(Array(playerSelection.browserItems.enumerated()), id: \.offset) { itemIndex, itemText in
-                  BrowserItemView(model: model, playerSelection: playerSelection, itemText: itemText, itemIndex: itemIndex)
-                }
-              }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
-            }
-          }
-          .frame(minWidth: 150, maxWidth: .infinity).padding(7).background() {
-            GeometryReader { proxy in Color.clear.onAppear { scrollViewHeight = proxy.size.height }.onChange(of: proxy.size.height) { newValue in scrollViewHeight = newValue } }
-          }.overlay(
-            RoundedRectangle(cornerRadius: 8).stroke((hasFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
-        }
-
-        if(playerSelection.playPosition > 0) {
+      VStack(alignment: .leading, spacing: 0) {
+        HStack {
           ScrollViewReader { scrollViewProxy in
-            let hasFocus = (scrollViewFocus == .PlayingScrollView)
+            let hasFocus = (scrollViewFocus == .BrowserScrollView)
 
             ScrollView {
               VStack(alignment: .leading, spacing: 0) {
                 if(hasFocus) {
                   HStack() {
-                    DummyView(action: { playingDown     (proxy: scrollViewProxy) }).keyboardShortcut(.downArrow, modifiers: [])
-                    DummyView(action: { playingPageDown (proxy: scrollViewProxy) }).keyboardShortcut(.pageDown,  modifiers: [])
-                    DummyView(action: { playingEnd      (proxy: scrollViewProxy) }).keyboardShortcut(.end,       modifiers: [])
+                    DummyView(action: { browserDown     (proxy: scrollViewProxy) }).keyboardShortcut(.downArrow, modifiers: [])
+                    DummyView(action: { browserPageDown (proxy: scrollViewProxy) }).keyboardShortcut(.pageDown,  modifiers: [])
+                    DummyView(action: { browserEnd      (proxy: scrollViewProxy) }).keyboardShortcut(.end,       modifiers: [])
 
-                    DummyView(action: { playingUp      (proxy: scrollViewProxy) }).keyboardShortcut(.upArrow, modifiers: [])
-                    DummyView(action: { playingPageUp  (proxy: scrollViewProxy) }).keyboardShortcut(.pageUp,  modifiers: [])
-                    DummyView(action: { playingHome    (proxy: scrollViewProxy) }).keyboardShortcut(.home,    modifiers: [])
-
-                    DummyView(action: { playingSelected(proxy: scrollViewProxy) }).keyboardShortcut(.clear, modifiers: [])
+                    DummyView(action: { browserUp      (proxy: scrollViewProxy) }).keyboardShortcut(.upArrow, modifiers: [])
+                    DummyView(action: { browserPageUp  (proxy: scrollViewProxy) }).keyboardShortcut(.pageUp,  modifiers: [])
+                    DummyView(action: { browserHome    (proxy: scrollViewProxy) }).keyboardShortcut(.home,    modifiers: [])
                   }.frame(maxWidth: 0, maxHeight: 0)
                 }
 
-                LazyVStack(alignment: .leading, spacing: 0) {
-                  ForEach(Array(playerSelection.playingTracks.enumerated()), id: \.offset) { itemIndex, item in
-                    PlayingItemView(model: model, playerSelection: playerSelection, itemText: item.name, itemSearched: item.searched, itemIndex: itemIndex)
+                LazyVStack(alignment: .leading) {
+                  ForEach(Array(playerSelection.browserItems.enumerated()), id: \.offset) { itemIndex, itemText in
+                    BrowserItemView(model: model, playerSelection: playerSelection, itemText: itemText, itemIndex: itemIndex)
                   }
                 }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
               }
-            }.frame(minWidth: 150, maxWidth: .infinity).padding(7).overlay(
-              RoundedRectangle(cornerRadius: 8).stroke((hasFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
-            .onChange(of: playerSelection.playPosition) { newPos in
-              if(newPos == 0) { return }
-
-              playerSelection.prevSel = -1
-              playerSelection.currSel = -1
-              scrollViewProxy.scrollTo(newPos-1, anchor: .center)
             }
-            .onChange(of: playerSelection.playingScrollTo) { _ in
-              if(playerSelection.playingScrollTo == -1) { return }
+            .frame(minWidth: 150, maxWidth: .infinity).padding(7).background() {
+              GeometryReader { proxy in Color.clear.onAppear { scrollViewHeight = proxy.size.height }.onChange(of: proxy.size.height) { newValue in scrollViewHeight = newValue } }
+            }.overlay(
+              RoundedRectangle(cornerRadius: 8).stroke((hasFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+          }
 
-              scrollViewProxy.scrollTo(playerSelection.playingScrollTo, anchor: .center)
-              playerSelection.prevSel = playerSelection.playingScrollTo
-              playerSelection.currSel = playerSelection.playingScrollTo
-              playerSelection.playingScrollTo = -1
+          if((playerSelection.playPosition > 0) && skManager.plViewPurchased) {
+            ScrollViewReader { scrollViewProxy in
+              let hasFocus = (scrollViewFocus == .PlayingScrollView)
+
+              ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                  if(hasFocus) {
+                    HStack() {
+                      DummyView(action: { playingDown     (proxy: scrollViewProxy) }).keyboardShortcut(.downArrow, modifiers: [])
+                      DummyView(action: { playingPageDown (proxy: scrollViewProxy) }).keyboardShortcut(.pageDown,  modifiers: [])
+                      DummyView(action: { playingEnd      (proxy: scrollViewProxy) }).keyboardShortcut(.end,       modifiers: [])
+
+                      DummyView(action: { playingUp      (proxy: scrollViewProxy) }).keyboardShortcut(.upArrow, modifiers: [])
+                      DummyView(action: { playingPageUp  (proxy: scrollViewProxy) }).keyboardShortcut(.pageUp,  modifiers: [])
+                      DummyView(action: { playingHome    (proxy: scrollViewProxy) }).keyboardShortcut(.home,    modifiers: [])
+
+                      DummyView(action: { playingSelected(proxy: scrollViewProxy) }).keyboardShortcut(.clear, modifiers: [])
+                    }.frame(maxWidth: 0, maxHeight: 0)
+                  }
+
+                  LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(playerSelection.playingTracks.enumerated()), id: \.offset) { itemIndex, item in
+                      PlayingItemView(model: model, playerSelection: playerSelection, itemText: item.name, itemSearched: item.searched, itemIndex: itemIndex)
+                    }
+                  }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
+                }
+              }.frame(minWidth: 150, maxWidth: .infinity).padding(7).overlay(
+                RoundedRectangle(cornerRadius: 8).stroke((hasFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+              .onChange(of: playerSelection.playPosition) { newPos in
+                if(newPos == 0) { return }
+
+                playerSelection.prevSel = -1
+                playerSelection.currSel = -1
+                scrollViewProxy.scrollTo(newPos-1, anchor: .center)
+              }
+              .onChange(of: playerSelection.playingScrollTo) { _ in
+                if(playerSelection.playingScrollTo == -1) { return }
+
+                scrollViewProxy.scrollTo(playerSelection.playingScrollTo, anchor: .center)
+                playerSelection.prevSel = playerSelection.playingScrollTo
+                playerSelection.currSel = playerSelection.playingScrollTo
+                playerSelection.playingScrollTo = -1
+              }
             }
           }
-        } else {
-          Spacer().frame(minWidth: 150, maxWidth: .infinity).padding(7)
         }
-      }.onChange(of: playerSelection.playPosition) { newPos in if(newPos == 0) { scrollViewFocus = .BrowserScrollView } }
+        .onChange(of: playerSelection.playPosition) { newPos in if(newPos == 0) { scrollViewFocus = .BrowserScrollView } }
+        .onChange(of: skManager.plViewPurchased)    { newPurchaseState in if(newPurchaseState) { return }; playerSelection.playingPopover = -1 }
+
+        Spacer().frame(height: 20)
+
+        if((playerSelection.playPosition > 0) && skManager.lViewPurchased) {
+          HStack(alignment: .top, spacing: 0) {
+            let hasFocus = (scrollViewFocus == .LyricsLeftView)
+
+            VStack(alignment: .leading, spacing: 5) {
+              HStack() {
+                Text("Artist:").font(.headline).frame(width: 50, alignment: .leading)
+                Text(playerSelection.lyricsInfo.artist).font(.headline)
+              }.padding(.horizontal, 4)
+
+              HStack() {
+                Text("Album:").font(.headline).frame(width: 50, alignment: .leading)
+                Text(playerSelection.lyricsInfo.album).font(.headline)
+              }.padding(.horizontal, 4)
+
+              HStack() {
+                Text("Track:").font(.headline).frame(width: 50, alignment: .leading)
+                Text(playerSelection.lyricsInfo.track).font(.headline)
+              }.padding(.horizontal, 4)
+            }.frame(minWidth: 150, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading).padding(7).overlay(
+              RoundedRectangle(cornerRadius: 8).stroke((hasFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+
+            ScrollViewReader { scrollViewProxy in
+              let hasFocus = (scrollViewFocus == .LyricsScrollView)
+
+              ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                  if(hasFocus) {
+                    HStack() {
+                      DummyView(action: { lyricsDown     (proxy: scrollViewProxy) }).keyboardShortcut(.downArrow, modifiers: [])
+                      DummyView(action: { lyricsPageDown (proxy: scrollViewProxy) }).keyboardShortcut(.pageDown,  modifiers: [])
+                      DummyView(action: { lyricsEnd      (proxy: scrollViewProxy) }).keyboardShortcut(.end,       modifiers: [])
+
+                      DummyView(action: { lyricsUp      (proxy: scrollViewProxy) }).keyboardShortcut(.upArrow, modifiers: [])
+                      DummyView(action: { lyricsPageUp  (proxy: scrollViewProxy) }).keyboardShortcut(.pageUp,  modifiers: [])
+                      DummyView(action: { lyricsHome    (proxy: scrollViewProxy) }).keyboardShortcut(.home,    modifiers: [])
+
+                      DummyView(action: { lyricsSelected(proxy: scrollViewProxy) }).keyboardShortcut(.clear, modifiers: [])
+                    }.frame(maxWidth: 0, maxHeight: 0)
+                  }
+
+                  LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(playerSelection.playingLyrics.enumerated()), id: \.offset) { itemIndex, item in
+                      LyricsItemView(model: model, playerSelection: playerSelection, itemText: item.text, itemIndex: itemIndex)
+                    }
+                  }
+                }
+              }.padding(7).overlay(
+                RoundedRectangle(cornerRadius: 8).stroke((hasFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+            }
+          }
+        }
+      }
 
       Spacer().frame(height: 30)
 
@@ -551,7 +675,11 @@ struct ContentView: View {
           // Finally, clear the selection
           playerSelection.playingScrollPos = -1
           return nil
-        } else { // (scrollViewFocus == .CurrentPlayingView)
+        } else if(scrollViewFocus == .LyricsScrollView) {
+          // Clear the selection
+          playerSelection.lyricsScrollPos = -1
+          return nil
+        } else if(scrollViewFocus == .CurrentPlayingView) {
           // Clear popup
           trackPopover = false
           return nil
@@ -574,9 +702,18 @@ struct ContentView: View {
             return nil
           }
 
-          let playerItem = (itemIndex == (playerSelection.playPosition-1))
-          playerItem ? model.togglePause() : model.playingItemSelected(itemIndex)
-        } else { // (scrollViewFocus == .CurrentPlayingView)
+          model.playingItemSelected(itemIndex)
+        } else if(scrollViewFocus == .LyricsLeftView) {
+          // No op
+        } else if(scrollViewFocus == .LyricsScrollView) {
+          let itemIndex = playerSelection.lyricsScrollPos
+          if(itemIndex < 0) {
+            playerSelection.lyricsScrollPos = 0
+            return nil
+          }
+
+          model.lyricsItemSelected(itemIndex)
+        } else if(scrollViewFocus == .CurrentPlayingView) {
           // No op
         }
 
@@ -607,7 +744,7 @@ struct ContentView: View {
           model.toggleBrowserPopup()
         } else if(scrollViewFocus == .PlayingScrollView) {
           model.togglePlayingPopup()
-        } else { // (scrollViewFocus == .CurrentPlayingView)
+        } else if(scrollViewFocus == .CurrentPlayingView) {
           trackPopover.toggle()
         }
 
@@ -634,11 +771,36 @@ struct ContentView: View {
       guard let specialKey = aEvent.specialKey else { return aEvent }
       switch(specialKey) {
       case .tab:
-        let browserFocus = (scrollViewFocus == .BrowserScrollView)
-        let playingFocus = (scrollViewFocus == .PlayingScrollView)
-        if(browserFocus && (playerSelection.playPosition > 0)) { playerSelection.browserPopover = -1; scrollViewFocus = .PlayingScrollView  }
-        else if(playingFocus)                                  { playerSelection.playingPopover = -1; scrollViewFocus = .CurrentPlayingView }
-        else if(!browserFocus)                                 { trackPopover = false;                scrollViewFocus = .BrowserScrollView  }
+        if(skManager.plViewPurchased && skManager.lViewPurchased) {
+          let browserFocus = (scrollViewFocus == .BrowserScrollView)
+          let playingFocus = (scrollViewFocus == .PlayingScrollView)
+          let lyricsFocus  = (scrollViewFocus == .LyricsLeftView)
+          let lyricsFocus2  = (scrollViewFocus == .LyricsScrollView)
+          if(browserFocus && (playerSelection.playPosition > 0)) { playerSelection.browserPopover = -1; scrollViewFocus = .PlayingScrollView  }
+          else if(playingFocus)                                  { playerSelection.playingPopover = -1; scrollViewFocus = .LyricsLeftView }
+          else if(lyricsFocus)                                   {                                      scrollViewFocus = .LyricsScrollView }
+          else if(lyricsFocus2)                                  {                                      scrollViewFocus = .CurrentPlayingView }
+          else if(!browserFocus)                                 { trackPopover = false;                scrollViewFocus = .BrowserScrollView  }
+        } else if(skManager.plViewPurchased) {
+          let browserFocus = (scrollViewFocus == .BrowserScrollView)
+          let playingFocus = (scrollViewFocus == .PlayingScrollView)
+          if(browserFocus && (playerSelection.playPosition > 0)) { playerSelection.browserPopover = -1; scrollViewFocus = .PlayingScrollView  }
+          else if(playingFocus)                                  { playerSelection.playingPopover = -1; scrollViewFocus = .CurrentPlayingView }
+          else if(!browserFocus)                                 { trackPopover = false;                scrollViewFocus = .BrowserScrollView  }
+        } else if(skManager.lViewPurchased) {
+          let browserFocus = (scrollViewFocus == .BrowserScrollView)
+          let lyricsFocus  = (scrollViewFocus == .LyricsLeftView)
+          let lyricsFocus2 = (scrollViewFocus == .LyricsScrollView)
+          if(browserFocus && (playerSelection.playPosition > 0)) { playerSelection.browserPopover = -1; scrollViewFocus = .LyricsLeftView }
+          else if(lyricsFocus)                                   {                                      scrollViewFocus = .LyricsScrollView }
+          else if(lyricsFocus2)                                  {                                      scrollViewFocus = .CurrentPlayingView }
+          else if(!browserFocus)                                 { trackPopover = false;                scrollViewFocus = .BrowserScrollView  }
+        } else {
+          let browserFocus = (scrollViewFocus == .BrowserScrollView)
+          if(browserFocus && (playerSelection.playPosition > 0)) { playerSelection.browserPopover = -1; scrollViewFocus = .CurrentPlayingView  }
+          else if(!browserFocus)                                 { trackPopover = false;                scrollViewFocus = .BrowserScrollView   }
+        }
+
         return nil
 
       default:
@@ -772,7 +934,7 @@ struct ContentView: View {
     }
 
     if(playerSelection.playingScrollPos <= 0) { return }
-    
+
     let linesToScroll = Int(0.5 + scrollViewHeight / textHeight)
     var newScrollPos = playerSelection.playingScrollPos - linesToScroll
     if(newScrollPos < 0) { newScrollPos = 0 }
@@ -836,5 +998,64 @@ struct ContentView: View {
 
     playerSelection.currSel = playerSelection.prevSel
     proxy.scrollTo(playerSelection.playingScrollPos, anchor: .center)
+  }
+
+  func lyricsDown(proxy: ScrollViewProxy) {
+    let listLimit = playerSelection.playingLyrics.count - 1
+    if(playerSelection.lyricsScrollPos >= listLimit) { return }
+
+    playerSelection.lyricsScrollPos += 1
+    proxy.scrollTo(playerSelection.lyricsScrollPos)
+  }
+
+  func lyricsPageDown(proxy: ScrollViewProxy) {
+    let listLimit = playerSelection.playingLyrics.count - 1
+    if(playerSelection.lyricsScrollPos >= listLimit) { return }
+
+    let linesToScroll = Int(0.5 + scrollViewHeight / textHeight)
+    var newScrollPos  = ((playerSelection.lyricsScrollPos < 0) ? 0 : playerSelection.lyricsScrollPos) + linesToScroll
+    if(newScrollPos > listLimit) { newScrollPos = listLimit }
+
+    playerSelection.lyricsScrollPos = newScrollPos;
+    proxy.scrollTo(playerSelection.lyricsScrollPos)
+  }
+
+  func lyricsEnd(proxy: ScrollViewProxy) {
+    let listLimit = playerSelection.playingLyrics.count - 1
+    if(playerSelection.lyricsScrollPos >= listLimit) { return }
+
+    playerSelection.lyricsScrollPos = listLimit;
+    proxy.scrollTo(playerSelection.lyricsScrollPos)
+  }
+
+  func lyricsUp(proxy: ScrollViewProxy) {
+    if(playerSelection.lyricsScrollPos <= 0) { return }
+
+    playerSelection.lyricsScrollPos -= 1;
+    proxy.scrollTo(playerSelection.lyricsScrollPos)
+  }
+
+  func lyricsPageUp(proxy: ScrollViewProxy) {
+    if(playerSelection.lyricsScrollPos <= 0) { return }
+
+    let linesToScroll = Int(0.5 + scrollViewHeight / textHeight)
+    var newScrollPos = playerSelection.lyricsScrollPos - linesToScroll
+    if(newScrollPos < 0) { newScrollPos = 0 }
+
+    playerSelection.lyricsScrollPos = newScrollPos;
+    proxy.scrollTo(playerSelection.lyricsScrollPos)
+  }
+
+  func lyricsHome(proxy: ScrollViewProxy) {
+    if(playerSelection.lyricsScrollPos > 0) {
+      playerSelection.lyricsScrollPos = 0
+    }
+
+    proxy.scrollTo(0)
+  }
+
+  func lyricsSelected(proxy: ScrollViewProxy) {
+    playerSelection.lyricsScrollPos = playerSelection.lyricsPosition
+    proxy.scrollTo(playerSelection.lyricsScrollPos, anchor: .center)
   }
 }

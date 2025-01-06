@@ -17,6 +17,9 @@
 		1297A5CA2B9778CA0017B083 /* PlayerSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1297A5C92B9778CA0017B083 /* PlayerSelection.swift */; };
 		1297A6022B9791AA0017B083 /* SFBAudioEngine.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1297A5FF2B9790290017B083 /* SFBAudioEngine.framework */; };
 		1297A6032B9791AA0017B083 /* SFBAudioEngine.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 1297A5FF2B9790290017B083 /* SFBAudioEngine.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		1299B3B42D25D79300D31045 /* SPSKC.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 1299B3B32D25D79300D31045 /* SPSKC.storekit */; };
+		1299B3B92D25E30800D31045 /* SPSKPL.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1299B3B82D25E30800D31045 /* SPSKPL.plist */; };
+		1299B3BB2D25E41F00D31045 /* SKManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1299B3BA2D25E41F00D31045 /* SKManager.swift */; };
 		12AA0E792BE97BA400E0A549 /* stuplayer.help in Resources */ = {isa = PBXBuildFile; fileRef = 12AA0E752BE97BA400E0A549 /* stuplayer.help */; };
 		12B87E2B2BBC02580064E6B8 /* PlayerAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */; };
 		12B87E2E2BBECE7A0064E6B8 /* URL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B87E2D2BBECE7A0064E6B8 /* URL.swift */; };
@@ -70,6 +73,9 @@
 		1297A5C92B9778CA0017B083 /* PlayerSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSelection.swift; sourceTree = "<group>"; };
 		1297A5F22B978DB30017B083 /* SFBAudioEngine.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = SFBAudioEngine.xcframework; path = ../build/SFBAudioEngine.xcframework; sourceTree = "<group>"; };
 		1297A5F82B9790290017B083 /* SFBAudioEngine.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = SFBAudioEngine.xcodeproj; path = ../SFBAudioEngine.xcodeproj; sourceTree = "<group>"; };
+		1299B3B32D25D79300D31045 /* SPSKC.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = SPSKC.storekit; sourceTree = "<group>"; };
+		1299B3B82D25E30800D31045 /* SPSKPL.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = SPSKPL.plist; sourceTree = "<group>"; };
+		1299B3BA2D25E41F00D31045 /* SKManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKManager.swift; sourceTree = "<group>"; };
 		12AA0E752BE97BA400E0A549 /* stuplayer.help */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = stuplayer.help; sourceTree = "<group>"; };
 		12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerAlert.swift; sourceTree = "<group>"; };
 		12B87E2D2BBECE7A0064E6B8 /* URL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URL.swift; sourceTree = "<group>"; };
@@ -115,6 +121,7 @@
 				1292443A2BC53A5200E25D01 /* Info.plist */,
 				12B87E2C2BBECE400064E6B8 /* Ext */,
 				1297A5B62B9619CE0017B083 /* StuPlayerApp.swift */,
+				1299B3BA2D25E41F00D31045 /* SKManager.swift */,
 				1297A5B82B9619CE0017B083 /* ContentView.swift */,
 				125432A12BB763B600CB6A64 /* LogFileManager.swift */,
 				12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */,
@@ -125,6 +132,8 @@
 				12C617DC2BB4BCB700B1EE65 /* Credits.html */,
 				1297A5BA2B9619D00017B083 /* Assets.xcassets */,
 				1297A5BF2B9619D00017B083 /* StuPlayer.entitlements */,
+				1299B3B32D25D79300D31045 /* SPSKC.storekit */,
+				1299B3B82D25E30800D31045 /* SPSKPL.plist */,
 			);
 			path = StuPlayer;
 			sourceTree = "<group>";
@@ -239,8 +248,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				12C617DD2BB4BCB700B1EE65 /* Credits.html in Resources */,
+				1299B3B42D25D79300D31045 /* SPSKC.storekit in Resources */,
 				12AA0E792BE97BA400E0A549 /* stuplayer.help in Resources */,
 				1297A5BB2B9619D00017B083 /* Assets.xcassets in Resources */,
+				1299B3B92D25E30800D31045 /* SPSKPL.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -254,6 +265,7 @@
 				12B87E2B2BBC02580064E6B8 /* PlayerAlert.swift in Sources */,
 				125432A22BB763B600CB6A64 /* LogFileManager.swift in Sources */,
 				12B87E2E2BBECE7A0064E6B8 /* URL.swift in Sources */,
+				1299B3BB2D25E41F00D31045 /* SKManager.swift in Sources */,
 				1297A5B92B9619CE0017B083 /* ContentView.swift in Sources */,
 				12CF573B2C2EE19900E9CEAB /* TimeUtil.swift in Sources */,
 				1297A5B72B9619CE0017B083 /* StuPlayerApp.swift in Sources */,
