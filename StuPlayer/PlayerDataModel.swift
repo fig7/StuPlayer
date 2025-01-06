@@ -863,14 +863,14 @@ let countdownFile   = "Countdown.dat"
     playerSelection.trackLeftStr = "--:--"
     playerSelection.countdownInfo = "Track position:\tUnknown\nTrack length:\tUnknown"
 
-    let playPosition = player.time
-    guard let playPosition else { return }
+    let playerPosition = player.time
+    guard let playerPosition else { return }
 
-    let current = playPosition.current
+    let current = playerPosition.current
     guard let current else { return }
     playerSelection.trackPosStr = timeStr(from: current)
 
-    let total = playPosition.total ?? 0.0
+    let total = playerPosition.total ?? 0.0
     if((total > 0.0)) {
       playerSelection.trackPos     = current / total
       playerSelection.trackLeftStr = timeStr(from: total - current)
@@ -1832,9 +1832,86 @@ let countdownFile   = "Countdown.dat"
     try? trackCountdown.write(toFile: countdownFile, atomically: true, encoding: .utf8)
   }
 
+  func validateLyricTimes(_ lyrics: [LyricsItem]) -> Bool {
+    var testTime = 0.0
+    for lyric in lyrics {
+      guard let lyricTime = lyric.time else { continue }
+      if(lyricTime < testTime) { return false}
+
+      testTime = lyricTime
+    }
+
+    return true
+  }
+
+  func lyricTimeValid(lyricIndex: Int, newTime: TimeInterval) -> Bool {
+    guard let currentLyrics else { return false }
+
+    var newLyrics = currentLyrics
+    newLyrics[lyricIndex].time = newTime
+
+    if(validateLyricTimes(newLyrics)) {
+      self.currentLyrics = newLyrics
+      return true
+    }
+
+    return false
+  }
+
+  func updateLyricsFile() {
+    guard var lyricsToWrite = currentLyrics else { return }
+    lyricsToWrite.removeFirst()
+
+    var lyricsStr = ""
+    for lyric in lyricsToWrite {
+      var lyricLine = ""
+      if(lyric.time != nil) { lyricLine.append(lyricsTimeStr(from: lyric.time!) + "*") }
+      lyricLine.append(lyric.text)
+
+      lyricsStr.append(lyricLine + "\n")
+    }
+
+    // Remove final \n
+    lyricsStr.removeLast()
+
+    let trackURL = currentTrack!.trackURL
+    let lyricsURL  = trackURL.deletingPathExtension().appendingPathExtension("spl")
+    let lyricsPath = lyricsURL.filePath()
+    try! lyricsStr.write(toFile: lyricsPath, atomically: true, encoding: .utf8)
+  }
+
   func lyricsItemSelected(_ itemIndex: Int) {
-    // Seek to position (if present)
-    // Or update file
+    if(playerSelection.lyricsMode == .Navigate) {
+      guard let currentLyrics else { return }
+      guard let lyricTime = currentLyrics[itemIndex].time else { return }
+
+      let playerPosition = player.time
+      guard let playerPosition else { return }
+
+      let total = playerPosition.total ?? 0.0
+      if((total > 0.0)) {
+        let trackPos = lyricTime / total
+        self.seekTo(newPosition: trackPos)
+      }
+    } else { // .Update
+      if(itemIndex == 0) { return}
+
+      let playPosition = player.time
+      guard let playPosition else { return }
+
+      let current = playPosition.current
+      guard let current else { return }
+
+      var lyricTime = current - 0.5
+      if(lyricTime<0.0) { lyricTime = 0.0 }
+
+      if(lyricTimeValid(lyricIndex: itemIndex, newTime: lyricTime)) {
+        currentLyrics![itemIndex].time = lyricTime
+        updateLyricsFile()
+
+        playerSelection.setLyrics(newLyrics: currentLyrics)
+      }
+    }
   }
 
   func lyricsItemClicked(_ itemIndex: Int) {

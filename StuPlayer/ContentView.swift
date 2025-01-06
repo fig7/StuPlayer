@@ -494,6 +494,10 @@ struct ContentView: View {
                 }
               }.padding(7).overlay(
                 RoundedRectangle(cornerRadius: 8).stroke((hasFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+              .onChange(of: playerSelection.lyricsPosition) { newPos in
+                if(newPos == -1) { return }
+                scrollViewProxy.scrollTo(newPos, anchor: .center)
+              }
             }
           }
         }
