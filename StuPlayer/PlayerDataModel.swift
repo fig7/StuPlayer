@@ -1892,6 +1892,9 @@ let countdownFile   = "Countdown.dat"
       if((total > 0.0)) {
         let trackPos = lyricTime / total
         self.seekTo(newPosition: trackPos)
+
+        let playbackState = player.playbackState
+        if (playbackState == .paused) { player.resume() }
       }
     } else { // .Update
       if(itemIndex == 0) { return}
