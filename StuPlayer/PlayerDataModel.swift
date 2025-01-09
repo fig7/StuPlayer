@@ -72,6 +72,7 @@ let countdownFile   = "Countdown.dat"
   var pendingTrack: Int?
   var currentTrack: TrackInfo?
   var currentLyrics: [LyricsItem]?
+  var currentNotes: String?
 
   var playbackTimer: Timer?
   var delayTask: Task<Void, Never>?
@@ -251,27 +252,49 @@ let countdownFile   = "Countdown.dat"
     }
   }
 
-  func lyricsForTrack(_ trackURL: URL) -> [LyricsItem]? {
-    let lyricsURL  = trackURL.deletingPathExtension().appendingPathExtension("spl")
-    let lyricsPath = lyricsURL.filePath()
-    let lyricsData = NSData(contentsOfFile: lyricsPath) as Data?
-    guard let lyricsData else {
-      logManager.append(logCat: .LogFileError, logMessage: "Lyrics missing for: " + lyricsPath)
-      return nil
+  func lyricsForTrack(_ trackURL: URL?) -> (String?, [LyricsItem]?) {
+    guard let trackURL else { return (nil, nil) }
+
+    let splURL  = trackURL.deletingPathExtension().appendingPathExtension("spl")
+    let splPath = splURL.filePath()
+    let splData = NSData(contentsOfFile: splPath) as Data?
+    guard let splData else {
+      logManager.append(logCat: .LogFileError, logMessage: "Lyrics missing for: " + splPath)
+      return (nil, nil)
     }
 
-    var lyrics: [LyricsItem] = []
-    lyrics.append(LyricsItem(lyric: "[Track start]", time: 0.0))
-    let lyricsStr = String(decoding: lyricsData, as: UTF8.self)
-    let lyricLines = lyricsStr.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
+    // Decode
+    let splStr = String(decoding: splData, as: UTF8.self)
+    let splLines = splStr.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
+
+    // Add notes (if any)
+    var notes: String? = nil
+    for splLine in splLines {
+      if(splLine.starts(with: "#")) {
+        var noteTrimmed = String(splLine)
+        noteTrimmed.removeFirst()
+
+        noteTrimmed = noteTrimmed.trimmingCharacters(in: .whitespaces)
+        if(notes == nil) { notes = "" }
+        notes!.append(noteTrimmed + "\n")
+      } else {
+        break
+      }
+    }
+    if(notes != nil) { notes!.removeLast() }
+
+    // Add lyrics and times
+    var lyrics: [LyricsItem] = [LyricsItem(lyric: "[Track start]", time: 0.0)]
     var lyricLastTime = 0.0
-    for lyricLine in lyricLines {
+    for lyricLine in splLines {
+      if(lyricLine.starts(with: "#")) { continue }
+
       if(lyricLine.isEmpty) { lyrics.append(LyricsItem(lyric: "")); continue }
 
       let lineSplit = lyricLine.split(separator: "*")
       if(lineSplit.count > 2) {
-        logManager.append(logCat: .LogFileError, logMessage: "Error decoding lyrics for: " + lyricsPath)
-        return nil
+        logManager.append(logCat: .LogFileError, logMessage: "Error decoding lyrics for: " + splPath)
+        return (nil, nil)
       }
 
       var lyricTime: TimeInterval? = nil
@@ -279,18 +302,18 @@ let countdownFile   = "Countdown.dat"
         let lyricText = lineSplit[1]
         if(lyricText.isEmpty) {
           logManager.append(logCat: .LogFileError, logMessage: "Lyric time given for empty lyric")
-          logManager.append(logCat: .LogFileError, logMessage: "Error decoding lyric time for: " + lyricsPath)
+          logManager.append(logCat: .LogFileError, logMessage: "Error decoding lyric time for: " + splPath)
         }
 
         lyricTime = lyricTimeParse(lineSplit[0])
         guard let lyricTime else {
-          logManager.append(logCat: .LogFileError, logMessage: "Error decoding lyric time for: " + lyricsPath)
-          return nil
+          logManager.append(logCat: .LogFileError, logMessage: "Error decoding lyric time for: " + splPath)
+          return (nil, nil)
         }
 
         if(lyricTime < lyricLastTime) {
           logManager.append(logCat: .LogFileError, logMessage: "Lyric times must increase")
-          logManager.append(logCat: .LogFileError, logMessage: "Error decoding lyric time for: " + lyricsPath)
+          logManager.append(logCat: .LogFileError, logMessage: "Error decoding lyric time for: " + splPath)
         }
 
         lyricLastTime = lyricTime
@@ -298,7 +321,7 @@ let countdownFile   = "Countdown.dat"
       } else { lyrics.append(LyricsItem(lyric: lineSplit[0]))}
     }
 
-    return lyrics
+    return (notes, lyrics)
   }
 
   func handleNextTrack() {
@@ -312,12 +335,12 @@ let countdownFile   = "Countdown.dat"
       playPosition += 1
       currentTrack = playlistManager.nextTrack()
 
-      // Fetch lyrics (if available)
-      let trackURL = currentTrack!.trackURL
-      currentLyrics = lyricsForTrack(trackURL)
+      // Display lyrics (if available)
+      let trackURL = currentTrack?.trackURL
+      (currentNotes, currentLyrics) = lyricsForTrack(trackURL)
     }
 
-    playerSelection.setTrack(newTrack: currentTrack!, newLyrics: currentLyrics)
+    playerSelection.setTrack(newTrack: currentTrack!, newLyrics: (currentNotes, currentLyrics))
     playerSelection.setSeekEnabled(seekEnabled: player.supportsSeeking)
     playerSelection.setPlayingPosition(playPosition: playPosition, playTotal: playlistManager.trackCount)
     playerSelection.setPlayingInfo()
@@ -1227,6 +1250,68 @@ let countdownFile   = "Countdown.dat"
     playerSelection.toggleLyricsMode()
   }
 
+  struct LyricsJSON : Decodable {
+    let lyrics: String
+  }
+
+  func fetchLyricsError(_ error: (any Error)?) {
+    logManager.append(logCat: .LogThrownError, logMessage: "Fetching lyrics from lyrics.ovh: " + ((error != nil) ? error!.localizedDescription : "Unknown error"))
+    playerAlert.triggerAlert(alertMessage: "Error fetching lyrics. Check log file for details.")
+  }
+
+  func lyricsDecodeError(_ error: (any Error)) {
+    logManager.append(logCat: .LogThrownError, logMessage: "Decoding lyrics: " + error.localizedDescription)
+    playerAlert.triggerAlert(alertMessage: "Error fetching lyrics. Check log file for details.")
+  }
+
+  func saveOVHLyrics(_ newLyrics:[LyricsItem]) {
+    currentNotes  = nil
+    currentLyrics = newLyrics
+
+    playerSelection.setLyrics(newLyrics: (nil, currentLyrics))
+    playerSelection.lyricsMode = .Update
+    updateLyricsFile()
+  }
+
+  func fetchLyrics() {
+    let lyricsInfo = playerSelection.lyricsInfo
+    let url = URL(string: "https://api.lyrics.ovh/v1/" + lyricsInfo.artist + "/" + lyricsInfo.track)!
+
+    let task = URLSession.shared.dataTask(with: url) { jsonData, response, error in
+      guard error == nil, let jsonData else {
+        Task { @MainActor in self.fetchLyricsError(error) }
+        return
+      }
+
+      do {
+        let lyricsJSON = try JSONDecoder().decode(LyricsJSON.self, from: jsonData)
+        let lyricsStr = lyricsJSON.lyrics
+
+        var lyrics: [LyricsItem] = [LyricsItem(lyric: "[Track start]", time: 0.0)]
+        let lyricLines = lyricsStr.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
+
+        for lyricLine in lyricLines {
+          lyrics.append(LyricsItem(lyric: lyricLine))
+        }
+
+        Task { @MainActor in self.saveOVHLyrics(lyrics) }
+      } catch {
+        Task { @MainActor in self.lyricsDecodeError(error) }
+      }
+    }
+
+    task.resume()
+  }
+
+  func refreshLyrics() {
+    // Refetch lyrics (if available)
+    let trackURL = currentTrack?.trackURL
+
+    (currentNotes, currentLyrics) = lyricsForTrack(trackURL)
+    playerSelection.setLyrics(newLyrics: (currentNotes, currentLyrics))
+    playerSelection.lyricsMode = .Update
+  }
+
   static func getM3UDict(m3UFile: String) throws -> AllM3UDict {
     let m3UData = NSData(contentsOfFile: m3UFile) as Data?
     guard let m3UData else { return [:] }
@@ -1863,11 +1948,20 @@ let countdownFile   = "Countdown.dat"
     lyricsToWrite.removeFirst()
 
     var lyricsStr = ""
+    let notesToWrite = currentNotes
+    if(notesToWrite != nil) {
+      let noteLines = notesToWrite?.split(whereSeparator: \.isNewline)
+      for noteLine in noteLines! {
+        lyricsStr.append("# " + noteLine + "\n")
+      }
+
+      lyricsStr.append("#\n")
+    }
+
     for lyric in lyricsToWrite {
       var lyricLine = ""
       if(lyric.time != nil) { lyricLine.append(lyricsTimeStr(from: lyric.time!) + "*") }
       lyricLine.append(lyric.text)
-
       lyricsStr.append(lyricLine + "\n")
     }
 
@@ -1910,9 +2004,9 @@ let countdownFile   = "Countdown.dat"
 
       if(lyricTimeValid(lyricIndex: itemIndex, newTime: lyricTime)) {
         currentLyrics![itemIndex].time = lyricTime
-        updateLyricsFile()
+        playerSelection.setLyrics(newLyrics: (currentNotes, currentLyrics))
 
-        playerSelection.setLyrics(newLyrics: currentLyrics)
+        updateLyricsFile()
       }
     }
   }

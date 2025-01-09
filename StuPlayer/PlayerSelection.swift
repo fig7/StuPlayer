@@ -68,6 +68,7 @@ struct LyricsItem {
   @Published var seekEnabled    = false  // Enable and disable the slider
 
   @Published var playingTracks: [PlayingItem] = []
+  @Published var playingNotes: String = ""
   @Published var playingLyrics: [LyricsItem] = []
 
   @Published var filterMode   = FilterMode.Artist
@@ -242,7 +243,7 @@ struct LyricsItem {
     return metadataStr
   }
 
-  func setTrack(newTrack: TrackInfo?, newLyrics: [LyricsItem]? = nil) {
+  func setTrack(newTrack: TrackInfo?, newLyrics: (String?, [LyricsItem]?) = (nil, nil)) {
     setPlaylist(newPlaylist: newTrack?.playlist)
     setLyrics(newLyrics: newLyrics)
 
@@ -329,8 +330,9 @@ struct LyricsItem {
     self.playlistInfo = baseStr + trackStr
   }
 
-  func setLyrics(newLyrics: [LyricsItem]?) {
-    self.playingLyrics = newLyrics ?? []
+  func setLyrics(newLyrics: (String?, [LyricsItem]?)) {
+    self.playingNotes  = newLyrics.0 ?? ""
+    self.playingLyrics = newLyrics.1 ?? []
   }
 
   func setPlaybackState(newPlaybackState: AudioPlayer.PlaybackState) {
