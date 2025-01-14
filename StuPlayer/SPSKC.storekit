@@ -46,7 +46,7 @@
     }
   ],
   "settings" : {
-    "_askToBuyEnabled" : false,
+    "_askToBuyEnabled" : true,
     "_failTransactionsEnabled" : false,
     "_locale" : "en_GB",
     "_storefront" : "GBR",

@@ -9,6 +9,12 @@
 /* Begin PBXBuildFile section */
 		1214C6332BA3159C00302CA3 /* PlaylistManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1214C6322BA3159C00302CA3 /* PlaylistManager.swift */; };
 		1214C6382BA4F7DB00302CA3 /* Playlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1214C6372BA4F7DB00302CA3 /* Playlist.swift */; };
+		1250EFF52D313FE3000385CA /* BrowserScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1250EFF42D313FDB000385CA /* BrowserScrollView.swift */; };
+		1250EFF72D3156B1000385CA /* PlayingScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1250EFF62D3156A7000385CA /* PlayingScrollView.swift */; };
+		1250EFF92D3156DE000385CA /* DummyViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1250EFF82D3156D9000385CA /* DummyViews.swift */; };
+		1250EFFB2D31572D000385CA /* ScrollViewFocus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1250EFFA2D315727000385CA /* ScrollViewFocus.swift */; };
+		1250EFFD2D31580E000385CA /* LyricsInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1250EFFC2D315808000385CA /* LyricsInfoView.swift */; };
+		1250EFFF2D315867000385CA /* LyricsScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1250EFFE2D315858000385CA /* LyricsScrollView.swift */; };
 		125432A22BB763B600CB6A64 /* LogFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 125432A12BB763B600CB6A64 /* LogFileManager.swift */; };
 		1297A5B72B9619CE0017B083 /* StuPlayerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1297A5B62B9619CE0017B083 /* StuPlayerApp.swift */; };
 		1297A5B92B9619CE0017B083 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1297A5B82B9619CE0017B083 /* ContentView.swift */; };
@@ -62,6 +68,12 @@
 /* Begin PBXFileReference section */
 		1214C6322BA3159C00302CA3 /* PlaylistManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistManager.swift; sourceTree = "<group>"; };
 		1214C6372BA4F7DB00302CA3 /* Playlist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Playlist.swift; sourceTree = "<group>"; };
+		1250EFF42D313FDB000385CA /* BrowserScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserScrollView.swift; sourceTree = "<group>"; };
+		1250EFF62D3156A7000385CA /* PlayingScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayingScrollView.swift; sourceTree = "<group>"; };
+		1250EFF82D3156D9000385CA /* DummyViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DummyViews.swift; sourceTree = "<group>"; };
+		1250EFFA2D315727000385CA /* ScrollViewFocus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollViewFocus.swift; sourceTree = "<group>"; };
+		1250EFFC2D315808000385CA /* LyricsInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsInfoView.swift; sourceTree = "<group>"; };
+		1250EFFE2D315858000385CA /* LyricsScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsScrollView.swift; sourceTree = "<group>"; };
 		125432A12BB763B600CB6A64 /* LogFileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogFileManager.swift; sourceTree = "<group>"; };
 		1292443A2BC53A5200E25D01 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		1297A5B32B9619CE0017B083 /* StuPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StuPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -96,6 +108,22 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1250EFF02D313F53000385CA /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				1250EFFA2D315727000385CA /* ScrollViewFocus.swift */,
+				12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */,
+				1297A5C92B9778CA0017B083 /* PlayerSelection.swift */,
+				1250EFF82D3156D9000385CA /* DummyViews.swift */,
+				1250EFF42D313FDB000385CA /* BrowserScrollView.swift */,
+				1250EFF62D3156A7000385CA /* PlayingScrollView.swift */,
+				1250EFFC2D315808000385CA /* LyricsInfoView.swift */,
+				1250EFFE2D315858000385CA /* LyricsScrollView.swift */,
+				1297A5B82B9619CE0017B083 /* ContentView.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
 		1297A5AA2B9619CE0017B083 = {
 			isa = PBXGroup;
 			children = (
@@ -117,16 +145,14 @@
 		1297A5B52B9619CE0017B083 /* StuPlayer */ = {
 			isa = PBXGroup;
 			children = (
+				1250EFF02D313F53000385CA /* UI */,
 				12AA0E752BE97BA400E0A549 /* stuplayer.help */,
 				1292443A2BC53A5200E25D01 /* Info.plist */,
 				12B87E2C2BBECE400064E6B8 /* Ext */,
 				1297A5B62B9619CE0017B083 /* StuPlayerApp.swift */,
 				1299B3BA2D25E41F00D31045 /* SKManager.swift */,
-				1297A5B82B9619CE0017B083 /* ContentView.swift */,
 				125432A12BB763B600CB6A64 /* LogFileManager.swift */,
-				12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */,
 				1297A5C72B963B180017B083 /* PlayerDataModel.swift */,
-				1297A5C92B9778CA0017B083 /* PlayerSelection.swift */,
 				1214C6322BA3159C00302CA3 /* PlaylistManager.swift */,
 				1214C6372BA4F7DB00302CA3 /* Playlist.swift */,
 				12C617DC2BB4BCB700B1EE65 /* Credits.html */,
@@ -265,15 +291,21 @@
 				12B87E2B2BBC02580064E6B8 /* PlayerAlert.swift in Sources */,
 				125432A22BB763B600CB6A64 /* LogFileManager.swift in Sources */,
 				12B87E2E2BBECE7A0064E6B8 /* URL.swift in Sources */,
+				1250EFF72D3156B1000385CA /* PlayingScrollView.swift in Sources */,
 				1299B3BB2D25E41F00D31045 /* SKManager.swift in Sources */,
 				1297A5B92B9619CE0017B083 /* ContentView.swift in Sources */,
 				12CF573B2C2EE19900E9CEAB /* TimeUtil.swift in Sources */,
 				1297A5B72B9619CE0017B083 /* StuPlayerApp.swift in Sources */,
 				1297A5C82B963B180017B083 /* PlayerDataModel.swift in Sources */,
+				1250EFF52D313FE3000385CA /* BrowserScrollView.swift in Sources */,
+				1250EFFB2D31572D000385CA /* ScrollViewFocus.swift in Sources */,
+				1250EFF92D3156DE000385CA /* DummyViews.swift in Sources */,
+				1250EFFD2D31580E000385CA /* LyricsInfoView.swift in Sources */,
 				1297A5CA2B9778CA0017B083 /* PlayerSelection.swift in Sources */,
 				1214C6332BA3159C00302CA3 /* PlaylistManager.swift in Sources */,
 				12CF57392C2EDF9A00E9CEAB /* Double.swift in Sources */,
 				1214C6382BA4F7DB00302CA3 /* Playlist.swift in Sources */,
+				1250EFFF2D315867000385CA /* LyricsScrollView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -96,6 +96,9 @@ struct LyricsItem {
   @Published var lyricsPosition   = -1
   @Published var lyricsScrollPos  = -1
 
+  @Published var lyricsInfoPos = -1
+  @Published var lyricsInfoPopover = -1
+
   var prevSel = -1
   var currSel = -1
 

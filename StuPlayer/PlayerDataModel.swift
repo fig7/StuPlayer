@@ -1878,6 +1878,19 @@ let countdownFile   = "Countdown.dat"
     }
   }
 
+  func lyricsDelayAction(_ action: @escaping () -> Void) {
+    delayTask?.cancel()
+    delayTask = Task { @MainActor in
+      do {
+        try await Task.sleep(nanoseconds: 1000000000)
+      } catch { return }
+
+      action()
+
+      delayTask = nil
+    }
+  }
+
   func delayAction(_ action: @escaping () -> Void) {
     delayTask?.cancel()
     delayTask = Task { @MainActor in
@@ -1908,6 +1921,13 @@ let countdownFile   = "Countdown.dat"
 
     playerSelection.setPlayingTrackInfo(trackNum: playerSelection.playingScrollPos+1, trackInfo: playlistManager.trackAt(position: playerSelection.playingScrollPos))
     playerSelection.playingPopover = playerSelection.playingScrollPos
+  }
+
+  func toggleLyricsInfoPopup() {
+    if(playerSelection.lyricsInfoPos < 0) { return }
+    if(playerSelection.lyricsInfoPos == playerSelection.lyricsInfoPopover) { playerSelection.lyricsInfoPopover = -1; return }
+
+    playerSelection.lyricsInfoPopover = playerSelection.lyricsInfoPos
   }
 
   func toggleTrackCountdown() {
