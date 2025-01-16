@@ -25,7 +25,7 @@
           "locale" : "en_GB"
         }
       ],
-      "productID" : "com.fig7.stuplayer.plv",
+      "productID" : "com.fig7.spplv",
       "referenceName" : "StuPlayer PlaylistView",
       "type" : "NonConsumable"
     },
@@ -40,7 +40,7 @@
           "locale" : "en_GB"
         }
       ],
-      "productID" : "com.fig7.stuplayer.lv",
+      "productID" : "com.fig7.splv",
       "referenceName" : "StuPlayer LyricsView",
       "type" : "NonConsumable"
     }

@@ -3,8 +3,8 @@
 <plist version="1.0">
 <dict>
 	<key>LyricsView</key>
-	<string>com.fig7.stuplayer.lv</string>
+	<string>com.fig7.splv</string>
 	<key>PlaylistView</key>
-	<string>com.fig7.stuplayer.plv</string>
+	<string>com.fig7.spplv</string>
 </dict>
 </plist>

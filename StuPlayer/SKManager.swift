@@ -21,7 +21,11 @@ class SKManager : ObservableObject {
   @Published var lViewPurchased  = false
 
   private let productDict : [String : String]
-  private var updateListenerTask: Task<Void, Error>? = nil
+  private var updateListenerTask: Task<Void, Error>? = nil {
+    didSet {
+      print("updateListenerTask set!:" + ((updateListenerTask != nil) ? "Not nil" : "nil"))
+    }
+  }
 
   init() {
     let plistPath = Bundle.main.path(forResource: "SPSKPL", ofType: "plist")
@@ -32,6 +36,11 @@ class SKManager : ObservableObject {
 
     productDict = (try? PropertyListSerialization.propertyList(from: plist!, format: nil) as? [String : String]) ?? [:]
     updateListenerTask = listenForTransactions()
+
+    Task {
+       _ = try await updateListenerTask!.value
+       print("Why am I here!?")
+    }
 
     Task {
       await requestProducts()
@@ -117,7 +126,7 @@ class SKManager : ObservableObject {
   }
 
   func listenForTransactions() -> Task<Void, Error> {
-    return Task(priority: .background) {
+    Task(priority: .background) {
       for await result in Transaction.updates {
         do {
           let transaction = try self.checkVerified(result)

@@ -16,6 +16,7 @@
 		1250EFFD2D31580E000385CA /* LyricsInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1250EFFC2D315808000385CA /* LyricsInfoView.swift */; };
 		1250EFFF2D315867000385CA /* LyricsScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1250EFFE2D315858000385CA /* LyricsScrollView.swift */; };
 		125432A22BB763B600CB6A64 /* LogFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 125432A12BB763B600CB6A64 /* LogFileManager.swift */; };
+		1256E8622D3952BB0062826D /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1256E8612D3952BB0062826D /* StoreKit.framework */; };
 		1297A5B72B9619CE0017B083 /* StuPlayerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1297A5B62B9619CE0017B083 /* StuPlayerApp.swift */; };
 		1297A5B92B9619CE0017B083 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1297A5B82B9619CE0017B083 /* ContentView.swift */; };
 		1297A5BB2B9619D00017B083 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1297A5BA2B9619D00017B083 /* Assets.xcassets */; };
@@ -75,6 +76,7 @@
 		1250EFFC2D315808000385CA /* LyricsInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsInfoView.swift; sourceTree = "<group>"; };
 		1250EFFE2D315858000385CA /* LyricsScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsScrollView.swift; sourceTree = "<group>"; };
 		125432A12BB763B600CB6A64 /* LogFileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogFileManager.swift; sourceTree = "<group>"; };
+		1256E8612D3952BB0062826D /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		1292443A2BC53A5200E25D01 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		1297A5B32B9619CE0017B083 /* StuPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StuPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1297A5B62B9619CE0017B083 /* StuPlayerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StuPlayerApp.swift; sourceTree = "<group>"; };
@@ -102,6 +104,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1297A6022B9791AA0017B083 /* SFBAudioEngine.framework in Frameworks */,
+				1256E8622D3952BB0062826D /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -167,6 +170,7 @@
 		1297A5CB2B9787260017B083 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				1256E8612D3952BB0062826D /* StoreKit.framework */,
 				1297A5F22B978DB30017B083 /* SFBAudioEngine.xcframework */,
 			);
 			name = Frameworks;
