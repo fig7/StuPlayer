@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import StoreKit
 import Carbon.HIToolbox
 import SFBAudioEngine
 
@@ -25,6 +26,9 @@ struct ContentView: View {
   @State private var playlistPopover  = false
   @State private var trackPopover     = false
   @State private var countdownPopover = false
+
+  @State private var plvProduct: Product? = nil
+  @State private var lvProduct: Product? = nil
 
   var body: some View {
     VStack(alignment: .leading) {
@@ -234,35 +238,87 @@ struct ContentView: View {
         HStack {
           let browserFocus = (scrollViewFocus == .BrowserScrollView)
           BrowserScrollView(model: model, playerSelection: playerSelection, hasFocus: browserFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
-            .frame(minWidth: 150, maxWidth: .infinity).padding(7)
+            .frame(minWidth: 172, maxWidth: .infinity, minHeight: 120, maxHeight: .infinity).padding(7)
             .background() { GeometryReader { proxy in Color.clear.onAppear { scrollViewHeight = proxy.size.height }.onChange(of: proxy.size.height) { newValue in scrollViewHeight = newValue } } }
             .overlay(RoundedRectangle(cornerRadius: 8).stroke((browserFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
 
-          if((playerSelection.playPosition<=0) || !skManager.plViewPurchased) {
-            Spacer().frame(minWidth: 150, maxWidth: .infinity).padding(7)
+          if((playerSelection.playPosition <= 0) || !skManager.plViewPurchased) {
+            if(!playerSelection.dismissedViews.plView && !skManager.plViewPurchased) {
+              VStack() {
+                VStack() {
+                  Text("Playlist View").font(.headline)
+                  Spacer().frame(height: 5)
+
+                  Text("The playlist view displays a list of the currently queued tracks. You can use it to see the tracks that have been played and which tracks will be playing next. You can also use it to select another track from the playlist (without changing the playlist).")
+                }.padding(.horizontal, 12)
+
+                Spacer().frame(height: 25)
+
+                HStack(spacing: 30) {
+                  Button(action: purchasePLV) { (plvProduct == nil) ? Text("Purchase") : Text("Purchase " + plvProduct!.displayPrice) }
+                    .disabled(plvProduct == nil)
+                    .onChange(of: skManager.spProducts) { _ in
+                      Task { plvProduct = skManager.productFromID(plvProductID) }
+                    }
+
+                  Button(action: model.dismissPLVPurchase) { Text("More information") }
+                  Button(action: model.dismissPLVPurchase) { Text("Dismiss") }
+                }
+              }.frame(minWidth: 172, maxWidth: .infinity, minHeight: scrollViewHeight).padding(.horizontal, 7)
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(.gray, lineWidth: 5).opacity(0.6))
+            } else {
+              Spacer().frame(minWidth: 172, maxWidth: .infinity).padding(7)
+            }
           }
 
           if((playerSelection.playPosition > 0) && skManager.plViewPurchased) {
             let playingFocus = (scrollViewFocus == .PlayingScrollView)
             PlayingScrollView(model: model, playerSelection: playerSelection, hasFocus: playingFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
-              .frame(minWidth: 150, maxWidth: .infinity).padding(7)
+              .frame(minWidth: 172, maxWidth: .infinity, minHeight: 120).padding(7)
               .overlay(RoundedRectangle(cornerRadius: 8).stroke((playingFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
           }
         }
 
         Spacer().frame(height: 10)
 
+        if((playerSelection.playPosition <= 0) || !skManager.lViewPurchased) {
+          if(!playerSelection.dismissedViews.lView && !skManager.lViewPurchased) {
+            VStack() {
+              VStack() {
+                Text("Lyrics View").font(.headline)
+                Spacer().frame(height: 5)
+
+                Text("The lyrics view displays information about the current track and the lyrics for the track (if available). Lyrics can be added manually or downloaded from lyrics.ovh. In both cases, timestamps for each line can be added afterwards (although currently this has to be done manually).")
+              }.padding(.horizontal, 112)
+
+              Spacer().frame(height: 25)
+
+              HStack(spacing: 30) {
+                Button(action: purchaseLV) { (lvProduct == nil) ? Text("Purchase") : Text("Purchase " + lvProduct!.displayPrice) }
+                  .disabled(lvProduct == nil)
+                  .onChange(of: skManager.spProducts) { _ in
+                    Task { lvProduct = skManager.productFromID(lvProductID) }
+                  }
+
+                Button(action: model.dismissPLVPurchase) { Text("More information") }
+                Button(action: model.dismissLVPurchase) { Text("Dismiss") }
+              }
+            }.frame(minWidth: 344, maxWidth: .infinity, minHeight: 130).padding(.horizontal, 7)
+              .overlay(RoundedRectangle(cornerRadius: 8).stroke(.gray, lineWidth: 5).opacity(0.6))
+          }
+        }
+
         if((playerSelection.playPosition > 0) && skManager.lViewPurchased) {
           HStack {
             let lyricsInfoFocus = (scrollViewFocus == .LyricsInfoView)
             LyricsInfoView(model: model, playerSelection: playerSelection, hasFocus: lyricsInfoFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
-              .frame(minWidth: 150, maxWidth: .infinity).padding(7)
+              .frame(minWidth: 172, maxWidth: .infinity, minHeight: 130).padding(7)
               .overlay(RoundedRectangle(cornerRadius: 8).stroke((lyricsInfoFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
 
             if((playerSelection.playPosition > 0) && skManager.lViewPurchased) {
               let lyricsFocus = (scrollViewFocus == .LyricsScrollView)
               LyricsScrollView(model: model, playerSelection: playerSelection, hasFocus: lyricsFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
-                .frame(minWidth: 150, maxWidth: .infinity).padding(7)
+                .frame(minWidth: 172, maxWidth: .infinity, minHeight: 130).padding(7)
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke((lyricsFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
             }
           }
@@ -391,6 +447,44 @@ struct ContentView: View {
     .onAppear {
       scrollViewFocus = .BrowserScrollView
       handleKeyEvents()
+    }
+  }
+
+  func purchasePLV() {
+    let product = skManager.productFromID(plvProductID)
+    guard let product else { print("Error product is nil"); return }
+
+    Task {
+      let displayName = product.displayName
+
+      do {
+        let transaction = try await skManager.purchaseProduct(product)
+        if(transaction == nil) { print("Purchase of " + displayName + ": no result (transaction cancelled?)"); return }
+
+        print(displayName + " purchased: " + (transaction?.debugDescription ?? "No debug info"))
+      } catch {
+        print("Error making purchase of " + displayName + ": " + error.localizedDescription)
+        return
+      }
+    }
+  }
+
+  func purchaseLV() {
+    let product = skManager.productFromID(lvProductID)
+    guard let product else { print("Error product is nil"); return }
+
+    Task {
+      let displayName = product.displayName
+
+      do {
+        let transaction = try await skManager.purchaseProduct(product)
+        if(transaction == nil) { print("Purchase of " + displayName + ": no result (transaction cancelled?)"); return }
+
+        print(displayName + " purchased: " + (transaction?.debugDescription ?? "No debug info"))
+      } catch {
+        print("Error making purchase of " + displayName + ": " + error.localizedDescription)
+        return
+      }
     }
   }
 

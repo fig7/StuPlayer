@@ -6,10 +6,12 @@
 //
 
 import Foundation
+
+import OSLog
 import StoreKit
 
-let plvProductID = "com.fig7.stuplayer.plv"
-let lvProductID  = "com.fig7.stuplayer.lv"
+let plvProductID = "com.fig7.spplv"
+let lvProductID  = "com.fig7.splv"
 
 enum StoreError: Error { case failedVerification }
 
@@ -21,26 +23,34 @@ class SKManager : ObservableObject {
   @Published var lViewPurchased  = false
 
   private let productDict : [String : String]
-  private var updateListenerTask: Task<Void, Error>? = nil {
-    didSet {
-      print("updateListenerTask set!:" + ((updateListenerTask != nil) ? "Not nil" : "nil"))
-    }
-  }
+  private var updateListenerTask: Task<Void, Error>? = nil
 
   init() {
     let plistPath = Bundle.main.path(forResource: "SPSKPL", ofType: "plist")
-    if (plistPath == nil) { productDict = [:]; return }
+    if (plistPath == nil) {
+      productDict = [:]
+
+      let logger = Logger()
+      logger.error("Product dictionary not found!")
+      return
+    }
 
     let plist = FileManager.default.contents(atPath: plistPath!)
-    if( plist == nil) { productDict = [:]; return }
+    if( plist == nil) {
+      productDict = [:]
+
+      let logger = Logger()
+      logger.error("Product dictionary failed to open!")
+      return
+    }
 
     productDict = (try? PropertyListSerialization.propertyList(from: plist!, format: nil) as? [String : String]) ?? [:]
-    updateListenerTask = listenForTransactions()
-
-    Task {
-       _ = try await updateListenerTask!.value
-       print("Why am I here!?")
+    if(productDict.isEmpty) {
+      let logger = Logger()
+      logger.error("Product dictionary is empty!")
     }
+
+    updateListenerTask = listenForTransactions()
 
     Task {
       await requestProducts()
@@ -55,11 +65,18 @@ class SKManager : ObservableObject {
   @MainActor func requestProducts() async {
     do {
       spProducts = try await Product.products(for: productDict.values)
-      if(spProducts.count != 2) { print("Error in store products"); return }
+      if(spProducts.count != productDict.count) {
+        let logger = Logger()
+        let invalidIDs = spProducts.map { $0.id }
+        logger.error("Store products are invalid, spIDs: \(invalidIDs, privacy: .public)")
+        return
+      }
 
       spProducts.sort { a, b in return a.displayName.contains("Playlist") }
     } catch {
-      print("Error retrieving store products")
+      let logger = Logger()
+      logger.error("Error retrieving store products: \(error.localizedDescription)")
+      print("")
     }
   }
 
@@ -68,8 +85,8 @@ class SKManager : ObservableObject {
     case .unverified:
       throw StoreError.failedVerification
 
-    case .verified(let signedType):
-      return signedType
+    case .verified(let transaction):
+      return transaction
     }
   }
 
@@ -80,7 +97,8 @@ class SKManager : ObservableObject {
         let transaction = try checkVerified(result)
         if let product = spProducts.first(where: { $0.id == transaction.productID }) { purchasedProducts.append(product) }
       } catch {
-        print("Transaction failed verification")
+        let logger = Logger()
+        logger.error("Product failed validation, product ID: \(result.unsafePayloadValue.id)")
       }
     }
 

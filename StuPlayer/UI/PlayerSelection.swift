@@ -162,6 +162,8 @@ struct LyricsItem {
   @Published var lyricsInfo    = (artist: "", album: "", track: "")
   @Published var countdownInfo = ""
 
+  @Published var dismissedViews = (plView: false, lView: false)
+
   weak var delegate: Delegate?
 
   func setDelegate(delegate: Delegate) {

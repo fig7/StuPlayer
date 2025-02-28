@@ -37,7 +37,7 @@ struct PPView: View {
       }
     }) {
       if(product == nil) { Text("Waiting for update... (or error)") }
-      else if(isPurchased) { HStack { Text(product!.displayName + "(purchased)").bold().padding(10); Image(systemName: "checkmark") } }
+      else if(isPurchased) { HStack { Text(product!.displayName + " (purchased)").bold().padding(10); Image(systemName: "checkmark") } }
       else { Text("Purchase " + product!.displayName + " " + product!.displayPrice) }
     }
     .disabled((product == nil) || isPurchased)
@@ -50,93 +50,32 @@ struct PPView: View {
   }
 }
 
-struct TestyView: View {
-    @StateObject var sK = SKManager()
-
-    var body: some View {
-        VStack(alignment: .leading) {
-            Text("In-App Purchase Demo")
-                .bold()
-            Divider()
-            ForEach(sK.spProducts) {product in
-                HStack {
-                    Text(product.displayName)
-                    Spacer()
-                    Button(action: {
-                        // purchase this product
-                      Task { try await sK.purchaseProduct(product)
-                        }
-                    }) {
-                        CourseItem(storeKit: sK, product: product)
-
-                    }
-                }
-
-            }
-            Divider()
-            Button("Restore Purchases", action: {
-                Task {
-                    //This call displays a system prompt that asks users to authenticate with their App Store credentials.
-                    //Call this function only in response to an explicit user action, such as tapping a button.
-                    try? await AppStore.sync()
-                }
-            })
-        }
-        .padding()
-
-    }
-}
-
-struct CourseItem: View {
-    @ObservedObject var storeKit : SKManager
-    @State var isPurchased: Bool = false
-    var product: Product
-
-    var body: some View {
-        VStack {
-            if isPurchased {
-                Text(Image(systemName: "checkmark"))
-                    .bold()
-                    .padding(10)
-            } else {
-                Text(product.displayPrice)
-                    .padding(10)
-            }
-        }
-        .onChange(of: storeKit.purchasedProducts) { course in
-            Task {
-                isPurchased = storeKit.isPurchased(product)
-            }
-        }
-    }
-}
 
 @available(macOS 13.0, *)
 struct StuPlayerApp13 : App {
   @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-  // @StateObject private var skManager = SKManager()
-  // @State private var playerDataModel: PlayerDataModel
+  @StateObject private var skManager = SKManager()
+  @State private var playerDataModel: PlayerDataModel
 
   init() {
-    // let playerAlert     = PlayerAlert()
-    // let playerSelection = PlayerSelection()
-    // playerDataModel = PlayerDataModel(playerAlert: playerAlert, playerSelection: playerSelection)
+    let playerAlert     = PlayerAlert()
+    let playerSelection = PlayerSelection()
+    playerDataModel = PlayerDataModel(playerAlert: playerAlert, playerSelection: playerSelection)
   }
 
   var body: some Scene {
     WindowGroup() {
-      TestyView()
-      // ContentView(model: playerDataModel, skManager: skManager, playerAlert: playerDataModel.playerAlert, playerSelection: playerDataModel.playerSelection)
-      Text("Hi there!")
-    }.defaultSize(width: 928, height: 498).commands {
+      ContentView(model: playerDataModel, skManager: skManager, playerAlert: playerDataModel.playerAlert, playerSelection: playerDataModel.playerSelection)
+    }.defaultSize(width: 1124, height: 734).commands {
       CommandGroup(replacing: .newItem) { }
-      /* CommandGroup(after: .appInfo, addition: {
+      CommandGroup(after: .appInfo, addition: {
         PPView(skManager: skManager, productID: plvProductID)
         PPView(skManager: skManager, productID: lvProductID)
+
         Button("Restore purchases", action: {
           Task { try? await AppStore.sync() }
         })
-      }) */
+      })
     }
   }
 }
@@ -144,23 +83,23 @@ struct StuPlayerApp13 : App {
 struct StuPlayerApp: App {
   @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
   @StateObject private var skManager = SKManager()
-  // @State private var playerDataModel: PlayerDataModel
+  @State private var playerDataModel: PlayerDataModel
 
   init() {
-    // let playerAlert     = PlayerAlert()
-    // let playerSelection = PlayerSelection()
-    // playerDataModel = PlayerDataModel(playerAlert: playerAlert, playerSelection: playerSelection)
+    let playerAlert     = PlayerAlert()
+    let playerSelection = PlayerSelection()
+    playerDataModel = PlayerDataModel(playerAlert: playerAlert, playerSelection: playerSelection)
   }
 
   var body: some Scene {
     WindowGroup() {
-      // ContentView(model: playerDataModel, skManager: skManager, playerAlert: playerDataModel.playerAlert, playerSelection: playerDataModel.playerSelection)
-      Text("Hi there2!")
+      ContentView(model: playerDataModel, skManager: skManager, playerAlert: playerDataModel.playerAlert, playerSelection: playerDataModel.playerSelection)
     }.commands {
       CommandGroup(replacing: .newItem) { }
       CommandGroup(after: .appInfo, addition: {
         PPView(skManager: skManager, productID: plvProductID)
         PPView(skManager: skManager, productID: lvProductID)
+
         Button("Restore purchases", action: {
           Task { try? await AppStore.sync() }
         })

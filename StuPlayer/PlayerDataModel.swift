@@ -6,7 +6,9 @@
 //
 
 import Foundation
+
 import AppKit
+import OSLog
 import SFBAudioEngine
 
 // Type aliases
@@ -20,7 +22,7 @@ typealias Playlists = [Playlist]
 
 // Enumerations
 enum StoppingReason { case PlaybackError, EndOfAudio, PlayAllPressed, StopPressed, TrackPressed, PlayingTrackPressed, PreviousPressed, NextPressed, RestartPressed, ReshufflePressed }
-enum StorageError: Error { case BookmarkCreationFailed, TypesCreationFailed, DictionaryCreationFailed, ReadingTypesFailed }
+enum StorageError: Error { case BookmarkCreationFailed, TypesCreationFailed, DictionaryCreationFailed, ReadingTypesFailed, ReadingDismissedFailed }
 enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, ReadingAlbumsFailed, MissingM3U }
 
 // Local storage paths
@@ -29,7 +31,9 @@ let rootTypesFile = "RootTypes.dat"
 
 let m3UFile         = "Playlists.dat"
 let trackFile       = "Tracks.dat"
-let countdownFile   = "Countdown.dat"
+
+let trackCountdownFile = "Countdown.dat"
+let dismissedViewsFile = "DismissedViews.dat"
 
 @MainActor class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate {
   var playerAlert: PlayerAlert
@@ -96,9 +100,11 @@ let countdownFile   = "Countdown.dat"
       } catch {
         self.bmData = nil
         self.bmURL  = URL(fileURLWithPath: "/")
-        logManager.append(logCat: .LogInitError,   logMessage: "Error reading bookmark data")
-        logManager.append(logCat: .LogThrownError, logMessage: "Bookmark error: " + error.localizedDescription)
-        playerAlert.triggerAlert(alertMessage: "Error opening root folder. Check log file for details.")
+
+        let logger = Logger()
+        logger.error("Error reading bookmark data")
+        logger.error("Bookmark error: \(error.localizedDescription)")
+        playerAlert.triggerAlert(alertMessage: "Error opening root folder. Check Console app (Errors) for details.")
 
         super.init()
         return
@@ -146,10 +152,20 @@ let countdownFile   = "Countdown.dat"
 
     let trackCountdown: Bool
     do {
-      trackCountdown = try PlayerDataModel.getTrackCountdown(countdownFile: countdownFile)
+      trackCountdown = try PlayerDataModel.getTrackCountdown(countdownFile: trackCountdownFile)
     } catch {
       trackCountdown = false
       logManager.append(logCat: .LogInitError, logMessage: "Error reading track countdown")
+    }
+
+    let plViewDismissed: Bool
+    let lViewDismissed: Bool
+    do {
+      (plViewDismissed, lViewDismissed) = try PlayerDataModel.getDismissedViews(dismissedFile: dismissedViewsFile)
+    } catch {
+      plViewDismissed = false
+      lViewDismissed  = false
+      logManager.append(logCat: .LogInitError, logMessage: "Error reading dismissed views")
     }
 
     self.m3UDict    = allM3UDict[selectedType] ?? [:]
@@ -166,7 +182,9 @@ let countdownFile   = "Countdown.dat"
       playerSelection.setRootPath(newRootPath: rootPath)
       playerSelection.setTypes(newType: selectedType, newTypeList: typesList)
       playerSelection.setAll(newArtist: selectedArtist, newAlbum: selectedAlbum, newList: tracksDict.keys.sorted())
+
       playerSelection.trackCountdown = trackCountdown
+      playerSelection.dismissedViews = (plViewDismissed, lViewDismissed)
     }
   }
 
@@ -1326,6 +1344,15 @@ let countdownFile   = "Countdown.dat"
     return try PropertyListDecoder().decode(AllTracksDict.self, from: trackData)
   }
 
+  static func getDismissedViews(dismissedFile: String) throws -> (Bool, Bool) {
+    let dismissedData = try NSData(contentsOfFile: dismissedFile) as Data
+    let dismissedStr  = String(decoding: dismissedData, as: UTF8.self)
+    let dismissed = dismissedStr.split(separator: ",")
+    if (dismissed.count != 2) { throw StorageError.ReadingDismissedFailed }
+
+    return ((dismissed[0] == "TRUE"), (dismissed[1] == "TRUE"))
+  }
+
   static func getTrackCountdown(countdownFile: String) throws -> Bool {
     let countdownData = try NSData(contentsOfFile: countdownFile) as Data
     let countdownStr  = String(decoding: countdownData, as: UTF8.self)
@@ -1934,7 +1961,25 @@ let countdownFile   = "Countdown.dat"
     playerSelection.trackCountdown.toggle()
 
     let trackCountdown = playerSelection.trackCountdown ? "TRUE" : "FALSE"
-    try? trackCountdown.write(toFile: countdownFile, atomically: true, encoding: .utf8)
+    try? trackCountdown.write(toFile: trackCountdownFile, atomically: true, encoding: .utf8)
+  }
+
+  func dismissPLVPurchase() {
+    playerSelection.dismissedViews.plView = true
+
+    let plDismiss = playerSelection.dismissedViews.plView ? "TRUE" : "FALSE"
+    let lDismiss  = playerSelection.dismissedViews.lView  ? "TRUE" : "FALSE"
+    let dismissedViews = plDismiss + "," + lDismiss
+    try? dismissedViews.write(toFile: dismissedViewsFile, atomically: true, encoding: .utf8)
+  }
+
+  func dismissLVPurchase() {
+    playerSelection.dismissedViews.lView = true
+
+    let plDismiss = playerSelection.dismissedViews.plView ? "TRUE" : "FALSE"
+    let lDismiss  = playerSelection.dismissedViews.lView  ? "TRUE" : "FALSE"
+    let dismissedViews = plDismiss + "," + lDismiss
+    try? dismissedViews.write(toFile: dismissedViewsFile, atomically: true, encoding: .utf8)
   }
 
   func validateLyricTimes(_ lyrics: [LyricsItem]) -> Bool {
@@ -1951,6 +1996,7 @@ let countdownFile   = "Countdown.dat"
 
   func lyricTimeValid(lyricIndex: Int, newTime: TimeInterval) -> Bool {
     guard let currentLyrics else { return false }
+    guard !currentLyrics[lyricIndex].text.isEmpty else { return false }
 
     var newLyrics = currentLyrics
     newLyrics[lyricIndex].time = newTime
@@ -2011,7 +2057,7 @@ let countdownFile   = "Countdown.dat"
         if (playbackState == .paused) { player.resume() }
       }
     } else { // .Update
-      if(itemIndex == 0) { return}
+      if(itemIndex == 0) { return }
 
       let playPosition = player.time
       guard let playPosition else { return }
@@ -2082,3 +2128,4 @@ let countdownFile   = "Countdown.dat"
   }
   #endif
 }
+
