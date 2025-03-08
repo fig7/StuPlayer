@@ -20,6 +20,8 @@
 	<string>3</string>
 	<key>HPDBookAccessPath</key>
 	<string>index.html</string>
+	<key>HPDBookIndexPath</key>
+	<string>Index.cshelpindex</string>
 	<key>HPDBookKBProduct</key>
 	<string>stuplayer1</string>
 	<key>HPDBookTitle</key>

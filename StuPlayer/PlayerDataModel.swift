@@ -1274,12 +1274,12 @@ let dismissedViewsFile = "DismissedViews.dat"
 
   func fetchLyricsError(_ error: (any Error)?) {
     logManager.append(logCat: .LogThrownError, logMessage: "Fetching lyrics from lyrics.ovh: " + ((error != nil) ? error!.localizedDescription : "Unknown error"))
-    playerAlert.triggerAlert(alertMessage: "Error fetching lyrics. Check log file for details.")
+    playerAlert.triggerAlert(alertMessage: "Error fetching lyrics. Check the log file for details.")
   }
 
   func lyricsDecodeError(_ error: (any Error)) {
     logManager.append(logCat: .LogThrownError, logMessage: "Decoding lyrics: " + error.localizedDescription)
-    playerAlert.triggerAlert(alertMessage: "Error fetching lyrics. Check log file for details.")
+    playerAlert.triggerAlert(alertMessage: "Error fetching lyrics. Check the log file for details.")
   }
 
   func saveOVHLyrics(_ newLyrics:[LyricsItem]) {
@@ -1964,22 +1964,45 @@ let dismissedViewsFile = "DismissedViews.dat"
     try? trackCountdown.write(toFile: trackCountdownFile, atomically: true, encoding: .utf8)
   }
 
+  func openPLVHelp() {
+    let locBookName = Bundle.main.object(forInfoDictionaryKey: "CFBundleHelpBookName") as! NSHelpManager.BookName?
+    NSHelpManager.shared.openHelpAnchor("SP_INAPP",  inBook: locBookName)
+  }
+
   func dismissPLVPurchase() {
     playerSelection.dismissedViews.plView = true
+    playerAlert.triggerAlert(alertMessage: "If you change your mind, you can purchase views from the Purchases menu.")
 
     let plDismiss = playerSelection.dismissedViews.plView ? "TRUE" : "FALSE"
     let lDismiss  = playerSelection.dismissedViews.lView  ? "TRUE" : "FALSE"
     let dismissedViews = plDismiss + "," + lDismiss
-    try? dismissedViews.write(toFile: dismissedViewsFile, atomically: true, encoding: .utf8)
+
+    do {
+      try dismissedViews.write(toFile: dismissedViewsFile, atomically: true, encoding: .utf8)
+    } catch {
+      logManager.append(logCat: .LogFileError,   logMessage: "Error saving dismissed view")
+      logManager.append(logCat: .LogThrownError, logMessage: "File error: " + error.localizedDescription)
+    }
+  }
+
+  func openLVHelp() {
+    let locBookName = Bundle.main.object(forInfoDictionaryKey: "CFBundleHelpBookName") as! NSHelpManager.BookName?
+    NSHelpManager.shared.openHelpAnchor("SP_INAPP",  inBook: locBookName)
   }
 
   func dismissLVPurchase() {
     playerSelection.dismissedViews.lView = true
+    playerAlert.triggerAlert(alertMessage: "If you change your mind, you can purchase views from the Purchases menu.")
 
     let plDismiss = playerSelection.dismissedViews.plView ? "TRUE" : "FALSE"
     let lDismiss  = playerSelection.dismissedViews.lView  ? "TRUE" : "FALSE"
     let dismissedViews = plDismiss + "," + lDismiss
-    try? dismissedViews.write(toFile: dismissedViewsFile, atomically: true, encoding: .utf8)
+    do {
+      try dismissedViews.write(toFile: dismissedViewsFile, atomically: true, encoding: .utf8)
+    } catch {
+      logManager.append(logCat: .LogFileError,   logMessage: "Error saving dismissed view")
+      logManager.append(logCat: .LogThrownError, logMessage: "File error: " + error.localizedDescription)
+    }
   }
 
   func validateLyricTimes(_ lyrics: [LyricsItem]) -> Bool {

@@ -18,14 +18,18 @@ enum StoreError: Error { case failedVerification }
 class SKManager : ObservableObject {
   @Published var spProducts : [Product] = []
   @Published var purchasedProducts: [Product] = []
+  @Published var canMakePayments = false
 
   @Published var plViewPurchased = false
   @Published var lViewPurchased  = false
+  @Published var purchaseMade    = false
 
   private let productDict : [String : String]
   private var updateListenerTask: Task<Void, Error>? = nil
 
   init() {
+    canMakePayments = AppStore.canMakePayments
+
     let plistPath = Bundle.main.path(forResource: "SPSKPL", ofType: "plist")
     if (plistPath == nil) {
       productDict = [:]
@@ -54,7 +58,7 @@ class SKManager : ObservableObject {
 
     Task {
       await requestProducts()
-      await updateCustomerProductStatus()
+      await updateCustomerProductStatus(intializing: true)
     }
   }
 
@@ -63,16 +67,20 @@ class SKManager : ObservableObject {
   }
 
   @MainActor func requestProducts() async {
+    if(productDict.count == 0) {
+      let logger = Logger()
+      logger.error("Cannot request products, productDict is empty")
+      return
+    }
+
     do {
       spProducts = try await Product.products(for: productDict.values)
-      if(spProducts.count != productDict.count) {
+      if(spProducts.count < productDict.count) {
         let logger = Logger()
         let invalidIDs = spProducts.map { $0.id }
         logger.error("Store products are invalid, spIDs: \(invalidIDs, privacy: .public)")
         return
       }
-
-      spProducts.sort { a, b in return a.displayName.contains("Playlist") }
     } catch {
       let logger = Logger()
       logger.error("Error retrieving store products: \(error.localizedDescription)")
@@ -90,7 +98,7 @@ class SKManager : ObservableObject {
     }
   }
 
-  @MainActor func updateCustomerProductStatus() async {
+  @MainActor func updateCustomerProductStatus(intializing: Bool = false) async {
     var purchasedProducts: [Product] = []
     for await result in Transaction.currentEntitlements {
       do {
@@ -102,9 +110,12 @@ class SKManager : ObservableObject {
       }
     }
 
+    let productPurchased = !intializing && (purchasedProducts.count > self.purchasedProducts.count)
     self.purchasedProducts = purchasedProducts
+
     self.plViewPurchased = self.isPurchased(plvProductID)
     self.lViewPurchased  = self.isPurchased(lvProductID)
+    self.purchaseMade    = productPurchased
   }
 
   func purchaseProduct(_ product: Product) async throws -> Transaction? {
@@ -160,7 +171,10 @@ class SKManager : ObservableObject {
     }
   }
 
-  // Next steps:
-  // Implement UI changes for new views (when purchased)
-  // Read documents and go to app connect and sort out real transactions?
+  func sync() {
+    Task {
+      try? await AppStore.sync()
+      canMakePayments = AppStore.canMakePayments
+    }
+  }
 }

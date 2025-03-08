@@ -243,7 +243,8 @@ struct ContentView: View {
             .overlay(RoundedRectangle(cornerRadius: 8).stroke((browserFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
 
           if((playerSelection.playPosition <= 0) || !skManager.plViewPurchased) {
-            if(!playerSelection.dismissedViews.plView && !skManager.plViewPurchased) {
+            let plViewDismissed = playerSelection.dismissedViews.plView || !skManager.canMakePayments
+            if(!plViewDismissed && !skManager.plViewPurchased) {
               VStack() {
                 VStack() {
                   Text("Playlist View").font(.headline)
@@ -261,7 +262,7 @@ struct ContentView: View {
                       Task { plvProduct = skManager.productFromID(plvProductID) }
                     }
 
-                  Button(action: model.dismissPLVPurchase) { Text("More information") }
+                  Button(action: model.openPLVHelp) { Text("More information") }
                   Button(action: model.dismissPLVPurchase) { Text("Dismiss") }
                 }
               }.frame(minWidth: 172, maxWidth: .infinity, minHeight: scrollViewHeight).padding(.horizontal, 7)
@@ -282,7 +283,8 @@ struct ContentView: View {
         Spacer().frame(height: 10)
 
         if((playerSelection.playPosition <= 0) || !skManager.lViewPurchased) {
-          if(!playerSelection.dismissedViews.lView && !skManager.lViewPurchased) {
+          let lViewDismissed = playerSelection.dismissedViews.lView || !skManager.canMakePayments
+          if(!lViewDismissed && !skManager.lViewPurchased) {
             VStack() {
               VStack() {
                 Text("Lyrics View").font(.headline)
@@ -300,7 +302,7 @@ struct ContentView: View {
                     Task { lvProduct = skManager.productFromID(lvProductID) }
                   }
 
-                Button(action: model.dismissPLVPurchase) { Text("More information") }
+                Button(action: model.openLVHelp) { Text("More information") }
                 Button(action: model.dismissLVPurchase) { Text("Dismiss") }
               }
             }.frame(minWidth: 344, maxWidth: .infinity, minHeight: 130).padding(.horizontal, 7)
@@ -361,7 +363,7 @@ struct ContentView: View {
           }
 
           HStack {
-            Text(String(format: "Playlist: %@", playerSelection.playlist)).frame(minWidth: 120, alignment: .leading).padding(.vertical, 2)
+            Text(String(format: "Album playlist: %@", playerSelection.playlist)).frame(minWidth: 120, alignment: .leading).padding(.vertical, 2)
               .onHover(perform: { hovering in
                 if(hovering && !playerSelection.playlist.isEmpty) {
                   model.delayAction() { playlistPopover = true }
@@ -443,11 +445,12 @@ struct ContentView: View {
     }
     .padding()
     .frame(minWidth:  200, maxWidth: .infinity, minHeight: 200, maxHeight: .infinity, alignment: .topLeading)
-    .alert(playerAlert.alertMessage, isPresented: $playerAlert.alertTriggered) { }
     .onAppear {
       scrollViewFocus = .BrowserScrollView
       handleKeyEvents()
     }
+    .alert(playerAlert.alertMessage, isPresented: $playerAlert.alertTriggered) { }
+    .alert("Thank you for purchasing a StuPlayer component! If you change your mind, you can request a refund from the Purchases menu.", isPresented: $skManager.purchaseMade) { }
   }
 
   func purchasePLV() {
@@ -595,7 +598,7 @@ struct ContentView: View {
 
           model.lyricsItemSelected(itemIndex)
         } else if(scrollViewFocus == .CurrentPlayingView) {
-          // No op
+          model.togglePause()
         }
 
         return nil
@@ -612,7 +615,7 @@ struct ContentView: View {
         model.toggleRepeat()
         return nil
 
-      case kVK_F4:
+      case kVK_F5:
         model.toggleFilter()
         return nil
 

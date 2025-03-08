@@ -14,8 +14,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 struct PPView: View {
-  @ObservedObject var skManager: SKManager
   var productID: String
+  @ObservedObject var storeManager: SKManager
 
   @State var isPurchased = false
   @State var product: Product? = nil
@@ -27,7 +27,7 @@ struct PPView: View {
         let displayName = product.displayName
 
         do {
-          let transaction = try await skManager.purchaseProduct(product)
+          let transaction = try await storeManager.purchaseProduct(product)
           if(transaction == nil) { print("Purchase of " + displayName + ": no result (transaction cancelled?)"); return }
 
           print(displayName + " purchased: " + (transaction?.debugDescription ?? "No debug info"))
@@ -41,6 +41,50 @@ struct PPView: View {
       else { Text("Purchase " + product!.displayName + " " + product!.displayPrice) }
     }
     .disabled((product == nil) || isPurchased)
+    .onChange(of: storeManager.spProducts) { _ in
+      Task { product = storeManager.productFromID(productID) }
+    }
+    .onChange(of: storeManager.purchasedProducts) { _ in
+      Task { isPurchased = storeManager.isPurchased(product) }
+    }
+  }
+}
+
+struct RPView: View {
+  @ObservedObject var skManager: SKManager
+  var productID: String
+
+  @State var isPurchased = false
+  @State var product: Product? = nil
+
+  var body: some View {
+    Button(action: {
+      Task {
+        guard let product else { print("Error product is nil"); return }
+
+        let result = await product.latestTransaction
+        guard let result else { print("Error transaction is nil"); return }
+
+        switch result {
+        case .verified(let transaction):
+          let vc = NSApplication.shared.orderedWindows.first?.contentViewController
+          guard let vc else { print("Error vc is nil"); return }
+          do {
+            let requestStatus = try await transaction.beginRefundRequest(in: vc)
+            print("Refund request status: \(requestStatus)")
+          } catch {
+            print("RefundRequest failed: " + error.localizedDescription); return
+          }
+
+        default:
+          print("Error transaction is not verified")
+        }
+      }
+    }) {
+      if(product == nil) { Text("Waiting for update... (or error)") }
+      else { Text("Request refund for " + product!.displayName) }
+    }
+    .disabled((product == nil) || !isPurchased)
     .onChange(of: skManager.spProducts) { _ in
       Task { product = skManager.productFromID(productID) }
     }
@@ -68,14 +112,19 @@ struct StuPlayerApp13 : App {
       ContentView(model: playerDataModel, skManager: skManager, playerAlert: playerDataModel.playerAlert, playerSelection: playerDataModel.playerSelection)
     }.defaultSize(width: 1124, height: 734).commands {
       CommandGroup(replacing: .newItem) { }
-      CommandGroup(after: .appInfo, addition: {
-        PPView(skManager: skManager, productID: plvProductID)
-        PPView(skManager: skManager, productID: lvProductID)
+      CommandMenu("Purchases") {
+        PPView(productID: plvProductID, storeManager: skManager).disabled(!skManager.canMakePayments)
+        RPView(skManager: skManager, productID: plvProductID).disabled(!skManager.canMakePayments)
 
-        Button("Restore purchases", action: {
-          Task { try? await AppStore.sync() }
-        })
-      })
+        Divider()
+
+        PPView(productID: lvProductID, storeManager: skManager).disabled(!skManager.canMakePayments)
+        RPView(skManager: skManager, productID: lvProductID).disabled(!skManager.canMakePayments)
+
+        Divider()
+
+        Button("Restore purchases", action: { skManager.sync() })
+      }
     }
   }
 }
@@ -96,14 +145,19 @@ struct StuPlayerApp: App {
       ContentView(model: playerDataModel, skManager: skManager, playerAlert: playerDataModel.playerAlert, playerSelection: playerDataModel.playerSelection)
     }.commands {
       CommandGroup(replacing: .newItem) { }
-      CommandGroup(after: .appInfo, addition: {
-        PPView(skManager: skManager, productID: plvProductID)
-        PPView(skManager: skManager, productID: lvProductID)
+      CommandMenu("Purchases") {
+        PPView(productID: plvProductID, storeManager: skManager).disabled(!skManager.canMakePayments)
+        RPView(skManager: skManager, productID: plvProductID).disabled(!skManager.canMakePayments)
 
-        Button("Restore purchases", action: {
-          Task { try? await AppStore.sync() }
-        })
-      })
+        Divider()
+
+        PPView(productID: lvProductID, storeManager: skManager).disabled(!skManager.canMakePayments)
+        RPView(skManager: skManager, productID: lvProductID).disabled(!skManager.canMakePayments)
+
+        Divider()
+
+        Button("Restore purchases", action: { skManager.sync() })
+      }
     }
   }
 }

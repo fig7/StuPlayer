@@ -21,7 +21,7 @@
     In order to play tracks from an album in the correct order, you create an m3u file. This is a simple text file containing the tracks in the order you want them to play. Consequently, an m3u file is also known as a playlist. In the "good old days", text files could only handle Engish ASCII characters and Microsoft added "code pages" to help with characters from other languages. I don't know how Mac OS handled different languages back then, but it is so much easier now. Unicode is the modern standard for text and it works much better. You can now put almost any character in file names and text files. Even tracks with question marks in the title work just fine with Unicode (UTF-8).
     <br><br>
 
-    So, please either use m3u8 playlists (which should always be saved in UTF-8 format) or ensure that all of your m3u files are saved in UTF-8. The Wikipedia page for the M3U format says that "The file is saved with the "m3u" filename extension if the text is encoded in the local system's default non-Unicode encoding (e.g., a Windows codepage)", but we are in the 21st century now and it doesn't really make sense to use anything other than UTF-8. I have converted all of my m3u files to UTF-8 and everything is so much better. My Scandinavian, Spanish, and German music, for example, all have the correct titles now.
+    So, please either use m3u8 playlists (which should always be saved in UTF-8 format) or ensure that all of your m3u files are saved in UTF-8. The Wikipedia page for the M3U format says that "The file is saved with the "m3u" filename extension if the text is encoded in the local system's default non-Unicode encoding (e.g. a Windows codepage)", but we are in the 21st century now and it doesn't really make sense to use anything other than UTF-8. I have converted all of my m3u files to UTF-8 and everything is so much better. My Scandinavian, Spanish, and German music, for example, all have the correct titles now.
     <br><br>
 
     More details about the M3U file format can be found here: <a href="https://en.wikipedia.org/wiki/M3U">https://en.wikipedia.org/wiki/M3U</a><br>
@@ -31,7 +31,8 @@
     NB. StuPlayer currently does not process extended M3U comments and directives or meta data in audio files.<br><br>
 
     <h2> Root folder structure</h2>
-    StuPlayer needs to be given access to the folder that contains your music, "the Root folder". Click on the Root folder button, navigate to your music folder, and grant access. Right now, StuPlayer expects the music to be organised into sub-folders based on type, artist, and albums. This is not very flexible, I know, and future versions of StuPlayer may be more flexible about how the music can be organised. Each album folder should also contain an m3u playlist. For example, let's say that you listen to Jazz music and you have three albums from two different artists. In that case, your files should be organised like this (click the arrows to expand the structure):<br><br>
+    StuPlayer needs to be given access to the folder that contains your music, "the Root folder". Click on the Root folder button at the top of the window, navigate to your music folder, and grant access. Right now, StuPlayer expects the music to be organised into sub-folders based on type, artist, and albums. This is not very flexible, I know, and future versions of StuPlayer will be more flexible about how the music can be organised.<br><br>
+    Each album folder should also contain an m3u playlist. For example, let's say that you listen to Jazz music and you have three albums from two different artists. In that case, your files should be organised like this (click the arrows to expand the structure):<br><br>
 
     <details>
       <summary>Jazz</summary>
@@ -69,25 +70,52 @@
 
     <br><br>
 
-    It is not too difficult to setup your music collection, but it does require some effort. Most CD rippers will obtain the artist, album, and track names from gnudb.org and will produce m3u playlists for you. However, there might be some tweaks needed, especially if your music tracks have (or should have) non-ASCII characters in them.
+    It is not too difficult to set up your music collection, but it does require some effort. Most CD rippers will obtain the artist, album, and track names from gnudb.org and will produce m3u playlists for you. However, there might be some tweaks needed, especially if your music tracks have (or should have) non-ASCII characters in them.
     <br><br>
 
     If you make changes to your music files, you can click the Rescan button and StuPlayer will pick up the changes. If there are any errors found in the root folder structure, a dialog will be displayed. You can find the details in the log files, which are called StuPlayer0.log and StuPlayer1.log (StuPlayer0.log contains the most recent log entries). The log files can be found in the root of the Root folder.
     <br><br>
 
+    <h2>Views</h2>
+    Stuplayer by default is very simple and only has two main views. These are the Browser View and the Track View (the smaller view at the bottom). Items in each view can be manipulated using the mouse or by using the keyboard. The view that currrently has keyboard focus is shown with a blue outline. Pressing the TAB key will move the keyboard focus to the next available view.
+
+    <h3>Browser View</h3>
+    The Browser View allows you to access your music by Artist, Album, and Tracks. You can play everything that is shown in the Browser View by clicking the "Play all" button. Alternatively, you can click on an Artist and then click on an Album to view individual tracks. If you then click on a track, StuPlayer will play that track and queue the remaining tracks from the album.
+
+    <h3>Track View</h3>
+    The Track View provides information for the currently playing track and also has playback controls. If the track position indicator is clicked, it will toggle between showing the time played and the time remaining.
+    <br><br>
+
+    <a name="SP_INAPP"></a>
+    <h2>In-App Purchases</h2>
+    In addition to the Browser View and Track View, two other views are available as In-App purchases. The Playlist view shows the tracks that have been queued for playback (the current playlist) and the Lyrics View shows any lyrics that you have added for the currently playing track. For more details, see the relevant sections below.
+
+    <h3>Playlist View</h3>
+    The playlist View shows you the list of tracks currently queued. You can simply use this view to see the tracks that have played or will be played next. But, you can also use it to change the currently playing track (either by clicking on a track directly or by using the keyboard) and to find a track in the playlist (by entering a few letters from the name).
+
+    <h3>Lyrics View</h3>
+    The Lyrics View shows lyrics and notes for the current track, if any have been added. Lyrics and notes for each track are stored in .spl files. You can enter lyrics manually by creating a .spl file using a text editor, such as TextEdit, or by clicking on the "Fetch lyrics" button to download the lyrics from lyrics.ovh. Timestamps can then be added by listening for the start of each line and selecting it. This is a bit fiddly (and time consuming), so I will see if I can get AI to generate the timestamps in future versions of StuPlayer. For an explanation of how .spl files work, see the section on .spl files below.<br><br>
+    The Lyrics View comes with three buttons: a toggle button that determines what happens when you select a line (update the timestamp or seek to the position), a refresh button that reloads the lyrics from the .spl file, and the previously mentioned "Fetch lyrics" button.
+
+    <br><br>
+    
     <h2> Using StuPlayer</h2>
-    Most of the functions of StuPlayer are self-explanatory. You can click on an artist to show their albums, and you can click on an album to show the tracks (from the contents of the m3u). Clicking on a track will start playback, beginning with the track you have clicked. At any point, you can click "Play all" to generate a playlist that will play all of the music in the list. Tracks can be played in order or in a random order (shuffled) by clicking the Order button. The whole playlist or individual tracks can also be repeated by toggling through the available repeat modes (click on the Repeat button). The selected artist and album can be cleared by clicking on the Artist button, and the selected album can be cleared by clicking on the Album button.
+    Many of the functions of StuPlayer are self-explanatory. In the browser view, you can click on an artist to show their albums, and you can click on an album to show the tracks (from the contents of the m3u). Clicking on a track will start playback, beginning with the track you have clicked. At any point, you can click the "Play all" button to generate a playlist that will play all of the music in the list. Tracks can be played in order or in a random order (shuffled) by clicking the Order button. The whole playlist or individual tracks can also be repeated by toggling through the available repeat modes (click on the Repeat button). The selected artist and album can be cleared by clicking on the Artist button, and the selected album can be cleared by clicking on the Album button.
     <br><br>
 
     While playing, StuPlayer maintains both an in-order playlist and a random playlist. This allows you to easily play the previous track again or skip tracks, if you wish. You can also restart playback from the beginning or re-shuffle the tracks (random playback order only).
     <br><br>
 
     <h2> Filtering artists, albums, and tracks</h2>
-    If you want to find a particular artist, album, or track, you can. Just type in the first letter or two of the name and the list will be filtered based on what you have typed. Pressing the tab key will toggle through the available filter modes: from Artist to Album and finally to Track. You can then use the down arrow or return key to quickly select from the filtered list (see Navigation by keyboard, below).
+    If you want to find a particular artist, album, or track, you can. Just type in the first letter or two of the name and the list will be filtered based on what you have typed. Pressing the F5 key will toggle through the available filter modes: from Artist to Album and finally to Track. You can then use the down arrow or return key to quickly select from the filtered list (see Navigation by keyboard, below).
     <br><br>
 
     <h2>Navigation by keyboard</h2>
-    StuPlayer includes support for navigating your music using the keyboard. If you press either the down arrow key or the return key, a highlight will appear in the list and you will be able to navigate using the up and down arrows and the return and escape keys. Escape acts like a back button: first the album is cleared, then the artist, and then the filter. The function keys F1-F3 can be used to quickly play all the tracks, toggle the playlist order, and toggle repeat. Pressing the enter key on the keypad will quickly toggle playback.
+    StuPlayer includes support for navigating your music using the keyboard. The different views in StuPlayer all behave in a similar way. If you press either the down arrow key or the return key, a highlight will appear in the list and you will be able to navigate using the up/down arrows and the return/escape keys. Return selects the item (which does the same thing as clicking with the mouse) and escape acts like a back button. Pressing the enter key on the keypad will toggle playback (allowing you to very quickly pause and resume using the keyboard).
+    <br><br>
+    However, since the Track View has no items, it behaves slightly differently. The left/right arrows will move the track position backwards or forwards by ten seconds, and the up/down arrows will play the previous or next track.
+    <br><br>
+    The function keys F1-F3 can be used to quickly play all the tracks, toggle the playlist order, and toggle repeat. Pressing F5 will toggle the filter mode.
     <br><br>
 
     Full list of keyboard functions:<br>
@@ -96,21 +124,47 @@
     F1: Play all<br>
     F2: Toggle playlist order<br>
     F3: Toggle repeat<br>
-    F4: Toggle filter mode<br>
+
+    F5: Toggle filter mode<br>
     <br>
 
-    Tab: Toggle between browser and playing views<br>
+    TAB: Toggle between browser, playlist, lyrics and track views<br>
     ±, `, or \ (depending on keyboard - the key between Escape and Tab): Show popup for selected item<br>
     <br>
 
-    Playing view only:<br>
+    Playing and Lyrics views only:<br>
     Clear or NumLock (depending on keyboard): Toggle between playing and last selected item<br>
     <br>
 
     Up/Down, Page Up/Down, Home/End: Navigate through items in the list<br>
     Escape: Navigate up (clear popup, clear album selection, clear artist selection, clear filter)<br>
     Return: Navigate down (select artist, select album, play tracks)<br>
-    Keypad enter: Toggle playback (pause or resume)<br>
+    Keypad enter: Toggle playback (pause or resume)
+    <br><br>
+
+    <h2>Popups</h2>
+    Most items will open a popup window with additional information when you hover the mouse over them. Alternatively, you can navigate to the item and open the popup using the keyboard.
+    <br><br>
+
+    <h2>StuPlayer Lyric files (.spl files)</h2>
+    SPL files have a simple format. The first few lines contain notes for the track, like this:<br><br>
+    # Notes must appear at the start of the file<br>
+    # and each line must start with a # character.<br>
+    # The last line of notes should be empty (except for the # character).<br>
+    #<br><br>
+    Lyric lines follow the notes. If a lyric line is not empty, it can have an optional timestamp:<br><br>
+    Lyric line without a time stamp<br>
+    mm:ss.hh*Lyrics including a time stamp (specified with minutes, seconds, and hundredths of a second)<br>
+    hh:mm:ss.hh*Lyrics including a time stamp (with hours, too)<br>
+
+    <h3>Example .spl file:</h3>
+    # Lyrics entered by hand on 28/02/2025<br>
+    # for the studio album version of this song<br>
+    #<br>
+    0:16.30*You know just how I feel<br>
+    0:18.11*You know when love is real<br>
+    0:20.96*It changes the life that you're living...<br>
+
     <br><br>
   </body>
 </html>
