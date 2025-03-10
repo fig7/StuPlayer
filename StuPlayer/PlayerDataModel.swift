@@ -1964,11 +1964,6 @@ let dismissedViewsFile = "DismissedViews.dat"
     try? trackCountdown.write(toFile: trackCountdownFile, atomically: true, encoding: .utf8)
   }
 
-  func openPLVHelp() {
-    let locBookName = Bundle.main.object(forInfoDictionaryKey: "CFBundleHelpBookName") as! NSHelpManager.BookName?
-    NSHelpManager.shared.openHelpAnchor("SP_INAPP",  inBook: locBookName)
-  }
-
   func dismissPLVPurchase() {
     playerSelection.dismissedViews.plView = true
     playerAlert.triggerAlert(alertMessage: "If you change your mind, you can purchase views from the Purchases menu.")
@@ -1983,11 +1978,6 @@ let dismissedViewsFile = "DismissedViews.dat"
       logManager.append(logCat: .LogFileError,   logMessage: "Error saving dismissed view")
       logManager.append(logCat: .LogThrownError, logMessage: "File error: " + error.localizedDescription)
     }
-  }
-
-  func openLVHelp() {
-    let locBookName = Bundle.main.object(forInfoDictionaryKey: "CFBundleHelpBookName") as! NSHelpManager.BookName?
-    NSHelpManager.shared.openHelpAnchor("SP_INAPP",  inBook: locBookName)
   }
 
   func dismissLVPurchase() {

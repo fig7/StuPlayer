@@ -262,7 +262,7 @@ struct ContentView: View {
                       Task { plvProduct = skManager.productFromID(plvProductID) }
                     }
 
-                  Button(action: model.openPLVHelp) { Text("More information") }
+                  Button(action: skManager.openInAppHelp)  { Text("More information") }
                   Button(action: model.dismissPLVPurchase) { Text("Dismiss") }
                 }
               }.frame(minWidth: 172, maxWidth: .infinity, minHeight: scrollViewHeight).padding(.horizontal, 7)
@@ -302,7 +302,7 @@ struct ContentView: View {
                     Task { lvProduct = skManager.productFromID(lvProductID) }
                   }
 
-                Button(action: model.openLVHelp) { Text("More information") }
+                Button(action: skManager.openInAppHelp) { Text("More information") }
                 Button(action: model.dismissLVPurchase) { Text("Dismiss") }
               }
             }.frame(minWidth: 344, maxWidth: .infinity, minHeight: 130).padding(.horizontal, 7)

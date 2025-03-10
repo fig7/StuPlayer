@@ -24,6 +24,8 @@ class SKManager : ObservableObject {
   @Published var lViewPurchased  = false
   @Published var purchaseMade    = false
 
+  @Published var inAppHelpTriggered = false
+
   private let productDict : [String : String]
   private var updateListenerTask: Task<Void, Error>? = nil
 
@@ -175,6 +177,15 @@ class SKManager : ObservableObject {
     Task {
       try? await AppStore.sync()
       canMakePayments = AppStore.canMakePayments
+    }
+  }
+
+  func openInAppHelp() {
+    if #available(macOS 13.0, *) {
+      inAppHelpTriggered = true
+    } else {
+      let locBookName = Bundle.main.object(forInfoDictionaryKey: "CFBundleHelpBookName") as! NSHelpManager.BookName?
+      NSHelpManager.shared.openHelpAnchor("SP_INAPP",  inBook: locBookName)
     }
   }
 }
