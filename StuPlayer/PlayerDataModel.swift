@@ -1465,7 +1465,7 @@ let dismissedViewsFile = "DismissedViews.dat"
     return m3ULines.filter { m3ULine in return !m3ULine.starts(with: "#") }
   }
 
-  func scanAlbum(albumPath: String) -> (String, [String]) {
+  func scanAlbum(_ albumPath: String) -> (String, [String]) {
     var m3U = ""
     var tracks: [String] = []
 
@@ -1500,7 +1500,7 @@ let dismissedViewsFile = "DismissedViews.dat"
     return (m3U, tracks)
   }
 
-  func scanAlbums(artistPath: String) -> (m3Us: [String : String], tracks: [String : [String]]) {
+  func scanAlbums(_ artistPath: String) -> (m3Us: [String : String], tracks: [String : [String]]) {
     var m3Us: [String : String] = [:]
     var tracks: [String : [String]] = [:]
 
@@ -1513,9 +1513,13 @@ let dismissedViewsFile = "DismissedViews.dat"
         let filePath = artistPath + album
 
         var isDir: ObjCBool = false
-        if(fm.fileExists(atPath: filePath, isDirectory: &isDir) && isDir.boolValue) {
-          (m3Us[album], tracks[album]) = scanAlbum(albumPath: filePath + "/")
-          albumFolders = true
+        if(fm.fileExists(atPath: filePath, isDirectory: &isDir)) {
+          if(isDir.boolValue) {
+            // Valid album directory found
+            let albumPath = filePath + "/"
+            (m3Us[album], tracks[album]) = scanAlbum(albumPath)
+            albumFolders = true
+          }
         }
       }
 
@@ -1542,13 +1546,18 @@ let dismissedViewsFile = "DismissedViews.dat"
     selectedType = ""
 
     do {
+      logManager.append(logCat: .LogInfo, logMessage: "Scanning for types in \(rootPath)")
       let types = try fm.contentsOfDirectory(atPath: rootPath)
       for type in types {
         let filePath = rootPath + type
+        logManager.append(logCat: .LogInfo, logMessage: "Checking \(filePath)")
 
         var isDir: ObjCBool = false
-        if(fm.fileExists(atPath: filePath, isDirectory: &isDir) && isDir.boolValue) {
-          typesList.append(type)
+        if(fm.fileExists(atPath: filePath, isDirectory: &isDir)) {
+          if(isDir.boolValue) {
+            // Valid type directory found
+            typesList.append(type)
+          }
         }
       }
 
@@ -1560,6 +1569,7 @@ let dismissedViewsFile = "DismissedViews.dat"
       }
 
       try saveTypes()
+      logManager.append(logCat: .LogInfo, logMessage: "Scanning for types... done")
     } catch {
       logManager.append(logCat: .LogScanError,   logMessage: "Updating types failed")
       logManager.append(logCat: .LogThrownError, logMessage: "Scan error: " + error.localizedDescription)
@@ -1584,18 +1594,23 @@ let dismissedViewsFile = "DismissedViews.dat"
   func scanArtists() throws {
     trackErrors = false
     for type in typesList {
-      let artistDict = scanArtists(typePath: rootPath + type + "/")
+      let typePath = rootPath + type + "/"
+      logManager.append(logCat: .LogInfo, logMessage: "Scanning for artists in \(typePath)")
 
+      let artistDict = scanArtists(typePath)
       allM3UDict[type]    = artistDict.m3Us
       allTracksDict[type] = artistDict.tracks
     }
 
     if(trackErrors) {
+      logManager.append(logCat: .LogInfo, logMessage: "Scanning for artists... done (with errors)")
       throw TrackError.ReadingArtistsFailed
     }
+
+    logManager.append(logCat: .LogInfo, logMessage: "Scanning for artists... done")
   }
 
-  func scanArtists(typePath: String) -> (m3Us: M3UDict, tracks: TrackDict) {
+  func scanArtists(_ typePath: String) -> (m3Us: M3UDict, tracks: TrackDict) {
     var m3Us: M3UDict = [:]
     var tracks: TrackDict = [:]
 
@@ -1608,9 +1623,13 @@ let dismissedViewsFile = "DismissedViews.dat"
         let filePath = typePath + artist
 
         var isDir: ObjCBool = false
-        if(fm.fileExists(atPath: filePath, isDirectory: &isDir) && isDir.boolValue) {
-          (m3Us[artist], tracks[artist]) = scanAlbums(artistPath: filePath + "/")
-          artistFolders = true
+        if(fm.fileExists(atPath: filePath, isDirectory: &isDir)) {
+          if(isDir.boolValue) {
+            // Valid artist directory found
+            let artistPath = filePath + "/"
+            (m3Us[artist], tracks[artist]) = scanAlbums(artistPath)
+            artistFolders = true
+          }
         }
       }
 
