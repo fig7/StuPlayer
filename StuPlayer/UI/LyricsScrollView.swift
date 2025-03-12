@@ -69,8 +69,10 @@ struct LyricsScrollView : View {
           }
 
           LazyVStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(playerSelection.playingLyrics.enumerated()), id: \.offset) { itemIndex, item in
-              LyricsItemView(model: model, playerSelection: playerSelection, itemText: item.text, itemIndex: itemIndex)
+            if(playerSelection.playingLyrics.count > 1) {
+              ForEach(Array(playerSelection.playingLyrics.enumerated()), id: \.offset) { itemIndex, item in
+                LyricsItemView(model: model, playerSelection: playerSelection, itemText: item.text, itemIndex: itemIndex)
+              }
             }
           }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
         }
