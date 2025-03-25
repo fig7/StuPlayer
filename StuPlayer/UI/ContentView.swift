@@ -18,6 +18,7 @@ struct ContentView: View {
   @ObservedObject var playerAlert: PlayerAlert
   @ObservedObject var playerSelection: PlayerSelection
 
+  @State private var textWidth        = CGFloat(0.0)
   @State private var textHeight       = CGFloat(0.0)
   @State private var scrollViewHeight = CGFloat(0.0)
   @FocusState private var scrollViewFocus: ScrollViewFocus?
@@ -25,16 +26,19 @@ struct ContentView: View {
   @State private var playingPopover   = false
   @State private var playlistPopover  = false
   @State private var trackPopover     = false
+  @State private var sliderPopover    = false
   @State private var countdownPopover = false
 
   @State private var plvProduct: Product? = nil
-  @State private var lvProduct: Product? = nil
+  @State private var lvProduct: Product?  = nil
+  @State private var tvProduct: Product?  = nil
 
   var body: some View {
     VStack(alignment: .leading) {
       HStack {
         Button(action: model.setRootFolder) {
-          Text("Root folder: ").padding(.horizontal, 10).background() { GeometryReader { proxy in Color.clear.onAppear { textHeight = proxy.size.height } } }.padding(.vertical, 2)
+          Text("Root folder: ").padding(.horizontal, 10).background() {
+            GeometryReader { proxy in Color.clear.onAppear { textWidth = proxy.size.width / 12.0; textHeight = proxy.size.height } } }.padding(.vertical, 2)
         }
 
         Text((playerSelection.rootPath == "/") ? "Not set" : playerSelection.rootPath).padding(.horizontal, 10).padding(.vertical, 2)
@@ -328,117 +332,168 @@ struct ContentView: View {
 
         Spacer().frame(height: 30)
 
-        VStack(alignment: .leading) {
-          HStack {
-            if(playerSelection.playPosition > 0) {
-              Text(String(format: "Playing: %d/%d", playerSelection.playPosition, playerSelection.playTotal)).frame(width: 142, alignment:.leading)
-                .onHover(perform: { hovering in
-                  if(hovering) {
-                    model.delayAction() { playingPopover = true }
-                  } else { model.delayCancel(); playingPopover = false } })
-                .popover(isPresented: $playingPopover) { Text("\(playerSelection.playingInfo)").font(.headline).padding() }
+        HStack {
+          VStack(alignment: .leading) {
+            HStack {
+              if(playerSelection.playPosition > 0) {
+                Text(String(format: "Playing: %d/%d", playerSelection.playPosition, playerSelection.playTotal)).frame(width: 142, alignment:.leading)
+                  .onHover(perform: { hovering in
+                    if(hovering) {
+                      model.delayAction() { playingPopover = true }
+                    } else { model.delayCancel(); playingPopover = false } })
+                  .popover(isPresented: $playingPopover) { Text("\(playerSelection.playingInfo)").font(.headline).padding() }
 
-              Slider(value: $playerSelection.trackPos, in: 0...1, onEditingChanged: { startFinish in
-                if(startFinish) { return; }
-                model.seekTo(newPosition: playerSelection.trackPos)
-              }).frame(width:300, alignment:.leading).disabled(!playerSelection.seekEnabled).focused($scrollViewFocus, equals: .CurrentPlayingView)
+                Slider(value: $playerSelection.trackPos, in: 0...1, onEditingChanged: { startFinish in
+                  if(startFinish) { sliderPopover = true; return }
 
-              Spacer().frame(width: 15)
+                  sliderPopover = false
+                  model.seekTo(newPosition: playerSelection.trackPos)
+                }).frame(width:300, alignment:.leading).disabled(!playerSelection.seekEnabled).focused($scrollViewFocus, equals: .CurrentPlayingView)
+                // The slider popover has a few hacks to get it in the right place and make sure it is big enough.
+                // Not sure why popovers don't resize properly, that might be Apple's fault.
+                  .popover(isPresented: $sliderPopover, attachmentAnchor: .point(UnitPoint(x: 0.935*playerSelection.trackPos + 0.0325, y: 0.2))) { Text("\(playerSelection.sliderPosStr)").font(.headline).monospacedDigit().frame(width: CGFloat(playerSelection.sliderPosStr.count)*textWidth).padding() }
 
-              Text(playerSelection.trackCountdown ? playerSelection.trackLeftStr : playerSelection.trackPosStr).monospacedDigit().frame(width: 42, alignment: .trailing).padding(.horizontal, 6)
-                .onTapGesture { model.toggleTrackCountdown() }
-                .onHover(perform: { hovering in
-                  if(hovering) {
-                    model.delayAction() { countdownPopover = true }
-                  } else { model.delayCancel(); countdownPopover = false } })
-                .popover(isPresented: $countdownPopover) { Text("\(playerSelection.countdownInfo)").font(.headline).monospacedDigit().padding() }
-            } else {
-              Text("Playing: ").frame(alignment: .leading)
+                Spacer().frame(width: 15)
 
-              // Needed to keep the height of the HStack the same
-              Slider(value: $playerSelection.trackPos, in: 0...1).frame(width: 300, alignment: .leading).hidden()
-              Spacer().frame(width: 15).hidden()
-              Text(playerSelection.trackPosStr).monospacedDigit().frame(width: 42, alignment: .trailing).hidden()
-            }
-          }
+                Text(playerSelection.trackCountdown ? playerSelection.trackLeftStr : playerSelection.trackPosStr).monospacedDigit().frame(width: 42, alignment: .trailing).padding(.horizontal, 6)
+                  .onTapGesture { model.toggleTrackCountdown() }
+                  .onHover(perform: { hovering in
+                    if(hovering) {
+                      model.delayAction() { countdownPopover = true }
+                    } else { model.delayCancel(); countdownPopover = false } })
+                  .popover(isPresented: $countdownPopover) { Text("\(playerSelection.countdownInfo)").font(.headline).monospacedDigit().padding() }
+              } else {
+                Text("Playing: ").frame(alignment: .leading)
 
-          HStack {
-            Text(String(format: "Album playlist: %@", playerSelection.playlist)).frame(minWidth: 120, alignment: .leading).padding(.vertical, 2)
-              .onHover(perform: { hovering in
-                if(hovering && !playerSelection.playlist.isEmpty) {
-                  model.delayAction() { playlistPopover = true }
-                } else { model.delayCancel(); playlistPopover = false } })
-              .popover(isPresented: $playlistPopover) { Text("\(playerSelection.playlistInfo)").font(.headline).padding() }
-
-            Spacer().frame(width: 20)
-
-            if playerSelection.trackNum > 0 {
-              Text(String(format: "Track %d/%d: %@", playerSelection.trackNum, playerSelection.numTracks, playerSelection.fileName)).frame(minWidth: 120, alignment: .leading)
-                .onHover(perform: { hovering in
-                  if(hovering) {
-                    model.delayAction() { trackPopover = true }
-                  } else { model.delayCancel(); trackPopover = false } })
-                .popover(isPresented: $trackPopover) { Text("\(playerSelection.trackInfo)").font(.headline).padding() }
-            } else {
-              Text("Track: ").frame(minWidth: 120, alignment: .leading)
-            }
-
-            Spacer()
-          }
-
-          Spacer().frame(height: 15)
-
-          HStack {
-            Button(action: model.togglePause) {
-              switch(playerSelection.playbackState) {
-              case .stopped:
-                Text("Pause").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
-
-              case .playing:
-                Text("Pause").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
-
-              case .paused:
-                Text("Resume").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
-
-              @unknown default:
-                Text("??????").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
+                // Needed to keep the height of the HStack the same
+                Slider(value: $playerSelection.trackPos, in: 0...1).frame(width: 300, alignment: .leading).hidden()
+                Spacer().frame(width: 15).hidden()
+                Text(playerSelection.trackPosStr).monospacedDigit().frame(width: 42, alignment: .trailing).hidden()
               }
-            }.disabled(playerSelection.playbackState == .stopped)
+            }
 
-            Spacer().frame(width: 20)
+            HStack {
+              Text(String(format: "Album playlist: %@", playerSelection.playlist)).frame(minWidth: 120, alignment: .leading).padding(.vertical, 2)
+                .onHover(perform: { hovering in
+                  if(hovering && !playerSelection.playlist.isEmpty) {
+                    model.delayAction() { playlistPopover = true }
+                  } else { model.delayCancel(); playlistPopover = false } })
+                .popover(isPresented: $playlistPopover) { Text("\(playerSelection.playlistInfo)").font(.headline).padding() }
 
-            Button(action: model.stopAll) {
-              Text(" Stop ").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
-            }.disabled(playerSelection.playbackState == .stopped)
-
-            Spacer().frame(width: 40)
-
-            Button(action: model.playPreviousTrack) {
-              Text("Previous").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
-            }.disabled((playerSelection.playbackState == .stopped) || (playerSelection.playPosition == 1))
-
-            Spacer().frame(width: 20)
-
-            Button(action: model.playNextTrack) {
-              Text("Next").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
-            }.disabled(playerSelection.playbackState == .stopped)
-
-            Spacer().frame(width: 20)
-
-            Button(action: model.restartAll) {
-              Text("Restart").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
-            }.disabled(playerSelection.playbackState == .stopped)
-
-            if(playerSelection.shuffleTracks) {
               Spacer().frame(width: 20)
 
-              Button(action: model.reshuffleAll) {
-                Text("Reshuffle").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
+              if playerSelection.trackNum > 0 {
+                Text(String(format: "Track %d/%d: %@", playerSelection.trackNum, playerSelection.numTracks, playerSelection.fileName)).frame(minWidth: 120, alignment: .leading)
+                  .onHover(perform: { hovering in
+                    if(hovering) {
+                      model.delayAction() { trackPopover = true }
+                    } else { model.delayCancel(); trackPopover = false } })
+                  .popover(isPresented: $trackPopover) { Text("\(playerSelection.trackInfo)").font(.headline).padding() }
+              } else {
+                Text("Track: ").frame(minWidth: 120, alignment: .leading)
+              }
+
+              Spacer()
+            }
+
+            Spacer().frame(height: 15)
+
+            HStack {
+              Button(action: model.togglePause) {
+                switch(playerSelection.playbackState) {
+                case .stopped:
+                  Text("Pause").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
+
+                case .playing:
+                  Text("Pause").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
+
+                case .paused:
+                  Text("Resume").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
+
+                @unknown default:
+                  Text("??????").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
+                }
               }.disabled(playerSelection.playbackState == .stopped)
+
+              Spacer().frame(width: 20)
+
+              Button(action: model.stopAll) {
+                Text(" Stop ").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
+              }.disabled(playerSelection.playbackState == .stopped)
+
+              Spacer().frame(width: 40)
+
+              Button(action: model.playPreviousTrack) {
+                Text("Previous").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
+              }.disabled((playerSelection.playbackState == .stopped) || (playerSelection.playPosition == 1))
+
+              Spacer().frame(width: 20)
+
+              Button(action: model.playNextTrack) {
+                Text("Next").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
+              }.disabled(playerSelection.playbackState == .stopped)
+
+              Spacer().frame(width: 20)
+
+              Button(action: model.restartAll) {
+                Text("Restart").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
+              }.disabled(playerSelection.playbackState == .stopped)
+
+              if(playerSelection.shuffleTracks) {
+                Spacer().frame(width: 20)
+
+                Button(action: model.reshuffleAll) {
+                  Text("Reshuffle").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2)
+                }.disabled(playerSelection.playbackState == .stopped)
+              }
+            }
+          }.padding(10).background(
+            RoundedRectangle(cornerRadius: 8).stroke(((scrollViewFocus == .CurrentPlayingView) && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+
+          if((playerSelection.playPosition <= 0) || !skManager.tViewPurchased) {
+            let tViewDismissed = playerSelection.dismissedViews.tView || !skManager.canMakePayments
+            if(!tViewDismissed && !skManager.tViewPurchased) {
+              VStack() {
+                VStack() {
+                  Text("Tools View").font(.headline)
+                  Spacer().frame(height: 5)
+
+                  Text("The tools view provides tools for adjusting playback. Currently, it is possible to adjust\nthe playback rate and loop part of a track. More tools may be added in future versions.")
+                }.padding(.horizontal, 30)
+
+                Spacer().frame(height: 15)
+
+                HStack(spacing: 30) {
+                  Button(action: purchaseTV) { (tvProduct == nil) ? Text("Purchase") : Text("Purchase " + tvProduct!.displayPrice) }
+                    .disabled(tvProduct == nil)
+                    .onChange(of: skManager.spProducts) { _ in
+                      Task { tvProduct = skManager.productFromID(tvProductID) }
+                    }
+
+                  Button(action: skManager.openInAppHelp) { Text("More information") }
+                  Button(action: model.dismissTVPurchase) { Text("Dismiss") }
+                }
+              }.frame(minWidth: 344, maxWidth: .infinity, minHeight: 106).padding(.horizontal, 7)
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(.gray, lineWidth: 5).opacity(0.6))
             }
           }
-        }.padding(10).background(
-          RoundedRectangle(cornerRadius: 8).stroke(((scrollViewFocus == .CurrentPlayingView) && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+
+          if((playerSelection.playPosition > 0) && skManager.tViewPurchased) {
+            HStack {
+              let lyricsInfoFocus = (scrollViewFocus == .LyricsInfoView)
+              LyricsInfoView(model: model, playerSelection: playerSelection, hasFocus: lyricsInfoFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
+                .frame(minWidth: 172, maxWidth: .infinity, minHeight: 130).padding(7)
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke((lyricsInfoFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+
+              if((playerSelection.playPosition > 0) && skManager.lViewPurchased) {
+                let lyricsFocus = (scrollViewFocus == .LyricsScrollView)
+                LyricsScrollView(model: model, playerSelection: playerSelection, hasFocus: lyricsFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
+                  .frame(minWidth: 172, maxWidth: .infinity, minHeight: 130).padding(7)
+                  .overlay(RoundedRectangle(cornerRadius: 8).stroke((lyricsFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+              }
+            }
+          }
+        }
 
         Spacer().frame(height: 10)
       }
@@ -453,8 +508,7 @@ struct ContentView: View {
     .alert("Thank you for purchasing a StuPlayer component! If you change your mind, you can request a refund from the Purchases menu.", isPresented: $skManager.purchaseMade) { }
   }
 
-  func purchasePLV() {
-    let product = skManager.productFromID(plvProductID)
+  func purchaseProduct(_ product: Product?) {
     guard let product else { print("Error product is nil"); return }
 
     Task {
@@ -472,24 +526,9 @@ struct ContentView: View {
     }
   }
 
-  func purchaseLV() {
-    let product = skManager.productFromID(lvProductID)
-    guard let product else { print("Error product is nil"); return }
-
-    Task {
-      let displayName = product.displayName
-
-      do {
-        let transaction = try await skManager.purchaseProduct(product)
-        if(transaction == nil) { print("Purchase of " + displayName + ": no result (transaction cancelled?)"); return }
-
-        print(displayName + " purchased: " + (transaction?.debugDescription ?? "No debug info"))
-      } catch {
-        print("Error making purchase of " + displayName + ": " + error.localizedDescription)
-        return
-      }
-    }
-  }
+  func purchasePLV() { purchaseProduct(skManager.productFromID(plvProductID)) }
+  func purchaseLV()  { purchaseProduct(skManager.productFromID(lvProductID)) }
+  func purchaseTV()  { purchaseProduct(skManager.productFromID(tvProductID)) }
 
   func handleKeyEvents() {
     NSEvent.addLocalMonitorForEvents(matching: .keyDown) { aEvent -> NSEvent? in

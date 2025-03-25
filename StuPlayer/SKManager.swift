@@ -12,6 +12,7 @@ import StoreKit
 
 let plvProductID = "com.fig7.spplv"
 let lvProductID  = "com.fig7.splv"
+let tvProductID  = "com.fig7.sptv"
 
 enum StoreError: Error { case failedVerification }
 
@@ -22,6 +23,7 @@ class SKManager : ObservableObject {
 
   @Published var plViewPurchased = false
   @Published var lViewPurchased  = false
+  @Published var tViewPurchased  = false
   @Published var purchaseMade    = false
 
   @Published var inAppHelpTriggered = false
@@ -117,6 +119,7 @@ class SKManager : ObservableObject {
 
     self.plViewPurchased = self.isPurchased(plvProductID)
     self.lViewPurchased  = self.isPurchased(lvProductID)
+    self.tViewPurchased  = self.isPurchased(tvProductID)
     self.purchaseMade    = productPurchased
   }
 

@@ -159,7 +159,7 @@ struct StuPlayerApp13 : App {
     WindowGroup() {
       ContentView(model: playerDataModel, skManager: skManager, playerAlert: playerDataModel.playerAlert, playerSelection: playerDataModel.playerSelection)
     }
-    .defaultSize(width: 1124, height: 734)
+    .defaultSize(width: 1394, height: 734)
     .commands {
       CommandGroup(replacing: .newItem) { }
       CommandMenu("Purchases") {
@@ -170,6 +170,11 @@ struct StuPlayerApp13 : App {
 
         PPView(productID: lvProductID, storeManager: skManager).disabled(!skManager.canMakePayments)
         RPView(skManager: skManager, productID: lvProductID).disabled(!skManager.canMakePayments)
+
+        Divider()
+
+        PPView(productID: tvProductID, storeManager: skManager).disabled(!skManager.canMakePayments)
+        RPView(skManager: skManager, productID: tvProductID).disabled(!skManager.canMakePayments)
 
         Divider()
 
@@ -213,6 +218,11 @@ struct StuPlayerApp: App {
 
         PPView(productID: lvProductID, storeManager: skManager).disabled(!skManager.canMakePayments)
         RPView(skManager: skManager, productID: lvProductID).disabled(!skManager.canMakePayments)
+
+        Divider()
+
+        PPView(productID: tvProductID, storeManager: skManager).disabled(!skManager.canMakePayments)
+        RPView(skManager: skManager, productID: tvProductID).disabled(!skManager.canMakePayments)
 
         Divider()
 

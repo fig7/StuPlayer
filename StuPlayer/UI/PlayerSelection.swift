@@ -31,6 +31,7 @@ struct LyricsItem {
     func typeChanged(newType: String)
     func filterChanged(newFilter: String)
     func browserScrollPosChanged(newScrollPos: Int)
+    func trackPosChanged(newTrackPos: Double)
   }
 
   @Published var rootPath = ""
@@ -61,11 +62,23 @@ struct LyricsItem {
   @Published var playTotal    = 0
 
   @Published var trackPos     = 0.0    // 0.0 < 1.0 (used by the slider)
+  {
+    didSet {
+      delegate?.trackPosChanged(newTrackPos: trackPos)
+      if(totalTime < 0.0) { return; }
+
+      let sliderPos = trackPos*totalTime
+      sliderPosStr  = timeStr(from: sliderPos)
+    }
+  }
+
   @Published var trackPosStr  = "0:00" // Hours, minutes and seconds
   @Published var trackLeftStr = "0:00" // Hours, minutes and seconds
+  @Published var sliderPosStr = "0:00" // Hours, minutes and seconds
 
   @Published var trackCountdown = false  // Time ticks up or down
   @Published var seekEnabled    = false  // Enable and disable the slider
+  var totalTime = -1.0
 
   @Published var playingTracks: [PlayingItem] = []
   @Published var playingNotes: String = ""
@@ -162,7 +175,7 @@ struct LyricsItem {
   @Published var lyricsInfo    = (artist: "", album: "", track: "")
   @Published var countdownInfo = ""
 
-  @Published var dismissedViews = (plView: false, lView: false)
+  @Published var dismissedViews = (plView: false, lView: false, tView: false)
 
   weak var delegate: Delegate?
 
@@ -250,7 +263,9 @@ struct LyricsItem {
 
   func setTrack(newTrack: TrackInfo?, newLyrics: (String?, [LyricsItem]?) = (nil, nil)) {
     setPlaylist(newPlaylist: newTrack?.playlist)
+
     setLyrics(newLyrics: newLyrics)
+    lyricsMode = .Navigate
 
     guard let newTrack else {
       self.fileName = ""
@@ -361,8 +376,9 @@ struct LyricsItem {
     self.playingInfo = (playPosition > 0) ? "Playing:\t\(fileName)\nTrack:\t\(playPosition) of \(playTotal)" : ""
   }
 
-  func setSeekEnabled(seekEnabled: Bool) {
+  func setSeekEnabled(seekEnabled: Bool, totalTime: TimeInterval) {
     self.seekEnabled = seekEnabled
+    self.totalTime   = totalTime
   }
 
   func peekShuffle() -> Bool {

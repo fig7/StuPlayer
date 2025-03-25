@@ -43,6 +43,21 @@
       "productID" : "com.fig7.splv",
       "referenceName" : "StuPlayer LyricsView",
       "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "1.00",
+      "familyShareable" : false,
+      "internalID" : "AEFB5856",
+      "localizations" : [
+        {
+          "description" : "In app purchase for the Tools View",
+          "displayName" : "Tools View",
+          "locale" : "en_GB"
+        }
+      ],
+      "productID" : "com.fig7.sptv",
+      "referenceName" : "StuPlayer ToolsView",
+      "type" : "NonConsumable"
     }
   ],
   "settings" : {

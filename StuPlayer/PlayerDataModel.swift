@@ -155,17 +155,21 @@ let dismissedViewsFile = "DismissedViews.dat"
       trackCountdown = try PlayerDataModel.getTrackCountdown(countdownFile: trackCountdownFile)
     } catch {
       trackCountdown = false
-      logManager.append(logCat: .LogInitError, logMessage: "Error reading track countdown")
+      logManager.append(logCat: .LogInitError, logMessage: "Error reading track countdown:")
+      logManager.append(logCat: .LogInitError, logMessage: "\(error.localizedDescription)")
     }
 
     let plViewDismissed: Bool
     let lViewDismissed: Bool
+    let tViewDismissed: Bool
     do {
-      (plViewDismissed, lViewDismissed) = try PlayerDataModel.getDismissedViews(dismissedFile: dismissedViewsFile)
+      (plViewDismissed, lViewDismissed, tViewDismissed) = try PlayerDataModel.getDismissedViews(dismissedFile: dismissedViewsFile)
     } catch {
       plViewDismissed = false
       lViewDismissed  = false
-      logManager.append(logCat: .LogInitError, logMessage: "Error reading dismissed views")
+      tViewDismissed  = false
+      logManager.append(logCat: .LogInitError, logMessage: "Error reading dismissed views:")
+      logManager.append(logCat: .LogInitError, logMessage: "\(error.localizedDescription)")
     }
 
     self.m3UDict    = allM3UDict[selectedType] ?? [:]
@@ -184,7 +188,7 @@ let dismissedViewsFile = "DismissedViews.dat"
       playerSelection.setAll(newArtist: selectedArtist, newAlbum: selectedAlbum, newList: tracksDict.keys.sorted())
 
       playerSelection.trackCountdown = trackCountdown
-      playerSelection.dismissedViews = (plViewDismissed, lViewDismissed)
+      playerSelection.dismissedViews = (plViewDismissed, lViewDismissed, tViewDismissed)
     }
   }
 
@@ -359,7 +363,7 @@ let dismissedViewsFile = "DismissedViews.dat"
     }
 
     playerSelection.setTrack(newTrack: currentTrack!, newLyrics: (currentNotes, currentLyrics))
-    playerSelection.setSeekEnabled(seekEnabled: player.supportsSeeking)
+    playerSelection.setSeekEnabled(seekEnabled: player.supportsSeeking, totalTime: player.totalTime ?? -1.0)
     playerSelection.setPlayingPosition(playPosition: playPosition, playTotal: playlistManager.trackCount)
     playerSelection.setPlayingInfo()
 
@@ -898,38 +902,48 @@ let dismissedViewsFile = "DismissedViews.dat"
     }
   }
 
-  func performPositionUpdate() {
+  func resetTrackPos() {
     playerSelection.trackPos     = 0.0
     playerSelection.trackPosStr  = "--:--"
     playerSelection.trackLeftStr = "--:--"
     playerSelection.countdownInfo = "Track position:\tUnknown\nTrack length:\tUnknown"
+  }
 
+  func performLyricsUpdate(playerPosition: TimeInterval) {
+    guard let currentLyrics else { return }
+
+    for (index, lyric) in currentLyrics.enumerated().reversed() {
+      guard let lyricTime = lyric.time else { continue }
+      if(playerPosition >= lyricTime) {
+        playerSelection.lyricsPosition = index
+        break
+      }
+    }
+  }
+
+  func performPositionUpdate() {
     let playerPosition = player.time
-    guard let playerPosition else { return }
+    guard let playerPosition else { resetTrackPos(); return }
 
     let current = playerPosition.current
-    guard let current else { return }
+    guard let current else { resetTrackPos(); return }
     playerSelection.trackPosStr = timeStr(from: current)
 
     let total = playerPosition.total ?? 0.0
     if((total > 0.0)) {
       playerSelection.trackPos     = current / total
       playerSelection.trackLeftStr = timeStr(from: total - current)
+    } else {
+      playerSelection.trackPos     = 0.0
+      playerSelection.trackLeftStr = "--:--"
     }
 
     playerSelection.countdownInfo  = "Track position:\t\(playerSelection.trackPosStr)\n"
                                    + "Track length:\t\((total > 0.0) ? timeStr(from: total) : "Unknown")"
 
-    if let currentLyrics {
-      for (index, lyric) in currentLyrics.enumerated().reversed() {
-        guard let lyricTime = lyric.time else { continue }
-        if(current > lyricTime) {
-          playerSelection.lyricsPosition = index
-          break
-        }
-      }
-    }
+    performLyricsUpdate(playerPosition: current)
   }
+
 
   func updatePlayingPosition() {
     playbackTimer?.invalidate()
@@ -1344,13 +1358,14 @@ let dismissedViewsFile = "DismissedViews.dat"
     return try PropertyListDecoder().decode(AllTracksDict.self, from: trackData)
   }
 
-  static func getDismissedViews(dismissedFile: String) throws -> (Bool, Bool) {
+  static func getDismissedViews(dismissedFile: String) throws -> (Bool, Bool, Bool) {
     let dismissedData = try NSData(contentsOfFile: dismissedFile) as Data
     let dismissedStr  = String(decoding: dismissedData, as: UTF8.self)
     let dismissed = dismissedStr.split(separator: ",")
-    if (dismissed.count != 2) { throw StorageError.ReadingDismissedFailed }
+    if((dismissed.count != 2) && (dismissed.count != 3)) { throw StorageError.ReadingDismissedFailed }
 
-    return ((dismissed[0] == "TRUE"), (dismissed[1] == "TRUE"))
+    return (dismissed.count == 3) ? ((dismissed[0] == "TRUE"), (dismissed[1] == "TRUE"), (dismissed[2] == "TRUE"))
+                                  : ((dismissed[0] == "TRUE"), (dismissed[1] == "TRUE"), false)
   }
 
   static func getTrackCountdown(countdownFile: String) throws -> Bool {
@@ -1820,6 +1835,19 @@ let dismissedViewsFile = "DismissedViews.dat"
     }
   }
 
+  func trackPosChanged(newTrackPos: Double) {
+    let playbackState = player.playbackState
+    if(playbackState != .paused) { return }
+
+    let playerPosition = player.time
+    guard let playerPosition else { return }
+
+    let total = playerPosition.total
+    guard let total else { return }
+
+    performLyricsUpdate(playerPosition: newTrackPos*total)
+  }
+
   func refreshPlayingTracks() {
     let newTrackList   = (playerSelection.shuffleTracks) ? playlistManager.shuffleList.map { $0.track } : playlistManager.trackList
     let searchedTracks = playerSelection.playingTracks.filter({ $0.searched })
@@ -1983,13 +2011,11 @@ let dismissedViewsFile = "DismissedViews.dat"
     try? trackCountdown.write(toFile: trackCountdownFile, atomically: true, encoding: .utf8)
   }
 
-  func dismissPLVPurchase() {
-    playerSelection.dismissedViews.plView = true
-    playerAlert.triggerAlert(alertMessage: "If you change your mind, you can purchase views from the Purchases menu.")
-
+  func saveDismissedViews() {
     let plDismiss = playerSelection.dismissedViews.plView ? "TRUE" : "FALSE"
     let lDismiss  = playerSelection.dismissedViews.lView  ? "TRUE" : "FALSE"
-    let dismissedViews = plDismiss + "," + lDismiss
+    let tDismiss  = playerSelection.dismissedViews.tView  ? "TRUE" : "FALSE"
+    let dismissedViews = plDismiss + "," + lDismiss + "," + tDismiss
 
     do {
       try dismissedViews.write(toFile: dismissedViewsFile, atomically: true, encoding: .utf8)
@@ -1999,19 +2025,25 @@ let dismissedViewsFile = "DismissedViews.dat"
     }
   }
 
+  func dismissPLVPurchase() {
+    playerSelection.dismissedViews.plView = true
+    playerAlert.triggerAlert(alertMessage: "If you change your mind, you can purchase views from the Purchases menu.")
+
+    saveDismissedViews()
+  }
+
   func dismissLVPurchase() {
     playerSelection.dismissedViews.lView = true
     playerAlert.triggerAlert(alertMessage: "If you change your mind, you can purchase views from the Purchases menu.")
 
-    let plDismiss = playerSelection.dismissedViews.plView ? "TRUE" : "FALSE"
-    let lDismiss  = playerSelection.dismissedViews.lView  ? "TRUE" : "FALSE"
-    let dismissedViews = plDismiss + "," + lDismiss
-    do {
-      try dismissedViews.write(toFile: dismissedViewsFile, atomically: true, encoding: .utf8)
-    } catch {
-      logManager.append(logCat: .LogFileError,   logMessage: "Error saving dismissed view")
-      logManager.append(logCat: .LogThrownError, logMessage: "File error: " + error.localizedDescription)
-    }
+    saveDismissedViews()
+  }
+
+  func dismissTVPurchase() {
+    playerSelection.dismissedViews.tView = true
+    playerAlert.triggerAlert(alertMessage: "If you change your mind, you can purchase views from the Purchases menu.")
+
+    saveDismissedViews()
   }
 
   func validateLyricTimes(_ lyrics: [LyricsItem]) -> Bool {
@@ -2086,7 +2118,7 @@ let dismissedViewsFile = "DismissedViews.dat"
         self.seekTo(newPosition: trackPos)
 
         let playbackState = player.playbackState
-        if (playbackState == .paused) { player.resume() }
+        if (playbackState == .paused) { performPositionUpdate() }
       }
     } else { // .Update
       if(itemIndex == 0) { return }
