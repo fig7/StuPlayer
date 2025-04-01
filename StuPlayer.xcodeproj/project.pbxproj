@@ -30,6 +30,7 @@
 		12AA0E792BE97BA400E0A549 /* stuplayer.help in Resources */ = {isa = PBXBuildFile; fileRef = 12AA0E752BE97BA400E0A549 /* stuplayer.help */; };
 		12B87E2B2BBC02580064E6B8 /* PlayerAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */; };
 		12B87E2E2BBECE7A0064E6B8 /* URL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B87E2D2BBECE7A0064E6B8 /* URL.swift */; };
+		12BADD8D2D9766FD00376BE4 /* ToolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12BADD892D9766F500376BE4 /* ToolsView.swift */; };
 		12C617DD2BB4BCB700B1EE65 /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = 12C617DC2BB4BCB700B1EE65 /* Credits.html */; };
 		12CF57392C2EDF9A00E9CEAB /* Double.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12CF57382C2EDF9A00E9CEAB /* Double.swift */; };
 		12CF573B2C2EE19900E9CEAB /* TimeUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12CF573A2C2EE19900E9CEAB /* TimeUtil.swift */; };
@@ -93,6 +94,7 @@
 		12AA0E752BE97BA400E0A549 /* stuplayer.help */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = stuplayer.help; sourceTree = "<group>"; };
 		12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerAlert.swift; sourceTree = "<group>"; };
 		12B87E2D2BBECE7A0064E6B8 /* URL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URL.swift; sourceTree = "<group>"; };
+		12BADD892D9766F500376BE4 /* ToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsView.swift; sourceTree = "<group>"; };
 		12C617DC2BB4BCB700B1EE65 /* Credits.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Credits.html; sourceTree = "<group>"; };
 		12CF57382C2EDF9A00E9CEAB /* Double.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Double.swift; sourceTree = "<group>"; };
 		12CF573A2C2EE19900E9CEAB /* TimeUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeUtil.swift; sourceTree = "<group>"; };
@@ -114,6 +116,7 @@
 		1250EFF02D313F53000385CA /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				12BADD892D9766F500376BE4 /* ToolsView.swift */,
 				1250EFFA2D315727000385CA /* ScrollViewFocus.swift */,
 				12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */,
 				1297A5C92B9778CA0017B083 /* PlayerSelection.swift */,
@@ -301,6 +304,7 @@
 				12CF573B2C2EE19900E9CEAB /* TimeUtil.swift in Sources */,
 				1297A5B72B9619CE0017B083 /* StuPlayerApp.swift in Sources */,
 				1297A5C82B963B180017B083 /* PlayerDataModel.swift in Sources */,
+				12BADD8D2D9766FD00376BE4 /* ToolsView.swift in Sources */,
 				1250EFF52D313FE3000385CA /* BrowserScrollView.swift in Sources */,
 				1250EFFB2D31572D000385CA /* ScrollViewFocus.swift in Sources */,
 				1250EFF92D3156DE000385CA /* DummyViews.swift in Sources */,

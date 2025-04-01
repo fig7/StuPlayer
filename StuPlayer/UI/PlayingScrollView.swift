@@ -82,7 +82,7 @@ struct PlayingScrollView : View {
               DummyView(action: { playingPageUp  (proxy: scrollViewProxy) }).keyboardShortcut(.pageUp,  modifiers: [])
               DummyView(action: { playingHome    (proxy: scrollViewProxy) }).keyboardShortcut(.home,    modifiers: [])
 
-              DummyView(action: { playingSelected(proxy: scrollViewProxy) }).keyboardShortcut(.clear, modifiers: [])
+              DummyView(action: { playingCurrent(proxy: scrollViewProxy) }).keyboardShortcut(.clear, modifiers: [])
             }.frame(maxWidth: 0, maxHeight: 0)
           }
 
@@ -214,7 +214,7 @@ struct PlayingScrollView : View {
     proxy.scrollTo(0)
   }
 
-  func playingSelected(proxy: ScrollViewProxy) {
+  func playingCurrent(proxy: ScrollViewProxy) {
     if(playerSelection.playingScrollPos < 0) {
       playerSelection.playingScrollPos = playerSelection.playPosition - 1
       playerSelection.searchIndex      = playerSelection.playingScrollPos

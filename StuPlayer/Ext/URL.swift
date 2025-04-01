@@ -12,7 +12,7 @@ extension URL {
     if #available(macOS 13.0, *) {
       path(percentEncoded: false)
     } else {
-      path.removingPercentEncoding!
+      path.removingPercentEncoding! + "/"
     }
   }
 

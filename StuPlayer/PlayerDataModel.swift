@@ -35,12 +35,16 @@ let trackFile       = "Tracks.dat"
 let trackCountdownFile = "Countdown.dat"
 let dismissedViewsFile = "DismissedViews.dat"
 
+// Loop constants
+let loopEndBuffer = 0.5
+
 @MainActor class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate {
   var playerAlert: PlayerAlert
   var playerSelection: PlayerSelection
 
   let fm     = FileManager.default
   let player = AudioPlayer()
+  let timePitchUnit = AVAudioUnitTimePitch()
 
   let logManager      = LogFileManager()
   let playlistManager = PlaylistManager()
@@ -77,6 +81,12 @@ let dismissedViewsFile = "DismissedViews.dat"
   var currentTrack: TrackInfo?
   var currentLyrics: [LyricsItem]?
   var currentNotes: String?
+
+  var loopStart: TimeInterval    = 0.0
+  var loopEnd: TimeInterval      = 5.0
+
+  var loopEndLimit : TimeInterval = 0.0
+  var playerTotal : TimeInterval  = 0.0
 
   var playbackTimer: Timer?
   var delayTask: Task<Void, Never>?
@@ -189,6 +199,26 @@ let dismissedViewsFile = "DismissedViews.dat"
 
       playerSelection.trackCountdown = trackCountdown
       playerSelection.dismissedViews = (plViewDismissed, lViewDismissed, tViewDismissed)
+
+      timePitchUnit.auAudioUnit.shouldBypassEffect = true
+      player.withEngine { engine in
+        // TODO: Fix for Opus (sample rate converter)
+        let mainMixer = engine.mainMixerNode
+        guard let mainMixerICP = engine.inputConnectionPoint(for: mainMixer, inputBus: 0) else {
+          self.logManager.append(logCat: .LogInitError, logMessage: "Error getting mixer connection")
+          return
+        }
+
+        guard let mainMixerIN = mainMixerICP.node else {
+          self.logManager.append(logCat: .LogInitError, logMessage: "Error getting mixer node")
+          return
+        }
+
+        engine.attach(self.timePitchUnit)
+        engine.disconnectNodeInput(mainMixer, bus: 0)
+        engine.connect(self.timePitchUnit, to: mainMixer, format: nil)
+        engine.connect(mainMixerIN, to: self.timePitchUnit, format: nil)
+      }
     }
   }
 
@@ -360,10 +390,28 @@ let dismissedViewsFile = "DismissedViews.dat"
       // Display lyrics (if available)
       let trackURL = currentTrack?.trackURL
       (currentNotes, currentLyrics) = lyricsForTrack(trackURL)
+
+      playerSelection.loopTrack = false
+      var loopTrackDisabled = true
+
+      loopStart = 0.0
+      playerTotal = player.totalTime ?? -1.0
+      loopTrackDisabled = (playerTotal < 5.0)
+      if(!loopTrackDisabled) {
+        loopEndLimit = playerTotal - loopEndBuffer
+        loopEnd = loopEndLimit
+      } else {
+        loopEndLimit = 0.0
+        loopEnd      = 0.0
+      }
+
+      playerSelection.loopStart = lyricsTimeStr(from: loopStart)
+      playerSelection.loopEnd   = lyricsTimeStr(from: loopEnd)
+      playerSelection.loopTrackDisabled = loopTrackDisabled || !player.supportsSeeking
     }
 
     playerSelection.setTrack(newTrack: currentTrack!, newLyrics: (currentNotes, currentLyrics))
-    playerSelection.setSeekEnabled(seekEnabled: player.supportsSeeking, totalTime: player.totalTime ?? -1.0)
+    playerSelection.setSeekEnabled(seekEnabled: player.supportsSeeking, totalTime: playerTotal)
     playerSelection.setPlayingPosition(playPosition: playPosition, playTotal: playlistManager.trackCount)
     playerSelection.setPlayingInfo()
 
@@ -398,6 +446,7 @@ let dismissedViewsFile = "DismissedViews.dat"
     case .stopped:
       logManager.append(logCat: .LogInfo, logMessage: "Player stopped: \(stopReason)\n")
 
+      playerSelection.loopTrack = false
       playbackTimer?.invalidate()
       playbackTimer = nil
       nowPlaying = false
@@ -888,6 +937,8 @@ let dismissedViewsFile = "DismissedViews.dat"
     }
 
     playPosition = itemIndex
+    playerSelection.loopTrack = false
+
     let newTrack = playlistManager.moveTo(trackNum: playPosition+1)
     let trackURL      = newTrack!.trackURL
     let trackPath     = trackURL.filePath()
@@ -922,26 +973,32 @@ let dismissedViewsFile = "DismissedViews.dat"
   }
 
   func performPositionUpdate() {
-    let playerPosition = player.time
-    guard let playerPosition else { resetTrackPos(); return }
+    let currentTime = player.currentTime
+    guard var currentTime else { resetTrackPos(); return }
+    playerSelection.trackPosStr = timeStr(from: currentTime)
 
-    let current = playerPosition.current
-    guard let current else { resetTrackPos(); return }
-    playerSelection.trackPosStr = timeStr(from: current)
+    if((playerTotal > 0.0)) {
+      if(playerSelection.loopTrack) {
+        if((currentTime < loopStart) || (currentTime >= loopEnd)) {
+          currentTime = loopStart
+          player.seek(position: loopStart / playerTotal)
+        }
+      }
 
-    let total = playerPosition.total ?? 0.0
-    if((total > 0.0)) {
-      playerSelection.trackPos     = current / total
-      playerSelection.trackLeftStr = timeStr(from: total - current)
+      playerSelection.loopStartDisabled = ((currentTime + 5.0) > loopEnd)   && (currentTime < loopEnd)
+      playerSelection.loopEndDisabled   = (currentTime < (loopStart + 5.0)) && (currentTime >= loopStart)
+
+      playerSelection.trackPos     = currentTime / playerTotal
+      playerSelection.trackLeftStr = timeStr(from: playerTotal - currentTime)
     } else {
       playerSelection.trackPos     = 0.0
       playerSelection.trackLeftStr = "--:--"
     }
 
     playerSelection.countdownInfo  = "Track position:\t\(playerSelection.trackPosStr)\n"
-                                   + "Track length:\t\((total > 0.0) ? timeStr(from: total) : "Unknown")"
+                                   + "Track length:\t\((playerTotal > 0.0) ? timeStr(from: playerTotal) : "Unknown")"
 
-    performLyricsUpdate(playerPosition: current)
+    performLyricsUpdate(playerPosition: currentTime)
   }
 
 
@@ -957,7 +1014,24 @@ let dismissedViewsFile = "DismissedViews.dat"
 
   func seekTo(newPosition: Double) {
     player.seek(position: newPosition)
+    performPositionUpdate()
   }
+
+  func seekToLoopStart() {
+    seekTo(newPosition: loopStart / playerTotal)
+  }
+
+  func seekToSL(newPosition: Double) {
+    if(playerSelection.loopTrack) {
+      let trackPosition = newPosition * playerTotal
+      if(trackPosition < loopStart) { setLoopStart(trackPosition) }
+      if(trackPosition > loopEnd)   { setLoopEnd(trackPosition) }
+    }
+
+    player.seek(position: newPosition)
+    performPositionUpdate()
+  }
+
 
   func configurePlayback(playlists: Playlists, trackNum: Int) {
     let shuffleTracks = playerSelection.shuffleTracks
@@ -973,7 +1047,9 @@ let dismissedViewsFile = "DismissedViews.dat"
   // A track number of 0 means start with track 1 (or a random track if shuffle is enabled)
   func playTracks(playlists: Playlists, trackNum: Int = 0) {
     configurePlayback(playlists: playlists, trackNum: trackNum)
+
     let firstTrack = playlistManager.peekNextTrack()
+    playerSelection.loopTrack = false
 
     let trackURL   = firstTrack!.trackURL
     let trackPath  = trackURL.filePath()
@@ -1848,6 +1924,11 @@ let dismissedViewsFile = "DismissedViews.dat"
     performLyricsUpdate(playerPosition: newTrackPos*total)
   }
 
+  func trackRateChanged(adjustRate: Bool, newTrackRate: Double) {
+    timePitchUnit.auAudioUnit.shouldBypassEffect = !adjustRate
+    timePitchUnit.rate = Float(newTrackRate)
+  }
+
   func refreshPlayingTracks() {
     let newTrackList   = (playerSelection.shuffleTracks) ? playlistManager.shuffleList.map { $0.track } : playlistManager.trackList
     let searchedTracks = playerSelection.playingTracks.filter({ $0.searched })
@@ -1855,6 +1936,148 @@ let dismissedViewsFile = "DismissedViews.dat"
       let trackName     = $0.trackURL.lastPathComponent
       let trackSearched = searchedTracks.contains(where: { return ($0.name == trackName) })
       return PlayingItem(name: trackName, searched: trackSearched)
+    }
+  }
+
+  func setLoopStart() {
+    let newLoopStart = player.currentTime
+    guard let newLoopStart else { return }
+
+    setLoopStart(newLoopStart)
+  }
+
+  private func setLoopStart(_ newLoopStart: TimeInterval) {
+    self.loopStart = newLoopStart
+    playerSelection.loopStart = lyricsTimeStr(from: loopStart)
+
+    if(loopStart >= loopEnd) { setLoopEnd(loopEndLimit) }
+  }
+
+  func setLoopEnd() {
+    let newLoopEnd = player.currentTime
+    guard let newLoopEnd else { return }
+
+    setLoopEnd(newLoopEnd)
+  }
+
+  private func setLoopEnd(_ newLoopEnd: TimeInterval) {
+    self.loopEnd = (newLoopEnd > loopEndLimit) ? loopEndLimit : newLoopEnd
+    playerSelection.loopEnd = lyricsTimeStr(from: loopEnd)
+
+    if(loopEnd <= loopStart) { setLoopStart(0.0) }
+  }
+
+  func adjustLoopStart(_ wheelDelta: CGFloat) {
+    let hundreths = playerSelection.loopStart.last
+    var increment, decrement: Double
+    switch hundreths {
+    case "1":
+      increment = 0.09
+      decrement = 0.01
+
+    case "2":
+      increment = 0.08
+      decrement = 0.02
+
+    case "3":
+      increment = 0.07
+      decrement = 0.03
+
+    case "4":
+      increment = 0.06
+      decrement = 0.04
+
+    case "5":
+      increment = 0.05
+      decrement = 0.05
+
+    case "6":
+      increment = 0.04
+      decrement = 0.06
+
+    case "7":
+      increment = 0.03
+      decrement = 0.07
+
+    case "8":
+      increment = 0.02
+      decrement = 0.08
+
+    case "9":
+      increment = 0.01
+      decrement = 0.09
+
+    default: // "0"
+      increment = 0.10
+      decrement = 0.10
+    }
+
+    var newLoopStart = loopStart
+    if(wheelDelta > 0.0) { newLoopStart += increment } else { newLoopStart -= decrement }
+    newLoopStart = round(10.0*newLoopStart) / 10.0
+    if(newLoopStart < 0.0) { newLoopStart = 0.0 }
+
+    if((newLoopStart + 5.0) <= loopEnd) {
+      loopStart = newLoopStart
+      playerSelection.loopStart = lyricsTimeStr(from: loopStart)
+
+      if(playerSelection.loopTrack) { seekTo(newPosition: loopStart / playerTotal) }
+    }
+  }
+
+  func adjustLoopEnd(_ wheelDelta: CGFloat) {
+    let hundreths = playerSelection.loopEnd.last
+    var increment, decrement: Double
+    switch hundreths {
+    case "1":
+      increment = 0.09
+      decrement = 0.01
+
+    case "2":
+      increment = 0.08
+      decrement = 0.02
+
+    case "3":
+      increment = 0.07
+      decrement = 0.03
+
+    case "4":
+      increment = 0.06
+      decrement = 0.04
+
+    case "5":
+      increment = 0.05
+      decrement = 0.05
+
+    case "6":
+      increment = 0.04
+      decrement = 0.06
+
+    case "7":
+      increment = 0.03
+      decrement = 0.07
+
+    case "8":
+      increment = 0.02
+      decrement = 0.08
+
+    case "9":
+      increment = 0.01
+      decrement = 0.09
+
+    default: // "0"
+      increment = 0.10
+      decrement = 0.10
+    }
+
+    var newLoopEnd = loopEnd
+    if(wheelDelta > 0.0) { newLoopEnd += increment } else { newLoopEnd -= decrement }
+    newLoopEnd = round(10.0*newLoopEnd) / 10.0
+    if(newLoopEnd > loopEndLimit) { newLoopEnd = loopEndLimit }
+
+    if(newLoopEnd >= (loopStart + 5.0)) {
+      loopEnd = newLoopEnd
+      playerSelection.loopEnd = lyricsTimeStr(from: loopEnd)
     }
   }
 
@@ -2109,16 +2332,15 @@ let dismissedViewsFile = "DismissedViews.dat"
       guard let currentLyrics else { return }
       guard let lyricTime = currentLyrics[itemIndex].time else { return }
 
-      let playerPosition = player.time
-      guard let playerPosition else { return }
-
-      let total = playerPosition.total ?? 0.0
-      if((total > 0.0)) {
-        let trackPos = lyricTime / total
+      if(playerTotal > 0.0) {
+        let trackPos = (lyricTime / playerTotal) + 0.000001 // (try to avoid rounding error)
         self.seekTo(newPosition: trackPos)
 
-        let playbackState = player.playbackState
-        if (playbackState == .paused) { performPositionUpdate() }
+        if(playerSelection.loopTrack && ((lyricTime < loopStart) || (lyricTime > loopEnd))) {
+          // Adjust loop, if selection is outside loop bounds
+          if(lyricTime < loopStart) { setLoopStart(lyricTime) }
+          if(lyricTime > loopEnd) { setLoopEnd(lyricTime) }
+        }
       }
     } else { // .Update
       if(itemIndex == 0) { return }

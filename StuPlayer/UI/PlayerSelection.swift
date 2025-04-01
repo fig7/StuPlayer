@@ -32,6 +32,7 @@ struct LyricsItem {
     func filterChanged(newFilter: String)
     func browserScrollPosChanged(newScrollPos: Int)
     func trackPosChanged(newTrackPos: Double)
+    func trackRateChanged(adjustRate: Bool, newTrackRate: Double)
   }
 
   @Published var rootPath = ""
@@ -176,6 +177,27 @@ struct LyricsItem {
   @Published var countdownInfo = ""
 
   @Published var dismissedViews = (plView: false, lView: false, tView: false)
+
+  @Published var adjustRate = false {
+    didSet {
+      delegate?.trackRateChanged(adjustRate: adjustRate, newTrackRate: trackRate)
+    }
+  }
+
+  @Published var trackRate = 1.0 // 0.5 <= 2.0 (used by the tools slider)
+  {
+    didSet {
+      adjustRate = true
+    }
+  }
+
+  @Published var loopTrack = false
+  @Published var loopStart = "0:00.00"
+  @Published var loopEnd   = "0:05.00"
+
+  @Published var loopTrackDisabled = false
+  @Published var loopStartDisabled = false
+  @Published var loopEndDisabled   = false
 
   weak var delegate: Delegate?
 

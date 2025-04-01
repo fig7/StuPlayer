@@ -321,12 +321,10 @@ struct ContentView: View {
               .frame(minWidth: 172, maxWidth: .infinity, minHeight: 130).padding(7)
               .overlay(RoundedRectangle(cornerRadius: 8).stroke((lyricsInfoFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
 
-            if((playerSelection.playPosition > 0) && skManager.lViewPurchased) {
-              let lyricsFocus = (scrollViewFocus == .LyricsScrollView)
-              LyricsScrollView(model: model, playerSelection: playerSelection, hasFocus: lyricsFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
-                .frame(minWidth: 172, maxWidth: .infinity, minHeight: 130).padding(7)
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke((lyricsFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
-            }
+            let lyricsFocus = (scrollViewFocus == .LyricsScrollView)
+            LyricsScrollView(model: model, playerSelection: playerSelection, hasFocus: lyricsFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
+              .frame(minWidth: 172, maxWidth: .infinity, minHeight: 130).padding(7)
+              .overlay(RoundedRectangle(cornerRadius: 8).stroke((lyricsFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
           }
         }
 
@@ -347,7 +345,7 @@ struct ContentView: View {
                   if(startFinish) { sliderPopover = true; return }
 
                   sliderPopover = false
-                  model.seekTo(newPosition: playerSelection.trackPos)
+                  model.seekToSL(newPosition: playerSelection.trackPos)
                 }).frame(width:300, alignment:.leading).disabled(!playerSelection.seekEnabled).focused($scrollViewFocus, equals: .CurrentPlayingView)
                 // The slider popover has a few hacks to get it in the right place and make sure it is big enough.
                 // Not sure why popovers don't resize properly, that might be Apple's fault.
@@ -479,19 +477,11 @@ struct ContentView: View {
           }
 
           if((playerSelection.playPosition > 0) && skManager.tViewPurchased) {
-            HStack {
-              let lyricsInfoFocus = (scrollViewFocus == .LyricsInfoView)
-              LyricsInfoView(model: model, playerSelection: playerSelection, hasFocus: lyricsInfoFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
-                .frame(minWidth: 172, maxWidth: .infinity, minHeight: 130).padding(7)
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke((lyricsInfoFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
-
-              if((playerSelection.playPosition > 0) && skManager.lViewPurchased) {
-                let lyricsFocus = (scrollViewFocus == .LyricsScrollView)
-                LyricsScrollView(model: model, playerSelection: playerSelection, hasFocus: lyricsFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
-                  .frame(minWidth: 172, maxWidth: .infinity, minHeight: 130).padding(7)
-                  .overlay(RoundedRectangle(cornerRadius: 8).stroke((lyricsFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
-              }
-            }
+            // TODO: Do refactor other views, too.
+            let toolsFocus = (scrollViewFocus == .ToolsView)
+            ToolsView(model: model, playerSelection: playerSelection, hasFocus: toolsFocus, focusState: $scrollViewFocus)
+              .frame(minWidth: 172, maxWidth: .infinity, minHeight: 130).padding(7)
+              .overlay(RoundedRectangle(cornerRadius: 8).stroke((toolsFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
           }
         }
 
@@ -695,11 +685,23 @@ struct ContentView: View {
       guard let specialKey = aEvent.specialKey else { return aEvent }
       switch(specialKey) {
       case .tab:
-        if(skManager.plViewPurchased && skManager.lViewPurchased) {
+        if(skManager.plViewPurchased && skManager.lViewPurchased && skManager.tViewPurchased) {
           let browserFocus = (scrollViewFocus == .BrowserScrollView)
           let playingFocus = (scrollViewFocus == .PlayingScrollView)
           let lyricsFocus  = (scrollViewFocus == .LyricsInfoView)
-          let lyricsFocus2  = (scrollViewFocus == .LyricsScrollView)
+          let lyricsFocus2 = (scrollViewFocus == .LyricsScrollView)
+          let currentFocus = (scrollViewFocus == .CurrentPlayingView)
+          if(browserFocus && (playerSelection.playPosition > 0)) { playerSelection.browserPopover = -1; scrollViewFocus = .PlayingScrollView  }
+          else if(playingFocus)                                  { playerSelection.playingPopover = -1; scrollViewFocus = .LyricsInfoView }
+          else if(lyricsFocus)                                   {                                      scrollViewFocus = .LyricsScrollView }
+          else if(lyricsFocus2)                                  {                                      scrollViewFocus = .CurrentPlayingView }
+          else if(currentFocus)                                  { trackPopover = false;                scrollViewFocus = .ToolsView }
+          else if(!browserFocus)                                 {                                      scrollViewFocus = .BrowserScrollView  }
+        } else if(skManager.plViewPurchased && skManager.lViewPurchased) {
+          let browserFocus = (scrollViewFocus == .BrowserScrollView)
+          let playingFocus = (scrollViewFocus == .PlayingScrollView)
+          let lyricsFocus  = (scrollViewFocus == .LyricsInfoView)
+          let lyricsFocus2 = (scrollViewFocus == .LyricsScrollView)
           if(browserFocus && (playerSelection.playPosition > 0)) { playerSelection.browserPopover = -1; scrollViewFocus = .PlayingScrollView  }
           else if(playingFocus)                                  { playerSelection.playingPopover = -1; scrollViewFocus = .LyricsInfoView }
           else if(lyricsFocus)                                   {                                      scrollViewFocus = .LyricsScrollView }
