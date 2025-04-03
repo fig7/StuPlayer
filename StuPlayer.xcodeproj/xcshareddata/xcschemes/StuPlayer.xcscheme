@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1530"
+   LastUpgradeVersion = "1620"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -15,7 +15,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "1297A5B22B9619CE0017B083"
+               BlueprintIdentifier = "32919FBA2BFAEE5C00A3E43A"
                BuildableName = "StuPlayer.app"
                BlueprintName = "StuPlayer"
                ReferencedContainer = "container:StuPlayer.xcodeproj">
@@ -44,7 +44,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "1297A5B22B9619CE0017B083"
+            BlueprintIdentifier = "32919FBA2BFAEE5C00A3E43A"
             BuildableName = "StuPlayer.app"
             BlueprintName = "StuPlayer"
             ReferencedContainer = "container:StuPlayer.xcodeproj">
@@ -64,7 +64,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "1297A5B22B9619CE0017B083"
+            BlueprintIdentifier = "32919FBA2BFAEE5C00A3E43A"
             BuildableName = "StuPlayer.app"
             BlueprintName = "StuPlayer"
             ReferencedContainer = "container:StuPlayer.xcodeproj">

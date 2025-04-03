@@ -7,234 +7,183 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1214C6332BA3159C00302CA3 /* PlaylistManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1214C6322BA3159C00302CA3 /* PlaylistManager.swift */; };
-		1214C6382BA4F7DB00302CA3 /* Playlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1214C6372BA4F7DB00302CA3 /* Playlist.swift */; };
-		1250EFF52D313FE3000385CA /* BrowserScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1250EFF42D313FDB000385CA /* BrowserScrollView.swift */; };
-		1250EFF72D3156B1000385CA /* PlayingScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1250EFF62D3156A7000385CA /* PlayingScrollView.swift */; };
-		1250EFF92D3156DE000385CA /* DummyViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1250EFF82D3156D9000385CA /* DummyViews.swift */; };
-		1250EFFB2D31572D000385CA /* ScrollViewFocus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1250EFFA2D315727000385CA /* ScrollViewFocus.swift */; };
-		1250EFFD2D31580E000385CA /* LyricsInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1250EFFC2D315808000385CA /* LyricsInfoView.swift */; };
-		1250EFFF2D315867000385CA /* LyricsScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1250EFFE2D315858000385CA /* LyricsScrollView.swift */; };
-		125432A22BB763B600CB6A64 /* LogFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 125432A12BB763B600CB6A64 /* LogFileManager.swift */; };
-		1256E8622D3952BB0062826D /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1256E8612D3952BB0062826D /* StoreKit.framework */; };
-		1297A5B72B9619CE0017B083 /* StuPlayerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1297A5B62B9619CE0017B083 /* StuPlayerApp.swift */; };
-		1297A5B92B9619CE0017B083 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1297A5B82B9619CE0017B083 /* ContentView.swift */; };
-		1297A5BB2B9619D00017B083 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1297A5BA2B9619D00017B083 /* Assets.xcassets */; };
-		1297A5C82B963B180017B083 /* PlayerDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1297A5C72B963B180017B083 /* PlayerDataModel.swift */; };
-		1297A5CA2B9778CA0017B083 /* PlayerSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1297A5C92B9778CA0017B083 /* PlayerSelection.swift */; };
-		1297A6022B9791AA0017B083 /* SFBAudioEngine.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1297A5FF2B9790290017B083 /* SFBAudioEngine.framework */; };
-		1297A6032B9791AA0017B083 /* SFBAudioEngine.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 1297A5FF2B9790290017B083 /* SFBAudioEngine.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		1299B3B42D25D79300D31045 /* SPSKC.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 1299B3B32D25D79300D31045 /* SPSKC.storekit */; };
-		1299B3B92D25E30800D31045 /* SPSKPL.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1299B3B82D25E30800D31045 /* SPSKPL.plist */; };
-		1299B3BB2D25E41F00D31045 /* SKManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1299B3BA2D25E41F00D31045 /* SKManager.swift */; };
-		12AA0E792BE97BA400E0A549 /* stuplayer.help in Resources */ = {isa = PBXBuildFile; fileRef = 12AA0E752BE97BA400E0A549 /* stuplayer.help */; };
-		12B87E2B2BBC02580064E6B8 /* PlayerAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */; };
-		12B87E2E2BBECE7A0064E6B8 /* URL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B87E2D2BBECE7A0064E6B8 /* URL.swift */; };
-		12BADD8D2D9766FD00376BE4 /* ToolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12BADD892D9766F500376BE4 /* ToolsView.swift */; };
-		12C617DD2BB4BCB700B1EE65 /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = 12C617DC2BB4BCB700B1EE65 /* Credits.html */; };
-		12CF57392C2EDF9A00E9CEAB /* Double.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12CF57382C2EDF9A00E9CEAB /* Double.swift */; };
-		12CF573B2C2EE19900E9CEAB /* TimeUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12CF573A2C2EE19900E9CEAB /* TimeUtil.swift */; };
+		124BDE6B2D9DDF6300597B00 /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = 124BDE6A2D9DDF6300597B00 /* Credits.html */; };
+		124BDE702D9DDF7600597B00 /* Double.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE6C2D9DDF7600597B00 /* Double.swift */; };
+		124BDE712D9DDF7600597B00 /* TimeUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE6D2D9DDF7600597B00 /* TimeUtil.swift */; };
+		124BDE722D9DDF7600597B00 /* URL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE6E2D9DDF7600597B00 /* URL.swift */; };
+		124BDE752D9DDFE900597B00 /* SPSKC.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 124BDE732D9DDFE900597B00 /* SPSKC.storekit */; };
+		124BDE762D9DDFE900597B00 /* SPSKPL.plist in Resources */ = {isa = PBXBuildFile; fileRef = 124BDE742D9DDFE900597B00 /* SPSKPL.plist */; };
+		124BDE822D9DE04300597B00 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE782D9DE04300597B00 /* ContentView.swift */; };
+		124BDE832D9DE04300597B00 /* ToolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE802D9DE04300597B00 /* ToolsView.swift */; };
+		124BDE842D9DE04300597B00 /* PlayerSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE7D2D9DE04300597B00 /* PlayerSelection.swift */; };
+		124BDE852D9DE04300597B00 /* ViewFocus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE7F2D9DE04300597B00 /* ViewFocus.swift */; };
+		124BDE862D9DE04300597B00 /* DummyViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE792D9DE04300597B00 /* DummyViews.swift */; };
+		124BDE872D9DE04300597B00 /* LyricsInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE7A2D9DE04300597B00 /* LyricsInfoView.swift */; };
+		124BDE882D9DE04300597B00 /* PlayingScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE7E2D9DE04300597B00 /* PlayingScrollView.swift */; };
+		124BDE892D9DE04300597B00 /* BrowserScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE772D9DE04300597B00 /* BrowserScrollView.swift */; };
+		124BDE8A2D9DE04300597B00 /* LyricsScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE7B2D9DE04300597B00 /* LyricsScrollView.swift */; };
+		124BDE8B2D9DE04300597B00 /* PlayerAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE7C2D9DE04300597B00 /* PlayerAlert.swift */; };
+		124BDE902D9DE0EE00597B00 /* stuplayer.help in Resources */ = {isa = PBXBuildFile; fileRef = 124BDE8F2D9DE0EE00597B00 /* stuplayer.help */; };
+		124BDE972D9DE12F00597B00 /* Playlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE932D9DE12F00597B00 /* Playlist.swift */; };
+		124BDE982D9DE12F00597B00 /* SKManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE952D9DE12F00597B00 /* SKManager.swift */; };
+		124BDE992D9DE12F00597B00 /* PlaylistManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE942D9DE12F00597B00 /* PlaylistManager.swift */; };
+		124BDE9A2D9DE12F00597B00 /* StuPlayerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE962D9DE12F00597B00 /* StuPlayerApp.swift */; };
+		124BDE9B2D9DE12F00597B00 /* LogFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE912D9DE12F00597B00 /* LogFileManager.swift */; };
+		124BDE9C2D9DE12F00597B00 /* PlayerDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE922D9DE12F00597B00 /* PlayerDataModel.swift */; };
+		32919FC12BFAEE5E00A3E43A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 32919FC02BFAEE5E00A3E43A /* Assets.xcassets */; };
+		32919FCD2BFAEF8000A3E43A /* CAAudioHardware in Frameworks */ = {isa = PBXBuildFile; productRef = 32919FCC2BFAEF8000A3E43A /* CAAudioHardware */; };
+		32919FD02BFAEF8900A3E43A /* SFBAudioEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 32919FCF2BFAEF8900A3E43A /* SFBAudioEngine */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXContainerItemProxy section */
-		1297A5FE2B9790290017B083 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 1297A5F82B9790290017B083 /* SFBAudioEngine.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 3210AB9017B9C05A00743639;
-			remoteInfo = "macOS Framework";
-		};
-		1297A6002B9790290017B083 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 1297A5F82B9790290017B083 /* SFBAudioEngine.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 32714C7C2551D4DF00029BD7;
-			remoteInfo = "iOS Framework";
-		};
-/* End PBXContainerItemProxy section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		1297A6042B9791AA0017B083 /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-				1297A6032B9791AA0017B083 /* SFBAudioEngine.framework in Embed Frameworks */,
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
-		1214C6322BA3159C00302CA3 /* PlaylistManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistManager.swift; sourceTree = "<group>"; };
-		1214C6372BA4F7DB00302CA3 /* Playlist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Playlist.swift; sourceTree = "<group>"; };
-		1250EFF42D313FDB000385CA /* BrowserScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserScrollView.swift; sourceTree = "<group>"; };
-		1250EFF62D3156A7000385CA /* PlayingScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayingScrollView.swift; sourceTree = "<group>"; };
-		1250EFF82D3156D9000385CA /* DummyViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DummyViews.swift; sourceTree = "<group>"; };
-		1250EFFA2D315727000385CA /* ScrollViewFocus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollViewFocus.swift; sourceTree = "<group>"; };
-		1250EFFC2D315808000385CA /* LyricsInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsInfoView.swift; sourceTree = "<group>"; };
-		1250EFFE2D315858000385CA /* LyricsScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsScrollView.swift; sourceTree = "<group>"; };
-		125432A12BB763B600CB6A64 /* LogFileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogFileManager.swift; sourceTree = "<group>"; };
-		1256E8612D3952BB0062826D /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
-		1292443A2BC53A5200E25D01 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		1297A5B32B9619CE0017B083 /* StuPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StuPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		1297A5B62B9619CE0017B083 /* StuPlayerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StuPlayerApp.swift; sourceTree = "<group>"; };
-		1297A5B82B9619CE0017B083 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		1297A5BA2B9619D00017B083 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		1297A5BF2B9619D00017B083 /* StuPlayer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StuPlayer.entitlements; sourceTree = "<group>"; };
-		1297A5C72B963B180017B083 /* PlayerDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerDataModel.swift; sourceTree = "<group>"; };
-		1297A5C92B9778CA0017B083 /* PlayerSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSelection.swift; sourceTree = "<group>"; };
-		1297A5F22B978DB30017B083 /* SFBAudioEngine.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = SFBAudioEngine.xcframework; path = ../build/SFBAudioEngine.xcframework; sourceTree = "<group>"; };
-		1297A5F82B9790290017B083 /* SFBAudioEngine.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = SFBAudioEngine.xcodeproj; path = ../SFBAudioEngine.xcodeproj; sourceTree = "<group>"; };
-		1299B3B32D25D79300D31045 /* SPSKC.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = SPSKC.storekit; sourceTree = "<group>"; };
-		1299B3B82D25E30800D31045 /* SPSKPL.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = SPSKPL.plist; sourceTree = "<group>"; };
-		1299B3BA2D25E41F00D31045 /* SKManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKManager.swift; sourceTree = "<group>"; };
-		12AA0E752BE97BA400E0A549 /* stuplayer.help */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = stuplayer.help; sourceTree = "<group>"; };
-		12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerAlert.swift; sourceTree = "<group>"; };
-		12B87E2D2BBECE7A0064E6B8 /* URL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URL.swift; sourceTree = "<group>"; };
-		12BADD892D9766F500376BE4 /* ToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsView.swift; sourceTree = "<group>"; };
-		12C617DC2BB4BCB700B1EE65 /* Credits.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Credits.html; sourceTree = "<group>"; };
-		12CF57382C2EDF9A00E9CEAB /* Double.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Double.swift; sourceTree = "<group>"; };
-		12CF573A2C2EE19900E9CEAB /* TimeUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeUtil.swift; sourceTree = "<group>"; };
+		124BDE682D9DDA8500597B00 /* StuPlayer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StuPlayer.entitlements; sourceTree = "<group>"; };
+		124BDE6A2D9DDF6300597B00 /* Credits.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Credits.html; sourceTree = "<group>"; };
+		124BDE6C2D9DDF7600597B00 /* Double.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Double.swift; sourceTree = "<group>"; };
+		124BDE6D2D9DDF7600597B00 /* TimeUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeUtil.swift; sourceTree = "<group>"; };
+		124BDE6E2D9DDF7600597B00 /* URL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URL.swift; sourceTree = "<group>"; };
+		124BDE732D9DDFE900597B00 /* SPSKC.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = SPSKC.storekit; sourceTree = "<group>"; };
+		124BDE742D9DDFE900597B00 /* SPSKPL.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = SPSKPL.plist; sourceTree = "<group>"; };
+		124BDE772D9DE04300597B00 /* BrowserScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserScrollView.swift; sourceTree = "<group>"; };
+		124BDE782D9DE04300597B00 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		124BDE792D9DE04300597B00 /* DummyViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DummyViews.swift; sourceTree = "<group>"; };
+		124BDE7A2D9DE04300597B00 /* LyricsInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsInfoView.swift; sourceTree = "<group>"; };
+		124BDE7B2D9DE04300597B00 /* LyricsScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsScrollView.swift; sourceTree = "<group>"; };
+		124BDE7C2D9DE04300597B00 /* PlayerAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerAlert.swift; sourceTree = "<group>"; };
+		124BDE7D2D9DE04300597B00 /* PlayerSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSelection.swift; sourceTree = "<group>"; };
+		124BDE7E2D9DE04300597B00 /* PlayingScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayingScrollView.swift; sourceTree = "<group>"; };
+		124BDE7F2D9DE04300597B00 /* ViewFocus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewFocus.swift; sourceTree = "<group>"; };
+		124BDE802D9DE04300597B00 /* ToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsView.swift; sourceTree = "<group>"; };
+		124BDE8D2D9DE0DB00597B00 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		124BDE8F2D9DE0EE00597B00 /* stuplayer.help */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = stuplayer.help; sourceTree = "<group>"; };
+		124BDE912D9DE12F00597B00 /* LogFileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogFileManager.swift; sourceTree = "<group>"; };
+		124BDE922D9DE12F00597B00 /* PlayerDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerDataModel.swift; sourceTree = "<group>"; };
+		124BDE932D9DE12F00597B00 /* Playlist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Playlist.swift; sourceTree = "<group>"; };
+		124BDE942D9DE12F00597B00 /* PlaylistManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistManager.swift; sourceTree = "<group>"; };
+		124BDE952D9DE12F00597B00 /* SKManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKManager.swift; sourceTree = "<group>"; };
+		124BDE962D9DE12F00597B00 /* StuPlayerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StuPlayerApp.swift; sourceTree = "<group>"; };
+		32919FBB2BFAEE5C00A3E43A /* StuPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StuPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		32919FC02BFAEE5E00A3E43A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		1297A5B02B9619CE0017B083 /* Frameworks */ = {
+		32919FB82BFAEE5C00A3E43A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1297A6022B9791AA0017B083 /* SFBAudioEngine.framework in Frameworks */,
-				1256E8622D3952BB0062826D /* StoreKit.framework in Frameworks */,
+				32919FCD2BFAEF8000A3E43A /* CAAudioHardware in Frameworks */,
+				32919FD02BFAEF8900A3E43A /* SFBAudioEngine in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		1250EFF02D313F53000385CA /* UI */ = {
+		124BDE6F2D9DDF7600597B00 /* Ext */ = {
 			isa = PBXGroup;
 			children = (
-				12BADD892D9766F500376BE4 /* ToolsView.swift */,
-				1250EFFA2D315727000385CA /* ScrollViewFocus.swift */,
-				12B87E2A2BBC02580064E6B8 /* PlayerAlert.swift */,
-				1297A5C92B9778CA0017B083 /* PlayerSelection.swift */,
-				1250EFF82D3156D9000385CA /* DummyViews.swift */,
-				1250EFF42D313FDB000385CA /* BrowserScrollView.swift */,
-				1250EFF62D3156A7000385CA /* PlayingScrollView.swift */,
-				1250EFFC2D315808000385CA /* LyricsInfoView.swift */,
-				1250EFFE2D315858000385CA /* LyricsScrollView.swift */,
-				1297A5B82B9619CE0017B083 /* ContentView.swift */,
+				124BDE6C2D9DDF7600597B00 /* Double.swift */,
+				124BDE6D2D9DDF7600597B00 /* TimeUtil.swift */,
+				124BDE6E2D9DDF7600597B00 /* URL.swift */,
+			);
+			path = Ext;
+			sourceTree = "<group>";
+		};
+		124BDE812D9DE04300597B00 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				124BDE782D9DE04300597B00 /* ContentView.swift */,
+				124BDE772D9DE04300597B00 /* BrowserScrollView.swift */,
+				124BDE792D9DE04300597B00 /* DummyViews.swift */,
+				124BDE7A2D9DE04300597B00 /* LyricsInfoView.swift */,
+				124BDE7B2D9DE04300597B00 /* LyricsScrollView.swift */,
+				124BDE7C2D9DE04300597B00 /* PlayerAlert.swift */,
+				124BDE7D2D9DE04300597B00 /* PlayerSelection.swift */,
+				124BDE7E2D9DE04300597B00 /* PlayingScrollView.swift */,
+				124BDE7F2D9DE04300597B00 /* ViewFocus.swift */,
+				124BDE802D9DE04300597B00 /* ToolsView.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
 		};
-		1297A5AA2B9619CE0017B083 = {
+		32919FB22BFAEE5C00A3E43A = {
 			isa = PBXGroup;
 			children = (
-				1297A5F82B9790290017B083 /* SFBAudioEngine.xcodeproj */,
-				1297A5B52B9619CE0017B083 /* StuPlayer */,
-				1297A5B42B9619CE0017B083 /* Products */,
-				1297A5CB2B9787260017B083 /* Frameworks */,
+				32919FBD2BFAEE5C00A3E43A /* StuPlayer */,
+				32919FBC2BFAEE5C00A3E43A /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		1297A5B42B9619CE0017B083 /* Products */ = {
+		32919FBC2BFAEE5C00A3E43A /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				1297A5B32B9619CE0017B083 /* StuPlayer.app */,
+				32919FBB2BFAEE5C00A3E43A /* StuPlayer.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		1297A5B52B9619CE0017B083 /* StuPlayer */ = {
+		32919FBD2BFAEE5C00A3E43A /* StuPlayer */ = {
 			isa = PBXGroup;
 			children = (
-				1250EFF02D313F53000385CA /* UI */,
-				12AA0E752BE97BA400E0A549 /* stuplayer.help */,
-				1292443A2BC53A5200E25D01 /* Info.plist */,
-				12B87E2C2BBECE400064E6B8 /* Ext */,
-				1297A5B62B9619CE0017B083 /* StuPlayerApp.swift */,
-				1299B3BA2D25E41F00D31045 /* SKManager.swift */,
-				125432A12BB763B600CB6A64 /* LogFileManager.swift */,
-				1297A5C72B963B180017B083 /* PlayerDataModel.swift */,
-				1214C6322BA3159C00302CA3 /* PlaylistManager.swift */,
-				1214C6372BA4F7DB00302CA3 /* Playlist.swift */,
-				12C617DC2BB4BCB700B1EE65 /* Credits.html */,
-				1297A5BA2B9619D00017B083 /* Assets.xcassets */,
-				1297A5BF2B9619D00017B083 /* StuPlayer.entitlements */,
-				1299B3B32D25D79300D31045 /* SPSKC.storekit */,
-				1299B3B82D25E30800D31045 /* SPSKPL.plist */,
+				124BDE962D9DE12F00597B00 /* StuPlayerApp.swift */,
+				124BDE8F2D9DE0EE00597B00 /* stuplayer.help */,
+				124BDE6F2D9DDF7600597B00 /* Ext */,
+				124BDE812D9DE04300597B00 /* UI */,
+				124BDE912D9DE12F00597B00 /* LogFileManager.swift */,
+				124BDE922D9DE12F00597B00 /* PlayerDataModel.swift */,
+				124BDE932D9DE12F00597B00 /* Playlist.swift */,
+				124BDE942D9DE12F00597B00 /* PlaylistManager.swift */,
+				124BDE952D9DE12F00597B00 /* SKManager.swift */,
+				124BDE682D9DDA8500597B00 /* StuPlayer.entitlements */,
+				32919FC02BFAEE5E00A3E43A /* Assets.xcassets */,
+				124BDE8D2D9DE0DB00597B00 /* Info.plist */,
+				124BDE732D9DDFE900597B00 /* SPSKC.storekit */,
+				124BDE742D9DDFE900597B00 /* SPSKPL.plist */,
+				124BDE6A2D9DDF6300597B00 /* Credits.html */,
 			);
 			path = StuPlayer;
-			sourceTree = "<group>";
-		};
-		1297A5CB2B9787260017B083 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				1256E8612D3952BB0062826D /* StoreKit.framework */,
-				1297A5F22B978DB30017B083 /* SFBAudioEngine.xcframework */,
-			);
-			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		1297A5F92B9790290017B083 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				1297A5FF2B9790290017B083 /* SFBAudioEngine.framework */,
-				1297A6012B9790290017B083 /* SFBAudioEngine.framework */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		12B87E2C2BBECE400064E6B8 /* Ext */ = {
-			isa = PBXGroup;
-			children = (
-				12B87E2D2BBECE7A0064E6B8 /* URL.swift */,
-				12CF57382C2EDF9A00E9CEAB /* Double.swift */,
-				12CF573A2C2EE19900E9CEAB /* TimeUtil.swift */,
-			);
-			path = Ext;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		1297A5B22B9619CE0017B083 /* StuPlayer */ = {
+		32919FBA2BFAEE5C00A3E43A /* StuPlayer */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1297A5C22B9619D00017B083 /* Build configuration list for PBXNativeTarget "StuPlayer" */;
+			buildConfigurationList = 32919FC82BFAEE5E00A3E43A /* Build configuration list for PBXNativeTarget "StuPlayer" */;
 			buildPhases = (
-				1297A5AF2B9619CE0017B083 /* Sources */,
-				1297A5B02B9619CE0017B083 /* Frameworks */,
-				1297A5B12B9619CE0017B083 /* Resources */,
-				1297A6042B9791AA0017B083 /* Embed Frameworks */,
+				32919FB72BFAEE5C00A3E43A /* Sources */,
+				32919FB82BFAEE5C00A3E43A /* Frameworks */,
+				32919FB92BFAEE5C00A3E43A /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			name = StuPlayer;
+			packageProductDependencies = (
+				32919FCC2BFAEF8000A3E43A /* CAAudioHardware */,
+				32919FCF2BFAEF8900A3E43A /* SFBAudioEngine */,
+			);
 			productName = StuPlayer;
-			productReference = 1297A5B32B9619CE0017B083 /* StuPlayer.app */;
+			productReference = 32919FBB2BFAEE5C00A3E43A /* StuPlayer.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		1297A5AB2B9619CE0017B083 /* Project object */ = {
+		32919FB32BFAEE5C00A3E43A /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1520;
-				LastUpgradeCheck = 1530;
+				LastSwiftUpdateCheck = 1540;
+				LastUpgradeCheck = 1620;
 				TargetAttributes = {
-					1297A5B22B9619CE0017B083 = {
-						CreatedOnToolsVersion = 15.2;
+					32919FBA2BFAEE5C00A3E43A = {
+						CreatedOnToolsVersion = 15.4;
+						LastSwiftMigration = 1540;
 					};
 				};
 			};
-			buildConfigurationList = 1297A5AE2B9619CE0017B083 /* Build configuration list for PBXProject "StuPlayer" */;
+			buildConfigurationList = 32919FB62BFAEE5C00A3E43A /* Build configuration list for PBXProject "StuPlayer" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -242,85 +191,66 @@
 				en,
 				Base,
 			);
-			mainGroup = 1297A5AA2B9619CE0017B083;
-			productRefGroup = 1297A5B42B9619CE0017B083 /* Products */;
-			projectDirPath = "";
-			projectReferences = (
-				{
-					ProductGroup = 1297A5F92B9790290017B083 /* Products */;
-					ProjectRef = 1297A5F82B9790290017B083 /* SFBAudioEngine.xcodeproj */;
-				},
+			mainGroup = 32919FB22BFAEE5C00A3E43A;
+			packageReferences = (
+				32919FCB2BFAEF8000A3E43A /* XCRemoteSwiftPackageReference "CAAudioHardware" */,
+				3226C69B2C00E15A00A566B0 /* XCRemoteSwiftPackageReference "SFBAudioEngine" */,
 			);
+			productRefGroup = 32919FBC2BFAEE5C00A3E43A /* Products */;
+			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				1297A5B22B9619CE0017B083 /* StuPlayer */,
+				32919FBA2BFAEE5C00A3E43A /* StuPlayer */,
 			);
 		};
 /* End PBXProject section */
 
-/* Begin PBXReferenceProxy section */
-		1297A5FF2B9790290017B083 /* SFBAudioEngine.framework */ = {
-			isa = PBXReferenceProxy;
-			fileType = wrapper.framework;
-			path = SFBAudioEngine.framework;
-			remoteRef = 1297A5FE2B9790290017B083 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		1297A6012B9790290017B083 /* SFBAudioEngine.framework */ = {
-			isa = PBXReferenceProxy;
-			fileType = wrapper.framework;
-			path = SFBAudioEngine.framework;
-			remoteRef = 1297A6002B9790290017B083 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-/* End PBXReferenceProxy section */
-
 /* Begin PBXResourcesBuildPhase section */
-		1297A5B12B9619CE0017B083 /* Resources */ = {
+		32919FB92BFAEE5C00A3E43A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				12C617DD2BB4BCB700B1EE65 /* Credits.html in Resources */,
-				1299B3B42D25D79300D31045 /* SPSKC.storekit in Resources */,
-				12AA0E792BE97BA400E0A549 /* stuplayer.help in Resources */,
-				1297A5BB2B9619D00017B083 /* Assets.xcassets in Resources */,
-				1299B3B92D25E30800D31045 /* SPSKPL.plist in Resources */,
+				32919FC12BFAEE5E00A3E43A /* Assets.xcassets in Resources */,
+				124BDE6B2D9DDF6300597B00 /* Credits.html in Resources */,
+				124BDE902D9DE0EE00597B00 /* stuplayer.help in Resources */,
+				124BDE752D9DDFE900597B00 /* SPSKC.storekit in Resources */,
+				124BDE762D9DDFE900597B00 /* SPSKPL.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		1297A5AF2B9619CE0017B083 /* Sources */ = {
+		32919FB72BFAEE5C00A3E43A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				12B87E2B2BBC02580064E6B8 /* PlayerAlert.swift in Sources */,
-				125432A22BB763B600CB6A64 /* LogFileManager.swift in Sources */,
-				12B87E2E2BBECE7A0064E6B8 /* URL.swift in Sources */,
-				1250EFF72D3156B1000385CA /* PlayingScrollView.swift in Sources */,
-				1299B3BB2D25E41F00D31045 /* SKManager.swift in Sources */,
-				1297A5B92B9619CE0017B083 /* ContentView.swift in Sources */,
-				12CF573B2C2EE19900E9CEAB /* TimeUtil.swift in Sources */,
-				1297A5B72B9619CE0017B083 /* StuPlayerApp.swift in Sources */,
-				1297A5C82B963B180017B083 /* PlayerDataModel.swift in Sources */,
-				12BADD8D2D9766FD00376BE4 /* ToolsView.swift in Sources */,
-				1250EFF52D313FE3000385CA /* BrowserScrollView.swift in Sources */,
-				1250EFFB2D31572D000385CA /* ScrollViewFocus.swift in Sources */,
-				1250EFF92D3156DE000385CA /* DummyViews.swift in Sources */,
-				1250EFFD2D31580E000385CA /* LyricsInfoView.swift in Sources */,
-				1297A5CA2B9778CA0017B083 /* PlayerSelection.swift in Sources */,
-				1214C6332BA3159C00302CA3 /* PlaylistManager.swift in Sources */,
-				12CF57392C2EDF9A00E9CEAB /* Double.swift in Sources */,
-				1214C6382BA4F7DB00302CA3 /* Playlist.swift in Sources */,
-				1250EFFF2D315867000385CA /* LyricsScrollView.swift in Sources */,
+				124BDE822D9DE04300597B00 /* ContentView.swift in Sources */,
+				124BDE832D9DE04300597B00 /* ToolsView.swift in Sources */,
+				124BDE842D9DE04300597B00 /* PlayerSelection.swift in Sources */,
+				124BDE852D9DE04300597B00 /* ViewFocus.swift in Sources */,
+				124BDE862D9DE04300597B00 /* DummyViews.swift in Sources */,
+				124BDE872D9DE04300597B00 /* LyricsInfoView.swift in Sources */,
+				124BDE882D9DE04300597B00 /* PlayingScrollView.swift in Sources */,
+				124BDE892D9DE04300597B00 /* BrowserScrollView.swift in Sources */,
+				124BDE8A2D9DE04300597B00 /* LyricsScrollView.swift in Sources */,
+				124BDE8B2D9DE04300597B00 /* PlayerAlert.swift in Sources */,
+				124BDE972D9DE12F00597B00 /* Playlist.swift in Sources */,
+				124BDE982D9DE12F00597B00 /* SKManager.swift in Sources */,
+				124BDE992D9DE12F00597B00 /* PlaylistManager.swift in Sources */,
+				124BDE9A2D9DE12F00597B00 /* StuPlayerApp.swift in Sources */,
+				124BDE9B2D9DE12F00597B00 /* LogFileManager.swift in Sources */,
+				124BDE9C2D9DE12F00597B00 /* PlayerDataModel.swift in Sources */,
+				124BDE702D9DDF7600597B00 /* Double.swift in Sources */,
+				124BDE712D9DDF7600597B00 /* TimeUtil.swift in Sources */,
+				124BDE722D9DDF7600597B00 /* URL.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		1297A5C02B9619D00017B083 /* Debug */ = {
+		32919FC62BFAEE5E00A3E43A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -353,7 +283,6 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_IDENTITY = "Apple Development: Stuart Fisher (89TFU3RDLX)";
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
@@ -375,7 +304,6 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -385,7 +313,7 @@
 			};
 			name = Debug;
 		};
-		1297A5C12B9619D00017B083 /* Release */ = {
+		32919FC72BFAEE5E00A3E43A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -418,7 +346,6 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_IDENTITY = "Apple Development: Stuart Fisher (89TFU3RDLX)";
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
@@ -434,7 +361,6 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
@@ -442,64 +368,57 @@
 			};
 			name = Release;
 		};
-		1297A5C32B9619D00017B083 /* Debug */ = {
+		32919FC92BFAEE5E00A3E43A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = StuPlayer/StuPlayer.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 46;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_ASSET_PATHS = "";
+				CURRENT_PROJECT_VERSION = 48;
 				DEVELOPMENT_TEAM = YV8CWLF497;
-				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = StuPlayer/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = StuPlayer;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© Stuart Fisher 2024";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© Stuart Fisher 2024-2025";
+				INFOPLIST_KEY_NSMainNibFile = MainMenu;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				MARKETING_VERSION = 1.03;
-				PRODUCT_BUNDLE_IDENTIFIER = com.fig7.stuplayer;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fig7.StuPlayer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
-		1297A5C42B9619D00017B083 /* Release */ = {
+		32919FCA2BFAEE5E00A3E43A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = StuPlayer/StuPlayer.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 46;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_ASSET_PATHS = "";
+				CURRENT_PROJECT_VERSION = 48;
 				DEVELOPMENT_TEAM = YV8CWLF497;
-				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = StuPlayer/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = StuPlayer;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© Stuart Fisher 2024";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© Stuart Fisher 2024-2025";
+				INFOPLIST_KEY_NSMainNibFile = MainMenu;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -517,25 +436,56 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1297A5AE2B9619CE0017B083 /* Build configuration list for PBXProject "StuPlayer" */ = {
+		32919FB62BFAEE5C00A3E43A /* Build configuration list for PBXProject "StuPlayer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				1297A5C02B9619D00017B083 /* Debug */,
-				1297A5C12B9619D00017B083 /* Release */,
+				32919FC62BFAEE5E00A3E43A /* Debug */,
+				32919FC72BFAEE5E00A3E43A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		1297A5C22B9619D00017B083 /* Build configuration list for PBXNativeTarget "StuPlayer" */ = {
+		32919FC82BFAEE5E00A3E43A /* Build configuration list for PBXNativeTarget "StuPlayer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				1297A5C32B9619D00017B083 /* Debug */,
-				1297A5C42B9619D00017B083 /* Release */,
+				32919FC92BFAEE5E00A3E43A /* Debug */,
+				32919FCA2BFAEE5E00A3E43A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		3226C69B2C00E15A00A566B0 /* XCRemoteSwiftPackageReference "SFBAudioEngine" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sbooth/SFBAudioEngine";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.7.0;
+			};
+		};
+		32919FCB2BFAEF8000A3E43A /* XCRemoteSwiftPackageReference "CAAudioHardware" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sbooth/CAAudioHardware";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.6.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		32919FCC2BFAEF8000A3E43A /* CAAudioHardware */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 32919FCB2BFAEF8000A3E43A /* XCRemoteSwiftPackageReference "CAAudioHardware" */;
+			productName = CAAudioHardware;
+		};
+		32919FCF2BFAEF8900A3E43A /* SFBAudioEngine */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SFBAudioEngine;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = 1297A5AB2B9619CE0017B083 /* Project object */;
+	rootObject = 32919FB32BFAEE5C00A3E43A /* Project object */;
 }

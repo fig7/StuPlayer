@@ -203,6 +203,7 @@ let loopEndBuffer = 0.5
       timePitchUnit.auAudioUnit.shouldBypassEffect = true
       player.withEngine { engine in
         // TODO: Fix for Opus (sample rate converter)
+        // TODO: Maybe need to look at reconfigureProcessingGraph !?
         let mainMixer = engine.mainMixerNode
         guard let mainMixerICP = engine.inputConnectionPoint(for: mainMixer, inputBus: 0) else {
           self.logManager.append(logCat: .LogInitError, logMessage: "Error getting mixer connection")
@@ -225,7 +226,7 @@ let loopEndBuffer = 0.5
 #if !PLAYBACK_TEST
   // Using audioPlayerNowPlayingChanged to handle track changes
   // NB. nowPlaying -> nil is ignored, audioPlayerPlaybackStateChanged() handles end of audio instead (playbackState -> Stopped)
-  nonisolated func audioPlayerNowPlayingChanged(_ audioPlayer: AudioPlayer) {
+  nonisolated func audioPlayer(_ audioPlayer: AudioPlayer, nowPlayingChanged nowPlaying: (any PCMDecoding)?, previouslyPlaying: (any PCMDecoding)?) {
     if(audioPlayer.nowPlaying == nil) { return }
 
     Task { @MainActor in
@@ -233,7 +234,7 @@ let loopEndBuffer = 0.5
     }
   }
 
-  nonisolated func audioPlayerPlaybackStateChanged(_ audioPlayer: AudioPlayer) {
+  nonisolated func audioPlayer(_ audioPlayer: AudioPlayer, playbackStateChanged playbackState: AudioPlayer.PlaybackState) {
     Task { @MainActor in
       handlePlaybackStateChange()
     }

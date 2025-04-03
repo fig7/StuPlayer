@@ -12,7 +12,7 @@ struct ToolsView : View {
   @ObservedObject var playerSelection: PlayerSelection
 
   let hasFocus: Bool
-  @FocusState.Binding var focusState: ScrollViewFocus?
+  @FocusState.Binding var focusState: ViewFocus?
 
   @State private var loopStartHover = false
   @State private var loopEndHover   = false
@@ -22,7 +22,7 @@ struct ToolsView : View {
       HStack {
         Toggle("Set playback rate", isOn: $playerSelection.adjustRate).toggleStyle(.checkbox).frame(width: 140, alignment: .leading)
 
-        Spacer().frame(width: 25)
+        Spacer().frame(width: 20)
 
         Slider(value: $playerSelection.trackRate, in: 0.5...2.0).frame(width:150, alignment:.leading).focused($focusState, equals: .ToolsView)
 
@@ -35,7 +35,7 @@ struct ToolsView : View {
         Toggle("Loop for Luke™", isOn: $playerSelection.loopTrack).toggleStyle(.checkbox).frame(width: 140, alignment: .leading)
           .disabled(playerSelection.loopTrackDisabled)
 
-        Spacer().frame(width: 25)
+        Spacer().frame(width: 20)
 
         Button(action: model.setLoopStart) { Text("Loop start:").frame(width: 80).padding(.horizontal, 10).padding(.vertical, 2) }
           .disabled(playerSelection.loopStartDisabled)
