@@ -38,13 +38,15 @@ let dismissedViewsFile = "DismissedViews.dat"
 // Loop constants
 let loopEndBuffer = 0.5
 
+// Time pitch unit
+let timePitchUnit = AVAudioUnitTimePitch()
+
 @MainActor class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate {
   var playerAlert: PlayerAlert
   var playerSelection: PlayerSelection
 
   let fm     = FileManager.default
   let player = AudioPlayer()
-  let timePitchUnit = AVAudioUnitTimePitch()
 
   let logManager      = LogFileManager()
   let playlistManager = PlaylistManager()
@@ -206,24 +208,32 @@ let loopEndBuffer = 0.5
         // TODO: Maybe need to look at reconfigureProcessingGraph !?
         let mainMixer = engine.mainMixerNode
         guard let mainMixerICP = engine.inputConnectionPoint(for: mainMixer, inputBus: 0) else {
-          self.logManager.append(logCat: .LogInitError, logMessage: "Error getting mixer connection")
+          self.logManager.append(logCat: .LogInitError, logMessage: "Error getting mixer input connection")
           return
         }
 
         guard let mainMixerIN = mainMixerICP.node else {
-          self.logManager.append(logCat: .LogInitError, logMessage: "Error getting mixer node")
+          self.logManager.append(logCat: .LogInitError, logMessage: "Error getting mixer input node")
           return
         }
 
-        engine.attach(self.timePitchUnit)
+        engine.attach(timePitchUnit)
         engine.disconnectNodeInput(mainMixer, bus: 0)
-        engine.connect(self.timePitchUnit, to: mainMixer, format: nil)
-        engine.connect(mainMixerIN, to: self.timePitchUnit, format: nil)
+        engine.connect(timePitchUnit, to: mainMixer, format: mainMixerIN.outputFormat(forBus: 0))
+        engine.connect(mainMixerIN, to: timePitchUnit, format: nil)
       }
     }
   }
 
 #if !PLAYBACK_TEST
+  nonisolated func audioPlayer(_ audioPlayer: AudioPlayer, reconfigureProcessingGraph engine: AVAudioEngine, with format: AVAudioFormat) -> AVAudioNode {
+    let mainMixer = engine.mainMixerNode
+    engine.disconnectNodeInput(mainMixer, bus: 0)
+    engine.connect(timePitchUnit, to: mainMixer, format: format)
+
+    return timePitchUnit
+  }
+
   // Using audioPlayerNowPlayingChanged to handle track changes
   // NB. nowPlaying -> nil is ignored, audioPlayerPlaybackStateChanged() handles end of audio instead (playbackState -> Stopped)
   nonisolated func audioPlayer(_ audioPlayer: AudioPlayer, nowPlayingChanged nowPlaying: (any PCMDecoding)?, previouslyPlaying: (any PCMDecoding)?) {
@@ -392,7 +402,8 @@ let loopEndBuffer = 0.5
       let trackURL = currentTrack?.trackURL
       (currentNotes, currentLyrics) = lyricsForTrack(trackURL)
 
-      playerSelection.loopTrack = false
+      playerSelection.adjustRate = false
+      playerSelection.loopTrack  = false
       var loopTrackDisabled = true
 
       loopStart = 0.0
@@ -447,7 +458,9 @@ let loopEndBuffer = 0.5
     case .stopped:
       logManager.append(logCat: .LogInfo, logMessage: "Player stopped: \(stopReason)\n")
 
-      playerSelection.loopTrack = false
+      playerSelection.adjustRate = false
+      playerSelection.loopTrack  = false
+
       playbackTimer?.invalidate()
       playbackTimer = nil
       nowPlaying = false
@@ -938,7 +951,8 @@ let loopEndBuffer = 0.5
     }
 
     playPosition = itemIndex
-    playerSelection.loopTrack = false
+    playerSelection.adjustRate = false
+    playerSelection.loopTrack  = false
 
     let newTrack = playlistManager.moveTo(trackNum: playPosition+1)
     let trackURL      = newTrack!.trackURL
@@ -1050,7 +1064,8 @@ let loopEndBuffer = 0.5
     configurePlayback(playlists: playlists, trackNum: trackNum)
 
     let firstTrack = playlistManager.peekNextTrack()
-    playerSelection.loopTrack = false
+    playerSelection.adjustRate = false
+    playerSelection.loopTrack  = false
 
     let trackURL   = firstTrack!.trackURL
     let trackPath  = trackURL.filePath()
