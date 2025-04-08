@@ -10,8 +10,6 @@ import SwiftUI
 struct ToolsView : View {
   let model: PlayerDataModel
   @ObservedObject var playerSelection: PlayerSelection
-
-  let hasFocus: Bool
   @FocusState.Binding var focusState: ViewFocus?
 
   @State private var loopStartHover = false
@@ -60,19 +58,29 @@ struct ToolsView : View {
       }
     }
     .onAppear(perform: {
-      NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
-        if(playerSelection.loopTrackDisabled) { return event }
-
-        if(loopStartHover) {
-          model.adjustLoopStart(event.scrollingDeltaY)
-        }
-
-        if(loopEndHover) {
-          model.adjustLoopEnd(event.scrollingDeltaY)
-        }
-
-        return event
-      }
+      handleKeyEvents()
+      handleWheelEvents()
     })
+  }
+
+  func handleKeyEvents() {
+    // TODO: Add loop start + end
+
+  }
+
+  func handleWheelEvents() {
+    NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
+      if(playerSelection.loopTrackDisabled) { return event }
+
+      if(loopStartHover) {
+        model.adjustLoopStart(event.scrollingDeltaY)
+      }
+
+      if(loopEndHover) {
+        model.adjustLoopEnd(event.scrollingDeltaY)
+      }
+
+      return event
+    }
   }
 }

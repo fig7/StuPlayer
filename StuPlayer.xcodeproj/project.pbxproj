@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		121B2AF92DA53423000872AF /* CurrentPlayingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 121B2AF82DA5341A000872AF /* CurrentPlayingView.swift */; };
 		124BDE6B2D9DDF6300597B00 /* Credits.html in Resources */ = {isa = PBXBuildFile; fileRef = 124BDE6A2D9DDF6300597B00 /* Credits.html */; };
 		124BDE702D9DDF7600597B00 /* Double.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE6C2D9DDF7600597B00 /* Double.swift */; };
 		124BDE712D9DDF7600597B00 /* TimeUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE6D2D9DDF7600597B00 /* TimeUtil.swift */; };
@@ -19,7 +20,7 @@
 		124BDE852D9DE04300597B00 /* ViewFocus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE7F2D9DE04300597B00 /* ViewFocus.swift */; };
 		124BDE862D9DE04300597B00 /* DummyViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE792D9DE04300597B00 /* DummyViews.swift */; };
 		124BDE872D9DE04300597B00 /* LyricsInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE7A2D9DE04300597B00 /* LyricsInfoView.swift */; };
-		124BDE882D9DE04300597B00 /* PlayingScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE7E2D9DE04300597B00 /* PlayingScrollView.swift */; };
+		124BDE882D9DE04300597B00 /* PlaylistScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE7E2D9DE04300597B00 /* PlaylistScrollView.swift */; };
 		124BDE892D9DE04300597B00 /* BrowserScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE772D9DE04300597B00 /* BrowserScrollView.swift */; };
 		124BDE8A2D9DE04300597B00 /* LyricsScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE7B2D9DE04300597B00 /* LyricsScrollView.swift */; };
 		124BDE8B2D9DE04300597B00 /* PlayerAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE7C2D9DE04300597B00 /* PlayerAlert.swift */; };
@@ -36,6 +37,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		121B2AF82DA5341A000872AF /* CurrentPlayingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentPlayingView.swift; sourceTree = "<group>"; };
 		124BDE682D9DDA8500597B00 /* StuPlayer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StuPlayer.entitlements; sourceTree = "<group>"; };
 		124BDE6A2D9DDF6300597B00 /* Credits.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = Credits.html; sourceTree = "<group>"; };
 		124BDE6C2D9DDF7600597B00 /* Double.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Double.swift; sourceTree = "<group>"; };
@@ -50,7 +52,7 @@
 		124BDE7B2D9DE04300597B00 /* LyricsScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsScrollView.swift; sourceTree = "<group>"; };
 		124BDE7C2D9DE04300597B00 /* PlayerAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerAlert.swift; sourceTree = "<group>"; };
 		124BDE7D2D9DE04300597B00 /* PlayerSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSelection.swift; sourceTree = "<group>"; };
-		124BDE7E2D9DE04300597B00 /* PlayingScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayingScrollView.swift; sourceTree = "<group>"; };
+		124BDE7E2D9DE04300597B00 /* PlaylistScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistScrollView.swift; sourceTree = "<group>"; };
 		124BDE7F2D9DE04300597B00 /* ViewFocus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewFocus.swift; sourceTree = "<group>"; };
 		124BDE802D9DE04300597B00 /* ToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsView.swift; sourceTree = "<group>"; };
 		124BDE8D2D9DE0DB00597B00 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -93,12 +95,13 @@
 			children = (
 				124BDE782D9DE04300597B00 /* ContentView.swift */,
 				124BDE772D9DE04300597B00 /* BrowserScrollView.swift */,
+				121B2AF82DA5341A000872AF /* CurrentPlayingView.swift */,
 				124BDE792D9DE04300597B00 /* DummyViews.swift */,
 				124BDE7A2D9DE04300597B00 /* LyricsInfoView.swift */,
 				124BDE7B2D9DE04300597B00 /* LyricsScrollView.swift */,
 				124BDE7C2D9DE04300597B00 /* PlayerAlert.swift */,
 				124BDE7D2D9DE04300597B00 /* PlayerSelection.swift */,
-				124BDE7E2D9DE04300597B00 /* PlayingScrollView.swift */,
+				124BDE7E2D9DE04300597B00 /* PlaylistScrollView.swift */,
 				124BDE7F2D9DE04300597B00 /* ViewFocus.swift */,
 				124BDE802D9DE04300597B00 /* ToolsView.swift */,
 			);
@@ -226,12 +229,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				124BDE822D9DE04300597B00 /* ContentView.swift in Sources */,
+				121B2AF92DA53423000872AF /* CurrentPlayingView.swift in Sources */,
 				124BDE832D9DE04300597B00 /* ToolsView.swift in Sources */,
 				124BDE842D9DE04300597B00 /* PlayerSelection.swift in Sources */,
 				124BDE852D9DE04300597B00 /* ViewFocus.swift in Sources */,
 				124BDE862D9DE04300597B00 /* DummyViews.swift in Sources */,
 				124BDE872D9DE04300597B00 /* LyricsInfoView.swift in Sources */,
-				124BDE882D9DE04300597B00 /* PlayingScrollView.swift in Sources */,
+				124BDE882D9DE04300597B00 /* PlaylistScrollView.swift in Sources */,
 				124BDE892D9DE04300597B00 /* BrowserScrollView.swift in Sources */,
 				124BDE8A2D9DE04300597B00 /* LyricsScrollView.swift in Sources */,
 				124BDE8B2D9DE04300597B00 /* PlayerAlert.swift in Sources */,
@@ -378,7 +382,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 48;
+				CURRENT_PROJECT_VERSION = 49;
 				DEVELOPMENT_TEAM = YV8CWLF497;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -411,7 +415,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 48;
+				CURRENT_PROJECT_VERSION = 49;
 				DEVELOPMENT_TEAM = YV8CWLF497;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;

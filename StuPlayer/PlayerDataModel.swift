@@ -54,7 +54,8 @@ let timePitchUnit = AVAudioUnitTimePitch()
   var bmData: Data?
   var bmURL = URL(fileURLWithPath: "/")
 
-  var rootPath    = "/"
+  // On macOS 12.x, extracting directory paths from a URL doesn't add a "/". So we add one here, if necessary.
+  var rootPath    = "/" { didSet { if(rootPath.last != "/") { rootPath.append("/") } } }
   var musicPath   = "/"
   var trackErrors = false
 
@@ -206,7 +207,9 @@ let timePitchUnit = AVAudioUnitTimePitch()
       player.withEngine { engine in
         // TODO: Fix for Opus (sample rate converter)
         // TODO: Maybe need to look at reconfigureProcessingGraph !?
-        let mainMixer = engine.mainMixerNode
+        let mainMixer   = engine.mainMixerNode
+        let mainMixerIF = mainMixer.inputFormat(forBus: 0)
+
         guard let mainMixerICP = engine.inputConnectionPoint(for: mainMixer, inputBus: 0) else {
           self.logManager.append(logCat: .LogInitError, logMessage: "Error getting mixer input connection")
           return
@@ -219,7 +222,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
 
         engine.attach(timePitchUnit)
         engine.disconnectNodeInput(mainMixer, bus: 0)
-        engine.connect(timePitchUnit, to: mainMixer, format: mainMixerIN.outputFormat(forBus: 0))
+        engine.connect(timePitchUnit, to: mainMixer, format: mainMixerIF)
         engine.connect(mainMixerIN, to: timePitchUnit, format: nil)
       }
     }

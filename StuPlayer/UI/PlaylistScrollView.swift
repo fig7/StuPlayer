@@ -1,5 +1,5 @@
 //
-//  PlayingScrollView.swift
+//  PlaylistScrollView.swift
 //  StuPlayer
 //
 //  Created by Stuart Fisher on 10/01/2025.
@@ -60,7 +60,7 @@ struct PlayingItemView : View {
   }
 }
 
-struct PlayingScrollView : View {
+struct PlaylistScrollView : View {
   let model: PlayerDataModel
   @ObservedObject var playerSelection: PlayerSelection
 
