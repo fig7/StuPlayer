@@ -36,6 +36,7 @@ let trackCountdownFile = "Countdown.dat"
 let dismissedViewsFile = "DismissedViews.dat"
 
 // Loop constants
+let loopMin = 1.0
 let loopEndBuffer = 0.5
 
 // Time pitch unit
@@ -86,7 +87,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
   var currentNotes: String?
 
   var loopStart: TimeInterval    = 0.0
-  var loopEnd: TimeInterval      = 5.0
+  var loopEnd: TimeInterval      = 0.0
 
   var loopEndLimit : TimeInterval = 0.0
   var playerTotal : TimeInterval  = 0.0
@@ -411,7 +412,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
 
       loopStart = 0.0
       playerTotal = player.totalTime ?? -1.0
-      loopTrackDisabled = (playerTotal < 5.0)
+      loopTrackDisabled = (playerTotal < loopMin)
       if(!loopTrackDisabled) {
         loopEndLimit = playerTotal - loopEndBuffer
         loopEnd = loopEndLimit
@@ -1003,8 +1004,8 @@ let timePitchUnit = AVAudioUnitTimePitch()
         }
       }
 
-      playerSelection.loopStartDisabled = ((currentTime + 5.0) > loopEnd)   && (currentTime < loopEnd)
-      playerSelection.loopEndDisabled   = (currentTime < (loopStart + 5.0)) && (currentTime >= loopStart)
+      playerSelection.loopStartDisabled = ((currentTime + loopMin) > loopEnd)   && (currentTime < loopEnd)
+      playerSelection.loopEndDisabled   = (currentTime < (loopStart + loopMin)) && (currentTime >= loopStart)
 
       playerSelection.trackPos     = currentTime / playerTotal
       playerSelection.trackLeftStr = timeStr(from: playerTotal - currentTime)
@@ -1931,9 +1932,6 @@ let timePitchUnit = AVAudioUnitTimePitch()
   }
 
   func trackPosChanged(newTrackPos: Double) {
-    let playbackState = player.playbackState
-    if(playbackState != .paused) { return }
-
     let playerPosition = player.time
     guard let playerPosition else { return }
 
@@ -2036,7 +2034,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
     newLoopStart = round(10.0*newLoopStart) / 10.0
     if(newLoopStart < 0.0) { newLoopStart = 0.0 }
 
-    if((newLoopStart + 5.0) <= loopEnd) {
+    if((newLoopStart + loopMin) <= loopEnd) {
       loopStart = newLoopStart
       playerSelection.loopStart = lyricsTimeStr(from: loopStart)
 
@@ -2094,7 +2092,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
     newLoopEnd = round(10.0*newLoopEnd) / 10.0
     if(newLoopEnd > loopEndLimit) { newLoopEnd = loopEndLimit }
 
-    if(newLoopEnd >= (loopStart + 5.0)) {
+    if(newLoopEnd >= (loopStart + loopMin)) {
       loopEnd = newLoopEnd
       playerSelection.loopEnd = lyricsTimeStr(from: loopEnd)
     }

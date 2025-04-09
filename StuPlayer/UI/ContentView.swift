@@ -569,6 +569,18 @@ struct ContentView: View {
 
         return nil
 
+      case kVK_ANSI_LeftBracket:
+        if(!skManager.tViewPurchased || playerSelection.loopStartDisabled) { return nil }
+
+        model.setLoopStart()
+        return nil
+
+      case kVK_ANSI_RightBracket:
+        if(!skManager.tViewPurchased || playerSelection.loopEndDisabled) { return nil }
+
+        model.setLoopEnd()
+        return nil
+
       default:
         break
       }

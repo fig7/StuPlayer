@@ -63,10 +63,7 @@ struct ToolsView : View {
     })
   }
 
-  func handleKeyEvents() {
-    // TODO: Add loop start + end
-
-  }
+  func handleKeyEvents() { }
 
   func handleWheelEvents() {
     NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in

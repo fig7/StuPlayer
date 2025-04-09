@@ -142,8 +142,6 @@ struct CurrentPlayingView : View {
   }
 
   func handleKeyEvents() {
-    // TODO: Add loop start + end
-
     NSEvent.addLocalMonitorForEvents(matching: .keyDown) { aEvent -> NSEvent? in
       if(focusState != .CurrentPlayingView) { return aEvent }
 
