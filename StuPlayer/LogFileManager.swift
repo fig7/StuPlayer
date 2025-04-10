@@ -85,7 +85,7 @@ class LogFileManager {
     }
 
     logStartDate = Date().description
-    let logStart = "StuPlayer log for " + baseURL.filePath() + " at " + logStartDate + "...\n"
+    let logStart = "StuPlayer log for " + baseURL.folderPath() + " at " + logStartDate + "...\n"
     print(logStart)
 
     let logFilePath = logFileURL.filePath()

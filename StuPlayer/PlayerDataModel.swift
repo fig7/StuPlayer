@@ -55,8 +55,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
   var bmData: Data?
   var bmURL = URL(fileURLWithPath: "/")
 
-  // On macOS 12.x, extracting directory paths from a URL doesn't add a "/". So we add one here, if necessary.
-  var rootPath    = "/" { didSet { if(rootPath.last != "/") { rootPath.append("/") } } }
+  var rootPath    = "/"
   var musicPath   = "/"
   var trackErrors = false
 
@@ -109,7 +108,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
           self.bmData = try PlayerDataModel.refreshBookmarkData(bmURL: self.bmURL)
         }
 
-        self.rootPath = self.bmURL.filePath()
+        self.rootPath = self.bmURL.folderPath()
         self.logManager.setURL(baseURL: bmURL)
       } catch {
         self.bmData = nil
@@ -748,6 +747,11 @@ let timePitchUnit = AVAudioUnitTimePitch()
     playerSelection.setAlbum(newAlbum: "", newList: albumList)
   }
 
+  func clearAlbumOrArtist() {
+    if(playerSelection.canClearAlbum())  { clearAlbum(); return }
+    if(playerSelection.canClearArtist()) { clearArtist(); return }
+  }
+
   func artistFilterItemSelected(itemIndex: Int, itemText: String) {
     if(filteredArtist.isEmpty) {
       filteredArtist = itemText
@@ -778,7 +782,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
     guard bmData != nil else { return }
 
     if(!bmURL.startAccessingSecurityScopedResource()) {
-      logManager.append(throwType: "URLAccess", logMessage: "Play track failed to access: " + bmURL.filePath())
+      logManager.append(throwType: "URLAccess", logMessage: "Play track failed to access: " + bmURL.folderPath())
       playerAlert.triggerAlert(alertMessage: "Unable to play: Access denied. Check log file for details.")
       return
     }
@@ -816,7 +820,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
     guard bmData != nil else { return }
 
     if(!bmURL.startAccessingSecurityScopedResource()) {
-      logManager.append(throwType: "URLAccess", logMessage: "Play track failed to access: " + bmURL.filePath())
+      logManager.append(throwType: "URLAccess", logMessage: "Play track failed to access: " + bmURL.folderPath())
       playerAlert.triggerAlert(alertMessage: "Unable to play: Access denied. Check log file for details.")
       return
     }
@@ -849,7 +853,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
     guard bmData != nil else { return }
 
     if(!bmURL.startAccessingSecurityScopedResource()) {
-      logManager.append(throwType: "URLAccess", logMessage: "Play track failed to access: " + bmURL.filePath())
+      logManager.append(throwType: "URLAccess", logMessage: "Play track failed to access: " + bmURL.folderPath())
       playerAlert.triggerAlert(alertMessage: "Unable to play: Access denied. Check log file for details.")
       return
     }
@@ -925,7 +929,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
     guard bmData != nil else { return }
 
     if(!bmURL.startAccessingSecurityScopedResource()) {
-      logManager.append(throwType: "URLAccess", logMessage: "Play track failed to access: " + bmURL.filePath())
+      logManager.append(throwType: "URLAccess", logMessage: "Play track failed to access: " + bmURL.folderPath())
       playerAlert.triggerAlert(alertMessage: "Unable to play: Access denied. Check log file for details.")
       return
     }
@@ -1211,7 +1215,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
     }
 
     if(!bmURL.startAccessingSecurityScopedResource()) {
-      logManager.append(throwType: "URLAccess", logMessage: "Play all failed to access: " + bmURL.filePath())
+      logManager.append(throwType: "URLAccess", logMessage: "Play all failed to access: " + bmURL.folderPath())
       playerAlert.triggerAlert(alertMessage: "Unable to play: Access denied. Check log file for details.")
       return
     }
@@ -1523,7 +1527,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
 
     // Update URL and path
     bmURL    = rootURL
-    rootPath = rootURL.filePath()
+    rootPath = rootURL.folderPath()
 
     logManager.setURL(baseURL: bmURL)
     playerSelection.setRootPath(newRootPath: self.rootPath)
@@ -1761,7 +1765,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
     guard bmData != nil else { return }
 
     if(!bmURL.startAccessingSecurityScopedResource()) {
-      logManager.append(throwType: "URLAccess", logMessage: "Scan folders failed to access: " + bmURL.filePath())
+      logManager.append(throwType: "URLAccess", logMessage: "Scan folders failed to access: " + bmURL.folderPath())
       playerAlert.triggerAlert(alertMessage: "Unable to scan folders: Access denied. Check log file for details.")
       return
     }

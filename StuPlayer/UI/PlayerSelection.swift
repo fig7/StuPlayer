@@ -477,6 +477,9 @@ struct LyricsItem {
     }
   }
 
+  func canClearAlbum()  -> Bool { return (filterString.isEmpty || (filterMode != .Track))  && !album.isEmpty }
+  func canClearArtist() -> Bool { return (filterString.isEmpty || (filterMode == .Artist)) && !artist.isEmpty }
+
   func searchPrev() -> Bool {
     var prevIndex = searchIndex - 1
     if(prevIndex < 0) { return false }

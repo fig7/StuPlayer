@@ -41,6 +41,16 @@ struct ContentView: View {
           Text("Rescan").padding(.horizontal, 10).padding(.vertical, 2)
         }
 
+        Spacer().frame(width: 30)
+
+        Picker("Type:", selection: $playerSelection.type) {
+          ForEach(playerSelection.typeList, id: \.self) {
+            Text($0)
+          }
+        }
+        .pickerStyle(.menu)
+        .frame(minWidth: 125, maxWidth: 180)
+
 #if PLAYBACK_TEST
         Spacer().frame(width: 20)
 
@@ -51,52 +61,6 @@ struct ContentView: View {
       }
 
       Spacer().frame(height: 30)
-
-      HStack {
-        Picker("Type:", selection: $playerSelection.type) {
-          ForEach(playerSelection.typeList, id: \.self) {
-            Text($0)
-          }
-        }
-        .pickerStyle(.menu)
-        .frame(minWidth: 125, maxWidth: 180)
-
-        Spacer().frame(width: 20)
-
-        if(playerSelection.filterString.isEmpty || (playerSelection.filterMode == .Artist)) {
-          Button(action: model.artistClicked) {
-            Text("Artist: ").padding(.horizontal, 10).padding(.vertical, 2)
-          }
-
-          Text(playerSelection.artist).frame(minWidth: 50)
-        } else if(playerSelection.filterMode != .Artist) {
-          Button(action: { }) {
-            Text("Artist: ").padding(.horizontal, 10).padding(.vertical, 2)
-          }.disabled(true)
-
-          Text(playerSelection.artist).foregroundStyle(.gray).frame(minWidth: 50)
-        }
-
-        Spacer().frame(width: 20)
-
-        if(playerSelection.filterString.isEmpty || (playerSelection.filterMode != .Track)) {
-          Button(action: model.albumClicked) {
-            Text("Album: ").padding(.horizontal, 10).padding(.vertical, 2)
-          }
-
-          Text(playerSelection.album).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
-        } else {
-          Button(action: { }) {
-            Text("Album: ").padding(.horizontal, 10).padding(.vertical, 2)
-          }.disabled(true)
-
-          Text(playerSelection.album).foregroundStyle(.gray).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
-        }
-
-        Spacer().frame(width: 20)
-      }
-
-      Spacer().frame(height: 20)
 
       HStack {
         HStack {
@@ -123,6 +87,38 @@ struct ContentView: View {
 
           Button(action: { playerSelection.clearFilter(resetMode: false) }) {
             Text("✖")
+          }
+
+          Spacer().frame(width: 30)
+
+          if(playerSelection.filterString.isEmpty || (playerSelection.filterMode == .Artist)) {
+            Button(action: model.artistClicked) {
+              Text("Artist: ").padding(.horizontal, 10).padding(.vertical, 2)
+            }
+
+            Text(playerSelection.artist).lineLimit(1).frame(minWidth: 50, maxWidth: .infinity, alignment: .leading)
+          } else if(playerSelection.filterMode != .Artist) {
+            Button(action: { }) {
+              Text("Artist: ").padding(.horizontal, 10).padding(.vertical, 2)
+            }.disabled(true)
+
+            Text(playerSelection.artist).lineLimit(1).foregroundStyle(.gray).frame(minWidth: 50, maxWidth: .infinity, alignment: .leading)
+          }
+
+          Spacer().frame(width: 20)
+
+          if(playerSelection.filterString.isEmpty || (playerSelection.filterMode != .Track)) {
+            Button(action: model.albumClicked) {
+              Text("Album: ").padding(.horizontal, 10).padding(.vertical, 2)
+            }
+
+            Text(playerSelection.album).lineLimit(1).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+          } else {
+            Button(action: { }) {
+              Text("Album: ").padding(.horizontal, 10).padding(.vertical, 2)
+            }.disabled(true)
+
+            Text(playerSelection.album).lineLimit(1).foregroundStyle(.gray).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
           }
         }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
 
@@ -161,7 +157,7 @@ struct ContentView: View {
             Text("Play all").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
           }
 
-          Spacer().frame(width: 40)
+          Spacer().frame(width: 20)
 
           Button(action: model.toggleShuffle) {
             switch(playerSelection.shuffleTracks) {
@@ -235,10 +231,15 @@ struct ContentView: View {
       VStack(alignment: .leading, spacing: 0) {
         HStack {
           let browserFocus = (viewFocus == .BrowserScrollView)
-          BrowserScrollView(model: model, playerSelection: playerSelection, hasFocus: browserFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
-            .frame(minWidth: 172, maxWidth: .infinity, minHeight: 120, maxHeight: .infinity).padding(7)
-            .background() { GeometryReader { proxy in Color.clear.onAppear { scrollViewHeight = proxy.size.height }.onChange(of: proxy.size.height) { newValue in scrollViewHeight = newValue } } }
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke((browserFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+          HStack(alignment: .top,  spacing: 0) {
+            let upAllowed = (playerSelection.canClearAlbum() || playerSelection.canClearArtist())
+            Text("         ").onTapGesture { model.clearAlbumOrArtist() }
+              .background(Image(upAllowed ? "Up(allowed)" : "Up(at root)").resizable().aspectRatio(contentMode: .fit), alignment: .leading)
+
+            BrowserScrollView(model: model, playerSelection: playerSelection, hasFocus: browserFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
+              .frame(minWidth: 172, maxWidth: .infinity, minHeight: 120, maxHeight: .infinity)
+              .background() { GeometryReader { proxy in Color.clear.onAppear { scrollViewHeight = proxy.size.height }.onChange(of: proxy.size.height) { newValue in scrollViewHeight = newValue } } }
+          }.padding(7).overlay(RoundedRectangle(cornerRadius: 8).stroke((browserFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
 
           if(!trackPlaying() || !skManager.plViewPurchased) {
             let plViewDismissed = playerSelection.dismissedViews.plView || !skManager.canMakePayments
@@ -360,7 +361,7 @@ struct ContentView: View {
             // TODO: Do refactor other views, too.
             ToolsView(model: model, playerSelection: playerSelection, focusState: $viewFocus)
               .frame(maxWidth: .infinity).padding(.horizontal, 7).padding(.vertical, 20)
-              .overlay(RoundedRectangle(cornerRadius: 8).stroke(((viewFocus == .CurrentPlayingView) && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+              .overlay(RoundedRectangle(cornerRadius: 8).stroke(((viewFocus == .ToolsView) && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
           } else {
             Spacer().frame(maxWidth: .infinity).padding(7)
           }
@@ -452,13 +453,13 @@ struct ContentView: View {
           }
 
           // Clear album next
-          if((playerSelection.filterString.isEmpty || (playerSelection.filterMode != .Track)) && !playerSelection.album.isEmpty) {
+          if(playerSelection.canClearAlbum()) {
             model.clearAlbum()
             return nil
           }
 
           // Then artist
-          if((playerSelection.filterString.isEmpty || (playerSelection.filterMode == .Artist)) && !playerSelection.artist.isEmpty) {
+          if(playerSelection.canClearArtist()) {
             model.clearArtist()
             return nil
           }
