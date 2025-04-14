@@ -39,16 +39,17 @@ let dismissedViewsFile = "DismissedViews.dat"
 let loopMin = 1.0
 let loopEndBuffer = 0.5
 
-// Time pitch unit
+// Audio components
+// They should handle their own thread safety,
+// so it's probably best not to add them to the model
+let player        = AudioPlayer()
 let timePitchUnit = AVAudioUnitTimePitch()
 
 @MainActor class PlayerDataModel : NSObject, AudioPlayer.Delegate, PlayerSelection.Delegate {
   var playerAlert: PlayerAlert
   var playerSelection: PlayerSelection
 
-  let fm     = FileManager.default
-  let player = AudioPlayer()
-
+  let fm = FileManager.default
   let logManager      = LogFileManager()
   let playlistManager = PlaylistManager()
 
@@ -82,6 +83,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
 
   var pendingTrack: Int?
   var currentTrack: TrackInfo?
+
   var currentLyrics: [LyricsItem]?
   var currentNotes: String?
 
@@ -318,6 +320,59 @@ let timePitchUnit = AVAudioUnitTimePitch()
     }
   }
 
+  func lyricNotes(_ splLines: [Substring]) -> String {
+    var notes: String = ""
+    for splLine in splLines {
+      if(splLine.starts(with: "#")) {
+        var noteTrimmed = String(splLine)
+        noteTrimmed.removeFirst()
+
+        noteTrimmed = noteTrimmed.trimmingCharacters(in: .whitespaces)
+        notes.append(noteTrimmed + "\n")
+      } else { break }
+    }
+
+    if(!notes.isEmpty) { notes.removeLast() }
+    return notes
+  }
+
+  func lyricLyricItems(_ splLines: [Substring]) -> (String?, [LyricsItem]) {
+    var lyricItems: [LyricsItem] = [LyricsItem(lyric: "[Track start]", time: 0.0)]
+    var lyricLastTime = 0.0
+    for (lineNum, lyricLine) in splLines.enumerated() {
+      if(lyricLine.starts(with: "#")) { continue }
+
+      if(lyricLine.isEmpty) { lyricItems.append(LyricsItem(lyric: "")); continue }
+
+      let lineSplit = lyricLine.split(separator: "*", omittingEmptySubsequences: false)
+      if(lineSplit.count > 2) { return ("Lyric line format is invalid (line \(lineNum+1))", []) }
+
+      var lyricTime: TimeInterval? = nil
+      if(lineSplit.count == 2) {
+        let lyricText = lineSplit[1]
+        if(lyricText.isEmpty) { return ("Empty lyric line with timestamp (line \(lineNum+1))", []) }
+
+        lyricTime = lyricTimeParse(lineSplit[0])
+        guard let lyricTime else      { return ("Lyric line timestamp is invalid (line \(lineNum+1))", []) }
+        if(lyricTime < lyricLastTime) { return ("Lyric line timestamps must increase (line \(lineNum+1))", []) }
+
+        lyricLastTime = lyricTime
+        lyricItems.append(LyricsItem(lyric: lyricText, time: lyricTime))
+      } else { lyricItems.append(LyricsItem(lyric: lineSplit[0]))}
+    }
+
+    return (nil, lyricItems)
+  }
+
+  func lyricsForTrack(_ splStr: String) -> (String?, String, [LyricsItem]?) {
+    if(splStr.isEmpty) { return (nil, "", []) }
+
+    let splLines = splStr.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
+    let notes = lyricNotes(splLines)
+    let lyricItems = lyricLyricItems(splLines)
+    return (lyricItems.0, notes, lyricItems.1)
+  }
+
   func lyricsForTrack(_ trackURL: URL?) -> (String?, [LyricsItem]?) {
     guard let trackURL else { return (nil, nil) }
 
@@ -334,20 +389,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
     let splLines = splStr.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
 
     // Add notes (if any)
-    var notes: String? = nil
-    for splLine in splLines {
-      if(splLine.starts(with: "#")) {
-        var noteTrimmed = String(splLine)
-        noteTrimmed.removeFirst()
-
-        noteTrimmed = noteTrimmed.trimmingCharacters(in: .whitespaces)
-        if(notes == nil) { notes = "" }
-        notes!.append(noteTrimmed + "\n")
-      } else {
-        break
-      }
-    }
-    if(notes != nil) { notes!.removeLast() }
+    let notes = lyricNotes(splLines)
 
     // Add lyrics and times
     var lyrics: [LyricsItem] = [LyricsItem(lyric: "[Track start]", time: 0.0)]
@@ -1400,9 +1442,8 @@ let timePitchUnit = AVAudioUnitTimePitch()
     currentNotes  = nil
     currentLyrics = newLyrics
 
-    playerSelection.setLyrics(newLyrics: (nil, currentLyrics))
-    playerSelection.lyricsMode = .Update
-    updateLyricsFile()
+    playerSelection.setLyrics(newLyrics: (currentNotes, currentLyrics))
+    updateLyricsFile(trackURL: currentTrack?.trackURL, notesToWrite: currentNotes, lyricsToWrite: currentLyrics)
   }
 
   func fetchLyrics() {
@@ -1423,7 +1464,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
         let lyricLines = lyricsStr.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
 
         for lyricLine in lyricLines {
-          lyrics.append(LyricsItem(lyric: lyricLine))
+          lyrics.append(LyricsItem(lyric: lyricLine.trimmingCharacters(in: .whitespaces)))
         }
 
         Task { @MainActor in self.saveOVHLyrics(lyrics) }
@@ -1435,13 +1476,14 @@ let timePitchUnit = AVAudioUnitTimePitch()
     task.resume()
   }
 
-  func refreshLyrics() {
-    // Refetch lyrics (if available)
-    let trackURL = currentTrack?.trackURL
+func refreshLyrics() {
+     // Refetch lyrics (if available)
+     let trackURL = currentTrack?.trackURL
+     
+     (currentNotes, currentLyrics) = lyricsForTrack(trackURL)
+     playerSelection.setLyrics(newLyrics: (currentNotes, currentLyrics))
 
-    (currentNotes, currentLyrics) = lyricsForTrack(trackURL)
-    playerSelection.setLyrics(newLyrics: (currentNotes, currentLyrics))
-    playerSelection.lyricsMode = .Update
+    performPositionUpdate()
   }
 
   static func getM3UDict(m3UFile: String) throws -> AllM3UDict {
@@ -2317,15 +2359,15 @@ let timePitchUnit = AVAudioUnitTimePitch()
     return false
   }
 
-  func updateLyricsFile() {
-    guard var lyricsToWrite = currentLyrics else { return }
+  func updateLyricsFile(trackURL: URL?, notesToWrite: String?, lyricsToWrite: [LyricsItem]? ) {
+    guard let trackURL else { return }
+    guard var lyricsToWrite else { return }
     lyricsToWrite.removeFirst()
 
     var lyricsStr = ""
-    let notesToWrite = currentNotes
-    if(notesToWrite != nil) {
-      let noteLines = notesToWrite?.split(whereSeparator: \.isNewline)
-      for noteLine in noteLines! {
+    if let notesToWrite {
+      let noteLines = notesToWrite.split(whereSeparator: \.isNewline)
+      for noteLine in noteLines {
         lyricsStr.append("# " + noteLine + "\n")
       }
 
@@ -2342,10 +2384,9 @@ let timePitchUnit = AVAudioUnitTimePitch()
     // Remove final \n
     lyricsStr.removeLast()
 
-    let trackURL = currentTrack!.trackURL
     let lyricsURL  = trackURL.deletingPathExtension().appendingPathExtension("spl")
     let lyricsPath = lyricsURL.filePath()
-    try! lyricsStr.write(toFile: lyricsPath, atomically: true, encoding: .utf8)
+    try! lyricsStr.write(toFile: lyricsPath, atomically: true, encoding: .utf8) // TODO: Handle error (e.g. won't save after stop pressed)
   }
 
   func lyricsItemSelected(_ itemIndex: Int) {
@@ -2379,13 +2420,18 @@ let timePitchUnit = AVAudioUnitTimePitch()
         currentLyrics![itemIndex].time = lyricTime
         playerSelection.setLyrics(newLyrics: (currentNotes, currentLyrics))
 
-        updateLyricsFile()
+        updateLyricsFile(trackURL: currentTrack?.trackURL, notesToWrite: currentNotes, lyricsToWrite: currentLyrics)
       }
     }
   }
 
-  func lyricsItemClicked(_ itemIndex: Int) {
-    lyricsItemSelected(itemIndex)
+  func lyricsTrackURL() -> URL? {
+    if #unavailable(macOS 13.0) {
+      playerAlert.triggerAlert(alertMessage: "On macOS 12.x, please use a text editor to edit lyrics (the .spl files)")
+      return nil
+    }
+
+    return currentTrack?.trackURL
   }
 
   #if PLAYBACK_TEST

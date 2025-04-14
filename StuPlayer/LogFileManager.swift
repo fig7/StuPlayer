@@ -39,10 +39,10 @@ class LogFileManager {
         try fm.copyItem(atPath: logFilePath, toPath: logFile2Path)
 
         if(newLogFile) {
-          let logStart = "StuPlayer log for " + baseURL.filePath() + " at " + logStartDate + "...\n"
+          let logStart = "StuPlayer log for " + baseURL.folderPath() + " at " + logStartDate + "...\n"
           try (logStart + "\n").write(to: logFileURL, atomically: true, encoding: .utf8)
         } else {
-          let logContd = "StuPlayer log contd. for " + baseURL.filePath() + " at " + logStartDate + "...\n"
+          let logContd = "StuPlayer log contd. for " + baseURL.folderPath() + " at " + logStartDate + "...\n"
           try (logContd + "\n").write(to: logFileURL, atomically: true, encoding: .utf8)
         }
         

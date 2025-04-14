@@ -31,6 +31,10 @@
 		124BDE9A2D9DE12F00597B00 /* StuPlayerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE962D9DE12F00597B00 /* StuPlayerApp.swift */; };
 		124BDE9B2D9DE12F00597B00 /* LogFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE912D9DE12F00597B00 /* LogFileManager.swift */; };
 		124BDE9C2D9DE12F00597B00 /* PlayerDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 124BDE922D9DE12F00597B00 /* PlayerDataModel.swift */; };
+		12F41A542DAB8EDC000F5615 /* LyricsLeftButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12F41A532DAB8ED5000F5615 /* LyricsLeftButtons.swift */; };
+		12F41A562DABD9A6000F5615 /* LyricsEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12F41A552DABD9A0000F5615 /* LyricsEditor.swift */; };
+		12F41A582DAC39C5000F5615 /* NothingPlayingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12F41A572DAC39BF000F5615 /* NothingPlayingView.swift */; };
+		12F41A5A2DAC61EF000F5615 /* LyricsRightButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12F41A592DAC61E9000F5615 /* LyricsRightButtons.swift */; };
 		32919FC12BFAEE5E00A3E43A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 32919FC02BFAEE5E00A3E43A /* Assets.xcassets */; };
 		32919FCD2BFAEF8000A3E43A /* CAAudioHardware in Frameworks */ = {isa = PBXBuildFile; productRef = 32919FCC2BFAEF8000A3E43A /* CAAudioHardware */; };
 		32919FD02BFAEF8900A3E43A /* SFBAudioEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 32919FCF2BFAEF8900A3E43A /* SFBAudioEngine */; };
@@ -63,6 +67,10 @@
 		124BDE942D9DE12F00597B00 /* PlaylistManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistManager.swift; sourceTree = "<group>"; };
 		124BDE952D9DE12F00597B00 /* SKManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKManager.swift; sourceTree = "<group>"; };
 		124BDE962D9DE12F00597B00 /* StuPlayerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StuPlayerApp.swift; sourceTree = "<group>"; };
+		12F41A532DAB8ED5000F5615 /* LyricsLeftButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsLeftButtons.swift; sourceTree = "<group>"; };
+		12F41A552DABD9A0000F5615 /* LyricsEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsEditor.swift; sourceTree = "<group>"; };
+		12F41A572DAC39BF000F5615 /* NothingPlayingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NothingPlayingView.swift; sourceTree = "<group>"; };
+		12F41A592DAC61E9000F5615 /* LyricsRightButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsRightButtons.swift; sourceTree = "<group>"; };
 		32919FBB2BFAEE5C00A3E43A /* StuPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StuPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		32919FC02BFAEE5E00A3E43A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -96,7 +104,10 @@
 				124BDE782D9DE04300597B00 /* ContentView.swift */,
 				124BDE772D9DE04300597B00 /* BrowserScrollView.swift */,
 				121B2AF82DA5341A000872AF /* CurrentPlayingView.swift */,
+				12F41A572DAC39BF000F5615 /* NothingPlayingView.swift */,
 				124BDE792D9DE04300597B00 /* DummyViews.swift */,
+				12F41A532DAB8ED5000F5615 /* LyricsLeftButtons.swift */,
+				12F41A592DAC61E9000F5615 /* LyricsRightButtons.swift */,
 				124BDE7A2D9DE04300597B00 /* LyricsInfoView.swift */,
 				124BDE7B2D9DE04300597B00 /* LyricsScrollView.swift */,
 				124BDE7C2D9DE04300597B00 /* PlayerAlert.swift */,
@@ -127,6 +138,7 @@
 		32919FBD2BFAEE5C00A3E43A /* StuPlayer */ = {
 			isa = PBXGroup;
 			children = (
+				12F41A552DABD9A0000F5615 /* LyricsEditor.swift */,
 				124BDE962D9DE12F00597B00 /* StuPlayerApp.swift */,
 				124BDE8F2D9DE0EE00597B00 /* stuplayer.help */,
 				124BDE6F2D9DDF7600597B00 /* Ext */,
@@ -234,18 +246,22 @@
 				124BDE842D9DE04300597B00 /* PlayerSelection.swift in Sources */,
 				124BDE852D9DE04300597B00 /* ViewFocus.swift in Sources */,
 				124BDE862D9DE04300597B00 /* DummyViews.swift in Sources */,
+				12F41A5A2DAC61EF000F5615 /* LyricsRightButtons.swift in Sources */,
 				124BDE872D9DE04300597B00 /* LyricsInfoView.swift in Sources */,
 				124BDE882D9DE04300597B00 /* PlaylistScrollView.swift in Sources */,
 				124BDE892D9DE04300597B00 /* BrowserScrollView.swift in Sources */,
 				124BDE8A2D9DE04300597B00 /* LyricsScrollView.swift in Sources */,
 				124BDE8B2D9DE04300597B00 /* PlayerAlert.swift in Sources */,
 				124BDE972D9DE12F00597B00 /* Playlist.swift in Sources */,
+				12F41A582DAC39C5000F5615 /* NothingPlayingView.swift in Sources */,
+				12F41A562DABD9A6000F5615 /* LyricsEditor.swift in Sources */,
 				124BDE982D9DE12F00597B00 /* SKManager.swift in Sources */,
 				124BDE992D9DE12F00597B00 /* PlaylistManager.swift in Sources */,
 				124BDE9A2D9DE12F00597B00 /* StuPlayerApp.swift in Sources */,
 				124BDE9B2D9DE12F00597B00 /* LogFileManager.swift in Sources */,
 				124BDE9C2D9DE12F00597B00 /* PlayerDataModel.swift in Sources */,
 				124BDE702D9DDF7600597B00 /* Double.swift in Sources */,
+				12F41A542DAB8EDC000F5615 /* LyricsLeftButtons.swift in Sources */,
 				124BDE712D9DDF7600597B00 /* TimeUtil.swift in Sources */,
 				124BDE722D9DDF7600597B00 /* URL.swift in Sources */,
 			);
@@ -384,7 +400,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 51;
+				CURRENT_PROJECT_VERSION = 52;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = StuPlayer/Info.plist;
@@ -416,7 +432,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 51;
+				CURRENT_PROJECT_VERSION = 52;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = StuPlayer/Info.plist;

@@ -11,10 +11,11 @@ import Carbon.HIToolbox
 import SFBAudioEngine
 
 struct ContentView: View {
-  @Environment(\.controlActiveState) var controlActiveState
+  @Environment(\.appearsActive) var controlActiveState
 
   let model: PlayerDataModel
   @ObservedObject var skManager: SKManager
+  @ObservedObject var lyricsEditor: LyricsEditor
   @ObservedObject var playerAlert: PlayerAlert
   @ObservedObject var playerSelection: PlayerSelection
 
@@ -183,47 +184,6 @@ struct ContentView: View {
             }
           }
         }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
-
-        if(skManager.lViewPurchased) {
-          HStack {
-            Spacer().frame(width: 10)
-
-            Button(action: model.toggleLyrics) {
-              switch(playerSelection.lyricsMode) {
-              case LyricsMode.Navigate:
-                Text("Lyrics: Seek to position").frame(width: 150).padding(.horizontal, 10).padding(.vertical, 2)
-
-              case LyricsMode.Update:
-                Text("Lyrics: Update times").frame(width: 150).padding(.horizontal, 10).padding(.vertical, 2)
-              }
-            }
-
-            Spacer().frame(width: 20)
-
-            Button(action: model.refreshLyrics) {
-              Text("Refresh lyrics").frame(width: 100).padding(.horizontal, 10).padding(.vertical, 2)
-            }.disabled(playerSelection.playPosition <= 0)
-
-            Spacer().frame(width: 20)
-
-            Button(action: model.fetchLyrics) {
-              Text("Fetch from lyrics.ovh").frame(width: 140).padding(.horizontal, 10).padding(.vertical, 2)
-            }.disabled((playerSelection.playPosition <= 0) || !playerSelection.playingLyrics.isEmpty)
-
-            // Dummy text fields to hold focus
-            TextField("", text: $playerSelection.dummyString).frame(width: 0)
-              .autocorrectionDisabled(/*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
-              .textSelection(.disabled)
-              .focused($viewFocus, equals: .LyricsInfoView)
-              .opacity(0.0)
-
-            TextField("", text: $playerSelection.dummyString).frame(width: 0)
-              .autocorrectionDisabled(/*@START_MENU_TOKEN@*/true/*@END_MENU_TOKEN@*/)
-              .textSelection(.disabled)
-              .focused($viewFocus, equals: .LyricsScrollView)
-              .opacity(0.0)
-          }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
-        }
       }
 
       Spacer().frame(height: 20)
@@ -239,7 +199,14 @@ struct ContentView: View {
             BrowserScrollView(model: model, playerSelection: playerSelection, hasFocus: browserFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
               .frame(minWidth: 172, maxWidth: .infinity, minHeight: 120, maxHeight: .infinity)
               .background() { GeometryReader { proxy in Color.clear.onAppear { scrollViewHeight = proxy.size.height }.onChange(of: proxy.size.height) { newValue in scrollViewHeight = newValue } } }
-          }.padding(7).overlay(RoundedRectangle(cornerRadius: 8).stroke((browserFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+              .onChange(of: trackPlaying() ) { trackPlaying in
+                viewFocus = (trackPlaying) ? .CurrentPlayingView : .BrowserScrollView
+              }
+          }
+            .padding(7)
+            .contentShape(Rectangle())
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke((browserFocus && controlActiveState) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+            .onTapGesture() { viewFocus = .BrowserScrollView }
 
           if(!trackPlaying() || !skManager.plViewPurchased) {
             let plViewDismissed = playerSelection.dismissedViews.plView || !skManager.canMakePayments
@@ -275,7 +242,9 @@ struct ContentView: View {
             let playingFocus = (viewFocus == .PlaylistScrollView)
             PlaylistScrollView(model: model, playerSelection: playerSelection, hasFocus: playingFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
               .frame(minWidth: 172, maxWidth: .infinity, minHeight: 120).padding(7)
-              .overlay(RoundedRectangle(cornerRadius: 8).stroke((playingFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+              .contentShape(Rectangle())
+              .overlay(RoundedRectangle(cornerRadius: 8).stroke((playingFocus && controlActiveState) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+              .onTapGesture() { viewFocus = .PlaylistScrollView }
           }
         }
 
@@ -310,28 +279,53 @@ struct ContentView: View {
         }
 
         if(lyricsViewAvailable()) {
-          HStack {
-            let lyricsInfoFocus = (viewFocus == .LyricsInfoView)
-            LyricsInfoView(model: model, playerSelection: playerSelection, hasFocus: lyricsInfoFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
-              .frame(minWidth: 172, maxWidth: .infinity, minHeight: 130).padding(7)
-              .overlay(RoundedRectangle(cornerRadius: 8).stroke((lyricsInfoFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+          Spacer().frame(height: 15)
 
-            let lyricsFocus = (viewFocus == .LyricsScrollView)
-            LyricsScrollView(model: model, playerSelection: playerSelection, hasFocus: lyricsFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
-              .frame(minWidth: 172, maxWidth: .infinity, minHeight: 130).padding(7)
-              .overlay(RoundedRectangle(cornerRadius: 8).stroke((lyricsFocus && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+          VStack(alignment: .leading, spacing: 20) {
+            HStack {
+              LyricsLeftButtons(model: model, lyricsEditor: lyricsEditor, playerSelection: playerSelection, focusState: $viewFocus)
+              LyricsRightButtons(model: model, lyricsEditor: lyricsEditor, playerSelection: playerSelection, focusState: $viewFocus)
+            }
+
+            HStack {
+              let lyricsInfoFocus = (viewFocus == .LyricsInfoView)
+              LyricsInfoView(model: model, playerSelection: playerSelection, hasFocus: lyricsInfoFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
+                .frame(minWidth: 172, maxWidth: .infinity, minHeight: 130).padding(7)
+                .contentShape(Rectangle())
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke((lyricsInfoFocus && controlActiveState) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+                .onTapGesture() { viewFocus = .LyricsInfoView }
+
+              let lyricsFocus = (viewFocus == .LyricsScrollView)
+              LyricsScrollView(model: model, playerSelection: playerSelection, lyricsEditor: lyricsEditor, hasFocus: lyricsFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
+                .frame(minWidth: 172, maxWidth: .infinity, minHeight: 130)
+                .padding(7)
+                .contentShape(Rectangle())
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke((lyricsFocus && controlActiveState) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+                .onTapGesture() { viewFocus = .LyricsScrollView }
+            }
           }
         }
 
         Spacer().frame(height: 20)
 
         HStack {
-          CurrentPlayingView(model: model, playerSelection: playerSelection, focusState: $viewFocus, textWidth: textWidth)
-            .padding(10).background(RoundedRectangle(cornerRadius: 8).stroke(((viewFocus == .CurrentPlayingView) && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+          if(trackPlaying()) {
+            CurrentPlayingView(model: model, playerSelection: playerSelection, focusState: $viewFocus, textWidth: textWidth, tViewPurchased: skManager.tViewPurchased, lyricsEdit: $lyricsEditor.lyricsEdit)
+              .padding(10)
+              .contentShape(Rectangle())
+              .background(RoundedRectangle(cornerRadius: 8).stroke(((viewFocus == .CurrentPlayingView) && controlActiveState) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+              .onTapGesture() { viewFocus = .CurrentPlayingView }
+          } else {
+            NothingPlayingView(model: model, playerSelection: playerSelection)
+              .padding(10)
+          }
+
+          Spacer()
 
           if(!trackPlaying() || !skManager.tViewPurchased) {
             let tViewDismissed = playerSelection.dismissedViews.tView || !skManager.canMakePayments
             if(!tViewDismissed && !skManager.tViewPurchased) {
+              // TODO: Refactor me and fix layout
               VStack() {
                 VStack() {
                   Text("Tools View").font(.headline)
@@ -352,16 +346,21 @@ struct ContentView: View {
                   Button(action: skManager.openInAppHelp) { Text("More information") }
                   Button(action: model.dismissTVPurchase) { Text("Dismiss") }
                 }
-              }.frame(minWidth: 344, maxWidth: .infinity, minHeight: 106).padding(.horizontal, 7)
+              }
+                .frame(maxWidth: .infinity)
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(.gray, lineWidth: 5).opacity(0.6))
             }
           }
 
           if(toolsViewAvailable()) {
             // TODO: Do refactor other views, too.
-            ToolsView(model: model, playerSelection: playerSelection, focusState: $viewFocus)
-              .frame(maxWidth: .infinity).padding(.horizontal, 7).padding(.vertical, 20)
-              .overlay(RoundedRectangle(cornerRadius: 8).stroke(((viewFocus == .ToolsView) && (controlActiveState == .key)) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+            ToolsView(model: model, playerSelection: playerSelection, focusState: $viewFocus, lyricsEdit: $lyricsEditor.lyricsEdit)
+              .frame(maxWidth: .infinity)
+              .padding(.vertical, 20)
+              .contentShape(Rectangle())
+              .overlay(RoundedRectangle(cornerRadius: 8).stroke(((viewFocus == .ToolsView) && controlActiveState) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+              .onTapGesture() { viewFocus = .ToolsView }
+
           } else {
             Spacer().frame(maxWidth: .infinity).padding(7)
           }
@@ -412,11 +411,36 @@ struct ContentView: View {
   func toolsViewPurchased() -> Bool { return skManager.tViewPurchased }
   func toolsViewAvailable() -> Bool { return trackPlaying() && toolsViewPurchased() }
 
+  func prevFocusView(_ currentView: ViewFocus) -> ViewFocus {
+    switch(currentView) {
+    case .BrowserScrollView:
+      if(!trackPlaying())      { return .BrowserScrollView }
+      if(toolsViewPurchased()) { return .ToolsView }
+      return .CurrentPlayingView
+
+    case .PlaylistScrollView:
+      return .BrowserScrollView
+
+    case .LyricsInfoView:
+      return (playlistViewPurchased()) ? .PlaylistScrollView : .BrowserScrollView
+
+    case .LyricsScrollView:
+      return .LyricsInfoView
+
+    case .CurrentPlayingView:
+      if(lyricsViewPurchased())   { return .LyricsScrollView }
+      if(playlistViewPurchased()) { return .PlaylistScrollView }
+      return .BrowserScrollView
+
+    case .ToolsView:
+      return .CurrentPlayingView
+    }
+  }
+
   func nextFocusView(_ currentView: ViewFocus) -> ViewFocus {
     switch(currentView) {
     case .BrowserScrollView:
-      if(!trackPlaying()) { return .BrowserScrollView }
-
+      if(!trackPlaying())         { return .BrowserScrollView }
       if(playlistViewPurchased()) { return .PlaylistScrollView }
       if(lyricsViewPurchased())   { return .LyricsInfoView }
       return .CurrentPlayingView
@@ -442,6 +466,18 @@ struct ContentView: View {
   func handleKeyEvents() {
     NSEvent.addLocalMonitorForEvents(matching: .keyDown) { aEvent -> NSEvent? in
       let keyCode = Int(aEvent.keyCode)
+      if(keyCode == kVK_ANSI_KeypadEnter) {
+        model.togglePause()
+        return nil
+      }
+
+      // TODO: Why aren't we just using onKeyPress on the views?
+      // TODO: Because it requires macOS 14, of course.
+      // TODO: Add alerts and in-app purchase here, too.
+      // TODO: Ditch macOS 12 and 13, soon!
+      if(lyricsEditor.lyricsEdit) { return aEvent }
+
+      // TODO: Move all these to the right handlers
       switch(keyCode) {
       case kVK_Escape:
         if(viewFocus == .BrowserScrollView) {
@@ -534,7 +570,9 @@ struct ContentView: View {
             return nil
           }
 
-          model.lyricsItemSelected(itemIndex)
+          let updateLyrics  = (playerSelection.lyricsMode == .Update)
+          let updateAllowed = (!lyricsEditor.lyricsEdit)
+          if(!updateLyrics || updateAllowed) { model.lyricsItemSelected(itemIndex) }
         }
 
         return nil
@@ -555,10 +593,6 @@ struct ContentView: View {
         model.toggleFilter()
         return nil
 
-      case kVK_ANSI_KeypadEnter:
-        model.togglePause()
-        return nil
-
       case kVK_ANSI_Grave:
         if((viewFocus == .BrowserScrollView)) {
           model.toggleBrowserPopup()
@@ -570,53 +604,44 @@ struct ContentView: View {
 
         return nil
 
-      case kVK_ANSI_LeftBracket:
-        if(!skManager.tViewPurchased || playerSelection.loopStartDisabled) { return nil }
-
-        model.setLoopStart()
-        return nil
-
-      case kVK_ANSI_RightBracket:
-        if(!skManager.tViewPurchased || playerSelection.loopEndDisabled) { return nil }
-
-        model.setLoopEnd()
-        return nil
-
       default:
         break
       }
 
       guard let specialKey = aEvent.specialKey else { return aEvent }
+      var nextViewFocus: ViewFocus
       switch(specialKey) {
+      case .backTab:
+        guard let viewFocus else { return nil }
+        nextViewFocus = prevFocusView(viewFocus)
+
       case .tab:
         guard let viewFocus else { return nil }
-
-        let nextViewFocus = nextFocusView(viewFocus)
-        if(nextViewFocus != viewFocus) {
-          switch(viewFocus) {
-          case .BrowserScrollView:
-            playerSelection.browserPopover = -1
-
-          case .PlaylistScrollView:
-            playerSelection.playingPopover = -1
-
-          case .LyricsInfoView:
-            playerSelection.lyricsInfoPopover = -1
-
-          default:
-            break
-          }
-
-          self.viewFocus = nextViewFocus
-        }
-
-        return nil
+        nextViewFocus = nextFocusView(viewFocus)
 
       default:
-        break
+        return aEvent
       }
 
-      return aEvent
+      if(nextViewFocus != viewFocus) {
+        switch(viewFocus) {
+        case .BrowserScrollView:
+          playerSelection.browserPopover = -1
+
+        case .PlaylistScrollView:
+          playerSelection.playingPopover = -1
+
+        case .LyricsInfoView:
+          playerSelection.lyricsInfoPopover = -1
+
+        default:
+          break
+        }
+
+        self.viewFocus = nextViewFocus
+      }
+
+      return nil
     }
   }
 }

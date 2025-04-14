@@ -14,6 +14,10 @@ struct CurrentPlayingView : View {
   @FocusState.Binding var focusState: ViewFocus?
 
   let textWidth: CGFloat
+  let tViewPurchased: Bool
+
+  // TODO: Remove once keyboard handling is done properly
+  @Binding var lyricsEdit: Bool
 
   @State private var playingPopover   = false
   @State private var playlistPopover  = false
@@ -144,6 +148,7 @@ struct CurrentPlayingView : View {
   func handleKeyEvents() {
     NSEvent.addLocalMonitorForEvents(matching: .keyDown) { aEvent -> NSEvent? in
       if(focusState != .CurrentPlayingView) { return aEvent }
+      if(lyricsEdit) { return aEvent}
 
       let keyCode = Int(aEvent.keyCode)
       switch(keyCode) {
@@ -174,6 +179,18 @@ struct CurrentPlayingView : View {
       case kVK_DownArrow:
         trackPopover = false
         model.playNextTrack()
+        return nil
+
+      case kVK_ANSI_LeftBracket:
+        if(!tViewPurchased || playerSelection.loopStartDisabled) { return nil }
+
+        model.setLoopStart()
+        return nil
+
+      case kVK_ANSI_RightBracket:
+        if(!tViewPurchased || playerSelection.loopEndDisabled) { return nil }
+
+        model.setLoopEnd()
         return nil
 
       default:

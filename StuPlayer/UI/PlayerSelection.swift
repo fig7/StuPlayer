@@ -23,6 +23,9 @@ struct LyricsItem {
 
   init(lyric: Substring) { text = String(lyric) }
   init(lyric: Substring, time: TimeInterval) { text = String(lyric); self.time = time }
+
+  init(lyric: String) { text = lyric }
+  init(lyric: String, time: TimeInterval) { text = lyric; self.time = time }
 }
 
 @MainActor class PlayerSelection: ObservableObject

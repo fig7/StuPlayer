@@ -10,6 +10,7 @@ import SwiftUI
 struct LyricsItemView : View {
   let model: PlayerDataModel
   @ObservedObject var playerSelection: PlayerSelection
+  @ObservedObject var lyricsEditor: LyricsEditor
 
   let itemText: String
   let itemIndex: Int
@@ -18,9 +19,13 @@ struct LyricsItemView : View {
   let lyricsItem: Bool
   let highlighted: Bool
 
-  init(model: PlayerDataModel, playerSelection: PlayerSelection, itemText: String, itemIndex: Int) {
+  let updateLyrics: Bool
+  let updateAllowed: Bool
+
+  init(model: PlayerDataModel, playerSelection: PlayerSelection, lyricsEditor: LyricsEditor, itemText: String, itemIndex: Int) {
     self.model = model
     self.playerSelection = playerSelection
+    self.lyricsEditor    = lyricsEditor
 
     self.itemText     = itemText
     self.itemIndex    = itemIndex
@@ -28,14 +33,20 @@ struct LyricsItemView : View {
     itemPlaying   = (playerSelection.playbackState == .playing)
     lyricsItem    = (itemIndex == (playerSelection.lyricsPosition))
     highlighted   = (itemIndex == playerSelection.lyricsScrollPos)
+
+    updateLyrics  = (playerSelection.lyricsMode == .Update)
+    updateAllowed = (!lyricsEditor.lyricsEdit)
   }
 
   var body: some View {
     HStack(spacing: 0) {
       Text("         ").onTapGesture { lyricsItem ? model.togglePause() : nil}
       Text(itemText).fontWeight((highlighted || lyricsItem) ? .semibold : nil).padding(.horizontal, 4)
-        .background(highlighted ? RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3)) : nil)
-        .onTapGesture { model.lyricsItemClicked(itemIndex) }
+        .background(highlighted  ? updateLyrics ? updateAllowed ? RoundedRectangle(cornerRadius: 5).foregroundColor(.orange.opacity(0.8))
+                                                                : RoundedRectangle(cornerRadius: 5).foregroundColor(.red.opacity(0.8))
+                                                : RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3))
+                                 : nil)
+        .onTapGesture { if(!updateLyrics || updateAllowed) { model.lyricsItemSelected(itemIndex) } }
     }
     .background(lyricsItem ? Image(itemPlaying ? "Playing" : "Paused").resizable().aspectRatio(contentMode: .fit) : nil, alignment: .leading)
     .frame(minWidth: 150, alignment: .leading).padding(.horizontal, 4)
@@ -45,6 +56,7 @@ struct LyricsItemView : View {
 struct LyricsScrollView : View {
   let model: PlayerDataModel
   @ObservedObject var playerSelection: PlayerSelection
+  @ObservedObject var lyricsEditor: LyricsEditor
 
   let hasFocus: Bool
   let textHeight: CGFloat
@@ -71,7 +83,7 @@ struct LyricsScrollView : View {
           LazyVStack(alignment: .leading, spacing: 0) {
             if(playerSelection.playingLyrics.count > 1) {
               ForEach(Array(playerSelection.playingLyrics.enumerated()), id: \.offset) { itemIndex, item in
-                LyricsItemView(model: model, playerSelection: playerSelection, itemText: item.text, itemIndex: itemIndex)
+                LyricsItemView(model: model, playerSelection: playerSelection, lyricsEditor: lyricsEditor, itemText: item.text, itemIndex: itemIndex)
               }
             }
           }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)

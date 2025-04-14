@@ -6,11 +6,15 @@
 //
 
 import SwiftUI
+import Carbon.HIToolbox
 
 struct ToolsView : View {
   let model: PlayerDataModel
   @ObservedObject var playerSelection: PlayerSelection
   @FocusState.Binding var focusState: ViewFocus?
+
+  // TODO: Remove once keyboard handling is done properly
+  @Binding var lyricsEdit: Bool
 
   @State private var loopStartHover = false
   @State private var loopEndHover   = false
@@ -57,13 +61,51 @@ struct ToolsView : View {
           }
       }
     }
-    .onAppear(perform: {
+    .onAppear() {
       handleKeyEvents()
       handleWheelEvents()
-    })
+    }
   }
 
-  func handleKeyEvents() { }
+  func handleKeyEvents() {
+    NSEvent.addLocalMonitorForEvents(matching: .keyDown) { aEvent -> NSEvent? in
+      if(focusState != .ToolsView) { return aEvent }
+      if(lyricsEdit) { return aEvent}
+
+      let keyCode = Int(aEvent.keyCode)
+      switch(keyCode) {
+
+      case kVK_Space:
+        model.togglePause()
+        return nil
+
+      case kVK_UpArrow:
+        playerSelection.adjustRate.toggle()
+        return nil
+
+      case kVK_DownArrow:
+        playerSelection.loopTrack.toggle()
+        return nil
+
+      case kVK_ANSI_LeftBracket:
+        if(playerSelection.loopStartDisabled) { return nil }
+
+        model.setLoopStart()
+        return nil
+
+      case kVK_ANSI_RightBracket:
+        if(playerSelection.loopEndDisabled) { return nil }
+
+        model.setLoopEnd()
+        return nil
+
+      default:
+        break
+      }
+
+      return aEvent
+    }
+  }
 
   func handleWheelEvents() {
     NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in

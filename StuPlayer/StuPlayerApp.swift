@@ -18,7 +18,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let appWindows = NSApp.windows
     for window in appWindows {
       guard let id = window.identifier else { continue }
-      if (id.rawValue == "spInApp") { window.close(); break }
+      if(id.rawValue == "spInApp") { window.close() }
+      if(id.rawValue == "spLyricsEdit") { window.close() }
     }
   }
 }
@@ -142,11 +143,63 @@ struct InAppHTML: View {
 }
 
 @available(macOS 13.0, *)
+struct LyricsTextEditor : View {
+  @Binding var lyricsText: String
+
+  var body: some View {
+    TextEditor(text: $lyricsText).monospaced()
+  }
+}
+
+@available(macOS 13.0, *)
+struct LyricsEditView : View {
+  @Environment(\.dismiss) var dismiss
+
+  let model: PlayerDataModel
+  @ObservedObject var lyricsEditor: LyricsEditor
+
+  private func saveLyrics() {
+    let lyricsAndNotes = model.lyricsForTrack(lyricsEditor.lyricsText)
+    if(lyricsAndNotes.0 != nil) {
+      model.playerAlert.triggerAlert(alertMessage: "Error decoding lyrics:\n" + lyricsAndNotes.0!)
+      return
+    }
+
+    model.updateLyricsFile(trackURL: lyricsEditor.lyricsTrack, notesToWrite: lyricsAndNotes.1, lyricsToWrite: lyricsAndNotes.2)
+    model.refreshLyrics()
+  }
+
+  var body: some View {
+    VStack(alignment: .trailing, spacing: 10) {
+      LyricsTextEditor(lyricsText: $lyricsEditor.lyricsText).frame(minWidth: 460, maxWidth: .infinity, minHeight: 340, maxHeight: .infinity)
+        .onDisappear() { lyricsEditor.lyricsEdit = false }
+
+      HStack(spacing: 10) {
+        DummyView(action: { dismiss() }).keyboardShortcut(.escape, modifiers: [])
+
+        Button("Save changes", action: {
+          saveLyrics()
+        })
+        .padding()
+        .keyboardShortcut("s", modifiers: [.command])
+
+        Button("Save & close", action: {
+          saveLyrics()
+          dismiss()
+        })
+        .padding()
+      }
+    }
+  }
+}
+
+@available(macOS 13.0, *)
 struct StuPlayerApp13 : App {
   @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-  @Environment(\.openWindow) var openWindow
+  @Environment(\.openWindow) private var openWindow
 
-  @StateObject private var skManager = SKManager()
+  @StateObject private var skManager    = SKManager()
+  @StateObject private var lyricsEditor = LyricsEditor()
   @State private var playerDataModel: PlayerDataModel
 
   init() {
@@ -157,7 +210,7 @@ struct StuPlayerApp13 : App {
 
   var body: some Scene {
     WindowGroup() {
-      ContentView(model: playerDataModel, skManager: skManager, playerAlert: playerDataModel.playerAlert, playerSelection: playerDataModel.playerSelection)
+      ContentView(model: playerDataModel, skManager: skManager, lyricsEditor: lyricsEditor, playerAlert: playerDataModel.playerAlert, playerSelection: playerDataModel.playerSelection)
     }
     .defaultSize(width: 1394, height: 734)
     .commands {
@@ -190,12 +243,25 @@ struct StuPlayerApp13 : App {
       skManager.inAppHelpTriggered = false
       openWindow(id: "spInApp")
     }
+
+    Window("Edit lyrics", id: "spLyricsEdit") {
+      if(lyricsEditor.lyricsEdit) {
+        LyricsEditView(model: playerDataModel, lyricsEditor: lyricsEditor)
+      } else { Text("Lyrics edit window").frame(width: 460, height: 340) }
+    }
+    .windowResizability(.contentMinSize)
+    .onChange(of: lyricsEditor.lyricsEdit) { lyricsEdit in
+      if(!lyricsEdit) { return }
+      openWindow(id: "spLyricsEdit")
+    }
   }
 }
 
 struct StuPlayerApp: App {
   @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-  @StateObject private var skManager = SKManager()
+
+  @StateObject private var skManager    = SKManager()
+  @StateObject private var lyricsEditor = LyricsEditor()
   @State private var playerDataModel: PlayerDataModel
 
   init() {
@@ -206,7 +272,7 @@ struct StuPlayerApp: App {
 
   var body: some Scene {
     WindowGroup() {
-      ContentView(model: playerDataModel, skManager: skManager, playerAlert: playerDataModel.playerAlert, playerSelection: playerDataModel.playerSelection)
+      ContentView(model: playerDataModel, skManager: skManager, lyricsEditor: lyricsEditor, playerAlert: playerDataModel.playerAlert, playerSelection: playerDataModel.playerSelection)
     }
     .commands {
       CommandGroup(replacing: .newItem) { }

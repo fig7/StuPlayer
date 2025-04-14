@@ -40,6 +40,7 @@ struct LyricsNotes : View {
     VStack(alignment: .leading, spacing: 0) {
       Text("Notes:").font(.headline).frame(width: 50, alignment: .leading).padding(.horizontal, 4)
       Text(playingNotes.isEmpty ? "No notes added"  : playingNotes).font(.headline).padding(.leading, 20).padding(.trailing, 4)
+      if(playingLyrics.isEmpty) { Text("No lyrics added").font(.headline).padding(.leading, 20).padding(.trailing, 4) }
     }.background(highlighted ? RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3)) : nil)
   }
 }

@@ -41,7 +41,7 @@ struct PlayingItemView : View {
       Text("         ").onTapGesture { playerItem ? model.togglePause() : nil}
       Text(itemText).fontWeight((highlighted || playerItem) ? .semibold : nil).padding(.horizontal, 4)
         .background(highlighted   ? RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3)) :
-                    currentSearch ? RoundedRectangle(cornerRadius: 5).foregroundColor(.orange.opacity(1.0)) :
+                    currentSearch ? RoundedRectangle(cornerRadius: 5).foregroundColor(.orange.opacity(0.8)) :
                     itemSearched  ? RoundedRectangle(cornerRadius: 5).foregroundColor(.yellow.opacity(0.5)) : nil)
         .onTapGesture { model.playingItemClicked(itemIndex) }
         .onHover(perform: { hovering in
