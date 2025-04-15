@@ -26,8 +26,8 @@ enum StorageError: Error { case BookmarkCreationFailed, TypesCreationFailed, Dic
 enum TrackError:   Error { case ReadingTypesFailed, ReadingArtistsFailed, ReadingAlbumsFailed, MissingM3U }
 
 // Local storage paths
-let rootBookmark  = "RootBM.dat"
-let rootTypesFile = "RootTypes.dat"
+let rootBookmark   = "RootBM.dat"
+let rootFormatFile = "RootFormat.dat"
 
 let m3UFile         = "Playlists.dat"
 let trackFile       = "Tracks.dat"
@@ -67,9 +67,10 @@ let timePitchUnit = AVAudioUnitTimePitch()
   var tracksDict: TrackDict = [:]
   var typesList: [String]   = []
 
-  var selectedType   = ""
-  var selectedArtist = ""
-  var selectedAlbum  = ""
+  var selectedFormat   = ""
+  var selectedType     = ""
+  var selectedArtist   = ""
+  var selectedAlbum    = ""
 
   var filteredArtist = ""
   var filteredAlbum  = ""
@@ -127,7 +128,8 @@ let timePitchUnit = AVAudioUnitTimePitch()
     }
 
     do {
-      try (self.selectedType, self.typesList) = PlayerDataModel.getTypes(typesFile: rootTypesFile)
+      try self.selectedFormat = PlayerDataModel.getFormat(formatFile: rootFormatFile)
+      self.selectedType = "MP3 & FLAC" // TODO: Hack for now. Just implement as another level.
     } catch {
       logManager.append(logCat: .LogInitError,   logMessage: "Error reading types")
       logManager.append(logCat: .LogThrownError, logMessage: "Types error: " + error.localizedDescription)
@@ -199,7 +201,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
 
       playerSelection.setDelegate(delegate: self)
       playerSelection.setRootPath(newRootPath: rootPath)
-      playerSelection.setTypes(newType: selectedType, newTypeList: typesList)
+      playerSelection.setFormat(newFormat: selectedFormat)
       playerSelection.setAll(newArtist: selectedArtist, newAlbum: selectedAlbum, newList: tracksDict.keys.sorted())
 
       playerSelection.trackCountdown = trackCountdown
@@ -320,19 +322,20 @@ let timePitchUnit = AVAudioUnitTimePitch()
     }
   }
 
-  func lyricNotes(_ splLines: [Substring]) -> String {
-    var notes: String = ""
+  func lyricNotes(_ splLines: [Substring]) -> String? {
+    var notes: String?
     for splLine in splLines {
       if(splLine.starts(with: "#")) {
         var noteTrimmed = String(splLine)
         noteTrimmed.removeFirst()
-
         noteTrimmed = noteTrimmed.trimmingCharacters(in: .whitespaces)
-        notes.append(noteTrimmed + "\n")
+
+        if(notes == nil) { notes = "" }
+        notes!.append(noteTrimmed + "\n")
       } else { break }
     }
 
-    if(!notes.isEmpty) { notes.removeLast() }
+    if(notes != nil) { notes!.removeLast() }
     return notes
   }
 
@@ -364,7 +367,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
     return (nil, lyricItems)
   }
 
-  func lyricsForTrack(_ splStr: String) -> (String?, String, [LyricsItem]?) {
+  func lyricsForTrack(_ splStr: String) -> (String?, String?, [LyricsItem]?) {
     if(splStr.isEmpty) { return (nil, "", []) }
 
     let splLines = splStr.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
@@ -738,7 +741,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
 
   func artistClicked() {
     playerSelection.browserScrollPos = -1
-    clearArtist()
+    clearAlbum()
   }
 
   func clearArtist() {
@@ -771,11 +774,6 @@ let timePitchUnit = AVAudioUnitTimePitch()
     playerSelection.setAlbum(newAlbum: "", newList: albumList);
   }
 
-  func albumClicked() {
-    playerSelection.browserScrollPos = -1
-    clearAlbum()
-  }
-
   func clearAlbum() {
     if(!playerSelection.filterString.isEmpty) {
       clearFilteredAlbum()
@@ -792,6 +790,11 @@ let timePitchUnit = AVAudioUnitTimePitch()
   func clearAlbumOrArtist() {
     if(playerSelection.canClearAlbum())  { clearAlbum(); return }
     if(playerSelection.canClearArtist()) { clearArtist(); return }
+  }
+
+  func clearAlbumAndArtist() {
+    if(playerSelection.canClearAlbum())  { clearAlbum()  }
+    if(playerSelection.canClearArtist()) { clearArtist() }
   }
 
   func artistFilterItemSelected(itemIndex: Int, itemText: String) {
@@ -1479,7 +1482,7 @@ let timePitchUnit = AVAudioUnitTimePitch()
 func refreshLyrics() {
      // Refetch lyrics (if available)
      let trackURL = currentTrack?.trackURL
-     
+
      (currentNotes, currentLyrics) = lyricsForTrack(trackURL)
      playerSelection.setLyrics(newLyrics: (currentNotes, currentLyrics))
 
@@ -1516,23 +1519,12 @@ func refreshLyrics() {
     return (countdownStr == "TRUE")
   }
 
-  static func getTypes(typesFile: String) throws -> (String, [String]) {
-    let typesData = NSData(contentsOfFile: typesFile) as Data?
-    guard let typesData else { return ("", []) }
+  static func getFormat(formatFile: String) throws -> String {
+    let formatData = NSData(contentsOfFile: formatFile) as Data?
+    guard let formatData else { return "From folders" }
 
-    let typesStr   = String(decoding: typesData, as: UTF8.self)
-    let typesSplit = typesStr.split(whereSeparator: \.isNewline)
-    switch(typesSplit.count) {
-    case 0:
-      return ("", [])
-
-    case 1:
-      // Unexpected (there should be no entries or >= 2 entries)
-      throw StorageError.ReadingTypesFailed
-
-    default:
-      return (String(typesSplit[0]), typesSplit.dropFirst().map(String.init))
-    }
+    let formatStr = String(decoding: formatData, as: UTF8.self)
+    return formatStr
   }
 
   static func getBookmarkData() -> Data? {
@@ -1693,9 +1685,8 @@ func refreshLyrics() {
     return (m3Us, tracks)
   }
 
-  func saveTypes() throws {
-    let joinedTypes = selectedType + "\n" + typesList.joined(separator: "\n")
-    try joinedTypes.write(toFile: rootTypesFile, atomically: true, encoding: .utf8)
+  func saveFormat() throws {
+    try selectedFormat.write(toFile: rootFormatFile, atomically: true, encoding: .utf8)
   }
 
   func scanTypes() throws {
@@ -1725,7 +1716,7 @@ func refreshLyrics() {
         logManager.append(logCat: .LogScanError, logMessage: "Updating types: No type folders found")
       }
 
-      try saveTypes()
+      try saveFormat()
       logManager.append(logCat: .LogInfo, logMessage: "Scanning for types... done")
     } catch {
       logManager.append(logCat: .LogScanError,   logMessage: "Updating types failed")
@@ -1835,7 +1826,7 @@ func refreshLyrics() {
       tracksDict = allTracksDict[selectedType] ?? [:]
       musicPath  = rootPath + selectedType + "/"
     }
-    playerSelection.setTypes(newType: selectedType, newTypeList: typesList)
+    playerSelection.setFormat(newFormat: selectedType)
 
     if(!scanError.isEmpty) {
       scanError += "Check log file for details."
@@ -1843,10 +1834,10 @@ func refreshLyrics() {
     }
   }
 
-  func typeChanged(newType: String) {
+  func formatChanged(newFormat: String) {
     do {
-      selectedType = newType
-      try saveTypes()
+      selectedFormat = newFormat
+      try saveFormat()
     } catch {
       // Ignore error
       // (it's not critical)
@@ -2364,64 +2355,64 @@ func refreshLyrics() {
     guard var lyricsToWrite else { return }
     lyricsToWrite.removeFirst()
 
-    var lyricsStr = ""
+    var ouputStr = ""
     if let notesToWrite {
       let noteLines = notesToWrite.split(whereSeparator: \.isNewline)
       for noteLine in noteLines {
-        lyricsStr.append("# " + noteLine + "\n")
+        ouputStr.append("# " + noteLine + "\n")
       }
 
-      lyricsStr.append("#\n")
+      ouputStr.append("#\n")
     }
 
     for lyric in lyricsToWrite {
       var lyricLine = ""
       if(lyric.time != nil) { lyricLine.append(lyricsTimeStr(from: lyric.time!) + "*") }
       lyricLine.append(lyric.text)
-      lyricsStr.append(lyricLine + "\n")
+      ouputStr.append(lyricLine + "\n")
     }
 
     // Remove final \n
-    lyricsStr.removeLast()
+    ouputStr.removeLast()
 
     let lyricsURL  = trackURL.deletingPathExtension().appendingPathExtension("spl")
     let lyricsPath = lyricsURL.filePath()
-    try! lyricsStr.write(toFile: lyricsPath, atomically: true, encoding: .utf8) // TODO: Handle error (e.g. won't save after stop pressed)
+    try! ouputStr.write(toFile: lyricsPath, atomically: true, encoding: .utf8) // TODO: Handle error (e.g. won't save after stop pressed) Maybe hold lock, somehow? i.e. until window closed.
   }
 
-  func lyricsItemSelected(_ itemIndex: Int) {
-    if(playerSelection.lyricsMode == .Navigate) {
-      guard let currentLyrics else { return }
-      guard let lyricTime = currentLyrics[itemIndex].time else { return }
+  func lyricsNavigateSelected(_ itemIndex: Int) {
+    guard let currentLyrics else { return }
+    guard let lyricTime = currentLyrics[itemIndex].time else { return }
 
-      if(playerTotal > 0.0) {
-        let trackPos = (lyricTime / playerTotal) + 0.000001 // (try to avoid rounding error)
-        self.seekTo(newPosition: trackPos)
+    if(playerTotal > 0.0) {
+      let trackPos = (lyricTime / playerTotal) + 0.000001 // (try to avoid rounding error)
+      self.seekTo(newPosition: trackPos)
 
-        if(playerSelection.loopTrack && ((lyricTime < loopStart) || (lyricTime > loopEnd))) {
-          // Adjust loop, if selection is outside loop bounds
-          if(lyricTime < loopStart) { setLoopStart(lyricTime) }
-          if(lyricTime > loopEnd) { setLoopEnd(lyricTime) }
-        }
+      if(playerSelection.loopTrack && ((lyricTime < loopStart) || (lyricTime > loopEnd))) {
+        // Adjust loop, if selection is outside loop bounds
+        if(lyricTime < loopStart) { setLoopStart(lyricTime) }
+        if(lyricTime > loopEnd) { setLoopEnd(lyricTime) }
       }
-    } else { // .Update
-      if(itemIndex == 0) { return }
+    }
+  }
 
-      let playPosition = player.time
-      guard let playPosition else { return }
+  func lyricsUpdateSelected(_ itemIndex: Int) {
+    if(itemIndex == 0) { return }
 
-      let current = playPosition.current
-      guard let current else { return }
+    let playPosition = player.time
+    guard let playPosition else { return }
 
-      var lyricTime = current - 0.5
-      if(lyricTime<0.0) { lyricTime = 0.0 }
+    let current = playPosition.current
+    guard let current else { return }
 
-      if(lyricTimeValid(lyricIndex: itemIndex, newTime: lyricTime)) {
-        currentLyrics![itemIndex].time = lyricTime
-        playerSelection.setLyrics(newLyrics: (currentNotes, currentLyrics))
+    var lyricTime = current - 0.5
+    if(lyricTime<0.0) { lyricTime = 0.0 }
 
-        updateLyricsFile(trackURL: currentTrack?.trackURL, notesToWrite: currentNotes, lyricsToWrite: currentLyrics)
-      }
+    if(lyricTimeValid(lyricIndex: itemIndex, newTime: lyricTime)) {
+      currentLyrics![itemIndex].time = lyricTime
+      playerSelection.setLyrics(newLyrics: (currentNotes, currentLyrics))
+
+      updateLyricsFile(trackURL: currentTrack?.trackURL, notesToWrite: currentNotes, lyricsToWrite: currentLyrics)
     }
   }
 

@@ -32,25 +32,27 @@ struct ContentView: View {
     VStack(alignment: .leading) {
       HStack {
         Button(action: model.setRootFolder) {
-          Text("Root folder: ").padding(.horizontal, 10).background() {
+          Text("Home folder: ").padding(.horizontal, 10).background() {
             GeometryReader { proxy in Color.clear.onAppear { textWidth = proxy.size.width / 12.0; textHeight = proxy.size.height } } }.padding(.vertical, 2)
         }
 
         Text((playerSelection.rootPath == "/") ? "Not set" : playerSelection.rootPath).padding(.horizontal, 10).padding(.vertical, 2)
 
-        Button(action: model.scanFolders) {
-          Text("Rescan").padding(.horizontal, 10).padding(.vertical, 2)
-        }
+        Spacer().frame(width: 10)
 
-        Spacer().frame(width: 30)
-
-        Picker("Type:", selection: $playerSelection.type) {
-          ForEach(playerSelection.typeList, id: \.self) {
+        Picker("Format: ", selection: $playerSelection.format) {
+          ForEach(playerSelection.formatList, id: \.self) {
             Text($0)
           }
         }
         .pickerStyle(.menu)
-        .frame(minWidth: 125, maxWidth: 180)
+        .frame(width: 190)
+
+        Spacer().frame(width: 25)
+
+        Button(action: model.scanFolders) {
+          Text("Rescan").padding(.horizontal, 10).padding(.vertical, 2)
+        }
 
 #if PLAYBACK_TEST
         Spacer().frame(width: 20)
@@ -92,34 +94,34 @@ struct ContentView: View {
 
           Spacer().frame(width: 30)
 
-          if(playerSelection.filterString.isEmpty || (playerSelection.filterMode == .Artist)) {
-            Button(action: model.artistClicked) {
-              Text("Artist: ").padding(.horizontal, 10).padding(.vertical, 2)
+          Button(action: model.toggleShuffle) {
+            switch(playerSelection.shuffleTracks) {
+            case false:
+              Text("Order: from m3u").frame(width: 110).padding(.horizontal, 10).padding(.vertical, 2)
+            case true:
+              Text("Order: random").frame(width: 110).padding(.horizontal, 10).padding(.vertical, 2)
             }
-
-            Text(playerSelection.artist).lineLimit(1).frame(minWidth: 50, maxWidth: .infinity, alignment: .leading)
-          } else if(playerSelection.filterMode != .Artist) {
-            Button(action: { }) {
-              Text("Artist: ").padding(.horizontal, 10).padding(.vertical, 2)
-            }.disabled(true)
-
-            Text(playerSelection.artist).lineLimit(1).foregroundStyle(.gray).frame(minWidth: 50, maxWidth: .infinity, alignment: .leading)
           }
 
           Spacer().frame(width: 20)
 
-          if(playerSelection.filterString.isEmpty || (playerSelection.filterMode != .Track)) {
-            Button(action: model.albumClicked) {
-              Text("Album: ").padding(.horizontal, 10).padding(.vertical, 2)
+          Button(action: model.toggleRepeat) {
+            switch(playerSelection.repeatTracks) {
+            case RepeatState.None:
+              Text("Repeat: none").frame(width: 90).padding(.horizontal, 10).padding(.vertical, 2)
+
+            case RepeatState.Track:
+              Text("Repeat: track").frame(width: 90).padding(.horizontal, 10).padding(.vertical, 2)
+
+            case RepeatState.All:
+              Text("Repeat: all").frame(width: 90).padding(.horizontal, 10).padding(.vertical, 2)
             }
+          }
 
-            Text(playerSelection.album).lineLimit(1).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
-          } else {
-            Button(action: { }) {
-              Text("Album: ").padding(.horizontal, 10).padding(.vertical, 2)
-            }.disabled(true)
+          Spacer().frame(width: 20)
 
-            Text(playerSelection.album).lineLimit(1).foregroundStyle(.gray).frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+          Button(action: model.playAll) {
+            Text("Play all").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
           }
         }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
 
@@ -152,60 +154,94 @@ struct ContentView: View {
 
       Spacer().frame(height: 20)
 
-      HStack {
-        HStack {
-          Button(action: model.playAll) {
-            Text("Play all").frame(width: 50).padding(.horizontal, 10).padding(.vertical, 2)
-          }
-
-          Spacer().frame(width: 20)
-
-          Button(action: model.toggleShuffle) {
-            switch(playerSelection.shuffleTracks) {
-            case false:
-              Text("Order: from m3u").frame(width: 110).padding(.horizontal, 10).padding(.vertical, 2)
-            case true:
-              Text("Order: random").frame(width: 110).padding(.horizontal, 10).padding(.vertical, 2)
-            }
-          }
-
-          Spacer().frame(width: 20)
-
-          Button(action: model.toggleRepeat) {
-            switch(playerSelection.repeatTracks) {
-            case RepeatState.None:
-              Text("Repeat: none").frame(width: 90).padding(.horizontal, 10).padding(.vertical, 2)
-
-            case RepeatState.Track:
-              Text("Repeat: track").frame(width: 90).padding(.horizontal, 10).padding(.vertical, 2)
-
-            case RepeatState.All:
-              Text("Repeat: all").frame(width: 90).padding(.horizontal, 10).padding(.vertical, 2)
-            }
-          }
-        }.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
-      }
-
-      Spacer().frame(height: 20)
-
       VStack(alignment: .leading, spacing: 0) {
-        HStack {
+        HStack(spacing: 15) {
           let browserFocus = (viewFocus == .BrowserScrollView)
-          HStack(alignment: .top,  spacing: 0) {
-            let upAllowed = (playerSelection.canClearAlbum() || playerSelection.canClearArtist())
-            Text("         ").onTapGesture { model.clearAlbumOrArtist() }
-              .background(Image(upAllowed ? "Up(allowed)" : "Up(at root)").resizable().aspectRatio(contentMode: .fit), alignment: .leading)
+          let highlighted  = (browserFocus && controlActiveState)
 
-            BrowserScrollView(model: model, playerSelection: playerSelection, hasFocus: browserFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
-              .frame(minWidth: 172, maxWidth: .infinity, minHeight: 120, maxHeight: .infinity)
-              .background() { GeometryReader { proxy in Color.clear.onAppear { scrollViewHeight = proxy.size.height }.onChange(of: proxy.size.height) { newValue in scrollViewHeight = newValue } } }
-              .onChange(of: trackPlaying() ) { trackPlaying in
-                viewFocus = (trackPlaying) ? .CurrentPlayingView : .BrowserScrollView
+          VStack(alignment: .leading) {
+            HStack {
+              Text("      ").font(.title2)
+                .background(Image(systemName: "house.fill").resizable().aspectRatio(contentMode: .fit), alignment: .leading)
+                .onTapGesture { model.clearAlbumAndArtist() } // TODO: Or search icon
+
+              if(!playerSelection.canClearAlbum() && !playerSelection.canClearArtist()) {
+                Text("Home") // TODO: Or Search
+                  .lineLimit(1)
+                  .font(.headline)
               }
+
+              if(playerSelection.filterString.isEmpty || (playerSelection.filterMode == .Artist)) {
+                HStack() {
+                  Text(playerSelection.artist)
+                    .lineLimit(1)
+                    .font(.headline)
+                    .onTapGesture() { model.artistClicked() }
+
+                  if(!playerSelection.artist.isEmpty) {
+                    Text("/").font(.headline)
+
+                    if(playerSelection.filterString.isEmpty || (playerSelection.filterMode != .Track)) {
+                      Text(playerSelection.album)
+                        .lineLimit(1)
+                        .font(.headline)
+                    } else {
+                      Text(playerSelection.album)
+                        .lineLimit(1)
+                        .foregroundStyle(.gray)
+                    }
+                  }
+                }
+              } else if(playerSelection.filterMode != .Artist) {
+                HStack() {
+                  Text(playerSelection.artist)
+                    .lineLimit(1)
+                    .font(.headline)
+                    .foregroundStyle(.gray)
+
+                  if(!playerSelection.artist.isEmpty) {
+                    Text("/").font(.headline)
+
+                    if(playerSelection.filterString.isEmpty || (playerSelection.filterMode != .Track)) {
+                      Text(playerSelection.album)
+                        .lineLimit(1)
+                        .font(.headline)
+                    } else {
+                      Text(playerSelection.album)
+                        .lineLimit(1)
+                        .foregroundStyle(.gray)
+                    }
+                  }
+                }
+              }
+            }
+
+            Spacer().frame(height: 10)
+
+            HStack(alignment: .top,  spacing: 0) {
+              Text("         ")
+
+              BrowserScrollView(model: model, playerSelection: playerSelection, hasFocus: browserFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
+                .frame(minWidth: 172, maxWidth: .infinity, minHeight: 120, maxHeight: .infinity)
+                .background() {
+                  GeometryReader { proxy in
+                    Color.clear
+                      .onAppear {
+                        scrollViewHeight = proxy.size.height
+                      }
+                      .onChange(of: proxy.size.height) { newValue in
+                        scrollViewHeight = newValue
+                      }
+                  }
+                }
+                .onChange(of: trackPlaying() ) { trackPlaying in
+                  viewFocus = (trackPlaying) ? .CurrentPlayingView : .BrowserScrollView
+                }
+            }
           }
             .padding(7)
             .contentShape(Rectangle())
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke((browserFocus && controlActiveState) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(highlighted ? .blue : .gray, lineWidth: highlighted ? 5 : 2).opacity(0.6))
             .onTapGesture() { viewFocus = .BrowserScrollView }
 
           if(!trackPlaying() || !skManager.plViewPurchased) {
@@ -240,10 +276,12 @@ struct ContentView: View {
 
           if(playlistViewAvailable()) {
             let playingFocus = (viewFocus == .PlaylistScrollView)
+            let highlighted  = (playingFocus && controlActiveState)
+
             PlaylistScrollView(model: model, playerSelection: playerSelection, hasFocus: playingFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
               .frame(minWidth: 172, maxWidth: .infinity, minHeight: 120).padding(7)
               .contentShape(Rectangle())
-              .overlay(RoundedRectangle(cornerRadius: 8).stroke((playingFocus && controlActiveState) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+              .overlay(RoundedRectangle(cornerRadius: 8).stroke(highlighted ? .blue : .gray, lineWidth: highlighted ? 5 : 2).opacity(0.6))
               .onTapGesture() { viewFocus = .PlaylistScrollView }
           }
         }
@@ -287,40 +325,42 @@ struct ContentView: View {
               LyricsRightButtons(model: model, lyricsEditor: lyricsEditor, playerSelection: playerSelection, focusState: $viewFocus)
             }
 
-            HStack {
+            HStack(spacing: 15) {
               let lyricsInfoFocus = (viewFocus == .LyricsInfoView)
+              let liHighlighted   = (lyricsInfoFocus && controlActiveState)
+
               LyricsInfoView(model: model, playerSelection: playerSelection, hasFocus: lyricsInfoFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
                 .frame(minWidth: 172, maxWidth: .infinity, minHeight: 130).padding(7)
                 .contentShape(Rectangle())
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke((lyricsInfoFocus && controlActiveState) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(liHighlighted ? .blue : .gray, lineWidth: liHighlighted ? 5 : 2).opacity(0.6))
                 .onTapGesture() { viewFocus = .LyricsInfoView }
 
-              let lyricsFocus = (viewFocus == .LyricsScrollView)
+              let lyricsFocus  = (viewFocus == .LyricsScrollView)
+              let lHighlighted = (lyricsFocus && controlActiveState)
               LyricsScrollView(model: model, playerSelection: playerSelection, lyricsEditor: lyricsEditor, hasFocus: lyricsFocus, textHeight: textHeight, viewHeight: scrollViewHeight)
                 .frame(minWidth: 172, maxWidth: .infinity, minHeight: 130)
                 .padding(7)
                 .contentShape(Rectangle())
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke((lyricsFocus && controlActiveState) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(lHighlighted ? .blue : .gray, lineWidth: lHighlighted ? 5 : 2).opacity(0.6))
                 .onTapGesture() { viewFocus = .LyricsScrollView }
             }
           }
         }
 
-        Spacer().frame(height: 20)
+        Spacer().frame(height: 30)
 
-        HStack {
+        HStack(spacing: 15) {
           if(trackPlaying()) {
+            let highlighted = (viewFocus == .CurrentPlayingView) && controlActiveState
             CurrentPlayingView(model: model, playerSelection: playerSelection, focusState: $viewFocus, textWidth: textWidth, tViewPurchased: skManager.tViewPurchased, lyricsEdit: $lyricsEditor.lyricsEdit)
               .padding(10)
               .contentShape(Rectangle())
-              .background(RoundedRectangle(cornerRadius: 8).stroke(((viewFocus == .CurrentPlayingView) && controlActiveState) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+              .background(RoundedRectangle(cornerRadius: 8).stroke(highlighted ? .blue : .gray, lineWidth: highlighted ? 5 : 2).opacity(0.6))
               .onTapGesture() { viewFocus = .CurrentPlayingView }
           } else {
             NothingPlayingView(model: model, playerSelection: playerSelection)
               .padding(10)
           }
-
-          Spacer()
 
           if(!trackPlaying() || !skManager.tViewPurchased) {
             let tViewDismissed = playerSelection.dismissedViews.tView || !skManager.canMakePayments
@@ -354,11 +394,12 @@ struct ContentView: View {
 
           if(toolsViewAvailable()) {
             // TODO: Do refactor other views, too.
+            let highlighted = (viewFocus == .ToolsView) && controlActiveState
             ToolsView(model: model, playerSelection: playerSelection, focusState: $viewFocus, lyricsEdit: $lyricsEditor.lyricsEdit)
               .frame(maxWidth: .infinity)
-              .padding(.vertical, 20)
+              .padding(.vertical, 22)
               .contentShape(Rectangle())
-              .overlay(RoundedRectangle(cornerRadius: 8).stroke(((viewFocus == .ToolsView) && controlActiveState) ? .blue : .clear, lineWidth: 5).opacity(0.6))
+              .overlay(RoundedRectangle(cornerRadius: 8).stroke(highlighted ? .blue : .gray, lineWidth: highlighted ? 5 : 2).opacity(0.6))
               .onTapGesture() { viewFocus = .ToolsView }
 
           } else {
@@ -570,23 +611,23 @@ struct ContentView: View {
             return nil
           }
 
-          let updateLyrics  = (playerSelection.lyricsMode == .Update)
-          let updateAllowed = (!lyricsEditor.lyricsEdit)
-          if(!updateLyrics || updateAllowed) { model.lyricsItemSelected(itemIndex) }
+          let updateAllowed = !lyricsEditor.lyricsEdit
+          if(playerSelection.lyricsMode == .Navigate) { model.lyricsNavigateSelected(itemIndex) }
+          else if(updateAllowed) { model.lyricsUpdateSelected(itemIndex) }
         }
 
         return nil
 
       case kVK_F1:
-        model.playAll()
-        return nil
-
-      case kVK_F2:
         model.toggleShuffle()
         return nil
 
-      case kVK_F3:
+      case kVK_F2:
         model.toggleRepeat()
+        return nil
+
+      case kVK_F3:
+        model.playAll()
         return nil
 
       case kVK_F5:

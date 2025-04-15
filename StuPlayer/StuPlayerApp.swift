@@ -244,7 +244,7 @@ struct StuPlayerApp13 : App {
       openWindow(id: "spInApp")
     }
 
-    Window("Edit lyrics", id: "spLyricsEdit") {
+    Window("Edit notes & lyrics", id: "spLyricsEdit") {
       if(lyricsEditor.lyricsEdit) {
         LyricsEditView(model: playerDataModel, lyricsEditor: lyricsEditor)
       } else { Text("Lyrics edit window").frame(width: 460, height: 340) }

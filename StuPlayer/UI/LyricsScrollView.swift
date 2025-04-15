@@ -35,7 +35,7 @@ struct LyricsItemView : View {
     highlighted   = (itemIndex == playerSelection.lyricsScrollPos)
 
     updateLyrics  = (playerSelection.lyricsMode == .Update)
-    updateAllowed = (!lyricsEditor.lyricsEdit)
+    updateAllowed = !lyricsEditor.lyricsEdit
   }
 
   var body: some View {
@@ -46,7 +46,10 @@ struct LyricsItemView : View {
                                                                 : RoundedRectangle(cornerRadius: 5).foregroundColor(.red.opacity(0.8))
                                                 : RoundedRectangle(cornerRadius: 5).foregroundColor(.blue.opacity(0.3))
                                  : nil)
-        .onTapGesture { if(!updateLyrics || updateAllowed) { model.lyricsItemSelected(itemIndex) } }
+        .onTapGesture {
+          if(!updateLyrics) { model.lyricsNavigateSelected(itemIndex) }
+          else if(updateAllowed) { model.lyricsUpdateSelected(itemIndex) }
+        }
     }
     .background(lyricsItem ? Image(itemPlaying ? "Playing" : "Paused").resizable().aspectRatio(contentMode: .fit) : nil, alignment: .leading)
     .frame(minWidth: 150, alignment: .leading).padding(.horizontal, 4)

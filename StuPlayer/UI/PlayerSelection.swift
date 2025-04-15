@@ -31,7 +31,7 @@ struct LyricsItem {
 @MainActor class PlayerSelection: ObservableObject
 {
   @MainActor protocol Delegate: AnyObject {
-    func typeChanged(newType: String)
+    func formatChanged(newFormat: String)
     func filterChanged(newFilter: String)
     func browserScrollPosChanged(newScrollPos: Int)
     func trackPosChanged(newTrackPos: Double)
@@ -39,11 +39,11 @@ struct LyricsItem {
   }
 
   @Published var rootPath = ""
-  @Published var typeList: [String] = []
+  @Published var formatList: [String] = ["From Folders", "From Metadata"]
 
-  @Published var type: String = "" {
+  @Published var format: String = "" {
     didSet {
-      delegate?.typeChanged(newType: type)
+      delegate?.formatChanged(newFormat: format)
     }
   }
 
@@ -212,9 +212,8 @@ struct LyricsItem {
     self.rootPath = newRootPath
   }
 
-  func setTypes(newType: String, newTypeList: [String]) {
-    self.type     = newType
-    self.typeList = newTypeList
+  func setFormat(newFormat: String) {
+    self.format = newFormat
   }
 
   func setArtist(newArtist: String, newList: [String]) {
